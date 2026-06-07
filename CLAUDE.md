@@ -250,6 +250,9 @@ pytest src/tests/unit/ --cov=src/controllers --cov-fail-under=100
 ### Regra
 Todo novo controller criado deve ter seu `test_<dominio>_controller.py` na mesma PR. CI bloqueia merge se cobertura de `src/controllers/` cair abaixo de 100%.
 
+### Dívida técnica ativa
+- `--cov-fail-under=100` está **ausente do CI** temporariamente — foi removido porque não há controllers ainda e o job quebraria com 0% de cobertura. **Deve ser restaurado na primeira PR que criar um controller real.** Não esquecer de remover também `src/tests/unit/test_placeholder.py` nessa mesma PR.
+
 ---
 
 ## 13. CI — GitHub Actions
@@ -262,7 +265,9 @@ Roda em todo PR para `main`. Deve passar antes de mergear.
 |-----|---------|------|
 | Frontend build | `npm run build` | Falha = bloqueia |
 | Backend lint | `uv run ruff check src/` | Falha = bloqueia |
-| Backend testes | `pytest src/tests/unit/ --cov=src/controllers --cov-fail-under=100` | Falha = bloqueia |
+| Backend testes | `pytest src/tests/unit/ --cov=src/controllers` | Falha = bloqueia |
+
+> **Atenção**: `--cov-fail-under=100` está ausente do CI enquanto não há controllers. Restaurar quando o primeiro controller for criado (ver Seção 12 — Dívida técnica ativa).
 
 Deploy é **manual** — CI não faz deploy.
 

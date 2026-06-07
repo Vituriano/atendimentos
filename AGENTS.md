@@ -202,7 +202,9 @@ gh pr create --title "feat: description" --body "$(cat .github/pull_request_temp
 |-----|---------|----------------|
 | Frontend build | `npm run build` | Sim |
 | Backend lint | `uv run ruff check src/` | Sim |
-| Backend testes | `pytest src/tests/unit/ --cov=src/controllers --cov-fail-under=100` | Sim |
+| Backend testes | `pytest src/tests/unit/ --cov=src/controllers` | Sim |
+
+> **Pending debt**: `--cov-fail-under=100` is temporarily absent from the CI test job. The first PR that creates a real controller must: (1) restore `--cov-fail-under=100` in `.github/workflows/ci.yml`, (2) delete `src/tests/unit/test_placeholder.py`.
 
 Deploy é **manual** — CI não faz deploy.
 

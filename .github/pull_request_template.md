@@ -1,19 +1,19 @@
-## O que essa PR faz
-<!-- Uma linha descrevendo a mudança -->
+## What this PR does
+<!-- One line describing the change -->
 
-## Task relacionada
-<!-- Link ou número da task no Trello -->
+## Related task
+<!-- Link or task number in Trello -->
 
-## Tipo de mudança
+## Type of change
 - [ ] Frontend
 - [ ] Backend
 - [ ] Full-stack
 - [ ] Docs/Config
 
 ## Checklist
-- [ ] `npm run build` passou sem erros
-- [ ] Testes unitários passando (`pytest src/tests/unit/ --cov=src/controllers --cov-fail-under=100`)
-- [ ] Guardrails do CLAUDE.md respeitados (sem DELETE SQL, sem secrets, sem refatoração não solicitada)
-- [ ] Se backend: novo controller tem 100% de cobertura em `src/tests/unit/`
-- [ ] Se frontend: mockup lido antes de implementar, tipos importados de `clinica.ts`
-- [ ] CLAUDE.md atualizado se nova decisão arquitetural foi tomada
+- [ ] `npm run build` passed without errors
+- [ ] Unit tests passing (`pytest src/tests/unit/ --cov=src/controllers --cov-fail-under=100`)
+- [ ] CLAUDE.md guardrails respected (no DELETE SQL, no secrets, no unsolicited refactoring)
+- [ ] If backend: new controller has 100% coverage in `src/tests/unit/`
+- [ ] If frontend: mockup read before implementing, types imported from `clinica.ts`
+- [ ] CLAUDE.md updated if a new architectural decision was made
