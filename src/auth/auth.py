@@ -11,7 +11,6 @@ from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 
-from ..resources.database import get_app_db_session
 from ..models.refresh_token import RefreshToken
 
 load_dotenv()

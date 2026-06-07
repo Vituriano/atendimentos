@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+set -e
+
+echo "Running ruff lint..."
+uv run ruff check src/
+echo "Lint passed."
