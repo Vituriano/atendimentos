@@ -36,9 +36,22 @@ A estrutura do projeto e projetada para separar claramente as responsabilidades 
 └── README.md             # Esta documentacao
 ```
 
-## Primeiros Passos
+## Getting Started
 
-Para instalar e executar a aplicacao, siga o guia de configuracao detalhado:
+### First-time setup (run once after cloning)
+
+```bash
+# Backend
+uv sync --group dev
+git config core.hooksPath .githooks  # enables pre-commit lint hook
+
+# Frontend
+cd frontend && npm install
+```
+
+The pre-commit hook runs `ruff` automatically before every commit and blocks it if there are lint errors.
+
+For full installation and execution instructions, see the detailed setup guide:
 
 - **[Guia de Instalacao e Execucao (SETUP.md)](./docs/SETUP.md)**
 
