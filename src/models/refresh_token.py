@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON
+from sqlalchemy import Column, Integer, String, DateTime, JSON
 from sqlalchemy.sql import func
 from ..resources.database import Base
 

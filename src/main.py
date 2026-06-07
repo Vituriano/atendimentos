@@ -1,14 +1,16 @@
+import os
+from contextlib import asynccontextmanager
+
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
-import os
-from contextlib import asynccontextmanager
-from dotenv import load_dotenv
+
+from .resources.database import DatabaseManager, Base
+from .routers import paciente, auth, admin, aih, bpa, material
 
 # Carrega as variáveis de ambiente do arquivo .env
 load_dotenv()
-
-from .resources.database import DatabaseManager, Base
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -57,8 +59,6 @@ app = FastAPI(
 app.mount("/static/dist/assets", StaticFiles(directory="src/static/dist/assets"), name="assets")
 app.mount("/static/dist", StaticFiles(directory="src/static/dist"), name="static")
 
-# Placeholder para incluir os roteadores da API
-from .routers import paciente, auth, admin, aih, bpa, material
 app.include_router(paciente.router)
 app.include_router(auth.router)
 app.include_router(admin.router)

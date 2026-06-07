@@ -11,8 +11,7 @@ class PacienteCsvProvider(PacienteProviderInterface):
 
     def _check_file_exists(self):
         try:
-            with open(self.csv_path, mode='r', encoding='utf-8') as f:
-                pass
+            open(self.csv_path, mode='r', encoding='utf-8').close()
         except FileNotFoundError:
             raise RuntimeError(f"Arquivo CSV de pacientes não encontrado em: {self.csv_path}")
 
