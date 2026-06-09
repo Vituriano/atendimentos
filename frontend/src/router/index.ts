@@ -1,49 +1,53 @@
 import { createRouter, createWebHistory, NavigationGuardNext } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
-import Home from '../views/Home.vue';
-import Login from '../views/Login.vue';
-import Admin from '../views/Admin.vue';
-
-import Exemplos from '../views/Exemplos.vue';
-import Pacientes from '../views/Pacientes.vue';
+import AppLayout from '../layouts/AppLayout.vue';
+import LoginLayout from '../layouts/LoginLayout.vue';
 
 const routes = [
+  { path: '/', redirect: '/fila' },
   {
     path: '/',
-    name: 'Home',
-    component: Home,
+    component: AppLayout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: 'fila',
+        component: () => import('../views/Fila.vue'),
+        meta: { title: 'Fila de Atendimento' },
+      },
+      {
+        path: 'briefing',
+        component: () => import('../views/Briefing.vue'),
+        meta: { title: 'Briefing Clínico' },
+      },
+      {
+        path: 'pacientes',
+        component: () => import('../views/Pacientes.vue'),
+        meta: { title: 'Base de Pacientes' },
+      },
+      {
+        path: 'admin',
+        component: () => import('../views/Admin.vue'),
+        meta: { title: 'Admin' },
+      },
+    ],
   },
   {
     path: '/login',
-    name: 'Login',
-    component: Login,
-    meta: { layout: 'LoginLayout' },
-  },
-  {
-    path: '/admin',
-    name: 'Admin',
-    component: Admin,
-    meta: { requiresAuth: true },
-  },
-
-  {
-    path: '/exemplos',
-    name: 'Exemplos',
-    component: Exemplos,
-  },
-  {
-    path: '/pacientes',
-    name: 'Pacientes',
-    component: Pacientes,
-    meta: { requiresAuth: true },
+    component: LoginLayout,
+    children: [
+      {
+        path: '',
+        name: 'Login',
+        component: () => import('../views/Login.vue'),
+      },
+    ],
   },
 ];
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
-  linkActiveClass: 'bg-paper-active-link',
-  linkExactActiveClass: 'bg-paper-active-link',
 });
 
 router.beforeEach((to, _from, next: NavigationGuardNext) => {
