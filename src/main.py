@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 
 from .resources.database import DatabaseManager, Base
-from .routers import paciente, auth, admin, aih, bpa, material
+from .routers import paciente, auth, admin, aih, bpa, material, fila
 
 # Carrega as variáveis de ambiente do arquivo .env
 load_dotenv()
