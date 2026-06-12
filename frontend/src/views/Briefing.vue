@@ -364,7 +364,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, 
 const router = useRouter()
 const route = useRoute()
 const store = useBriefingStore()
-const { pacienteAtivo, historico, alertas, antropometria } = storeToRefs(store)
+const { pacienteAtivo, historico, alertas } = storeToRefs(store)
 
 const isReadOnly = computed(() => route.query.source === 'base')
 const patientIdFromUrl = computed(() => route.query.patientId as string | undefined)

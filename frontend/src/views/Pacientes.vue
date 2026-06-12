@@ -27,7 +27,7 @@
 
     <!-- Empty state -->
     <div v-if="filteredPacientes.length === 0" class="flex flex-col items-center justify-center py-16 text-center">
-      <UserXMarkIcon class="h-10 w-10 text-slate-300 mb-3" />
+      <XMarkIcon class="h-10 w-10 text-slate-300 mb-3" />
       <p class="text-sm font-medium text-slate-600">
         {{ isCpfSearch && !isCpfComplete ? 'Digite o CPF completo' : 'Nenhum paciente encontrado' }}
       </p>
@@ -131,7 +131,7 @@ import { useRouter } from 'vue-router'
 import {
   UsersIcon,
   MagnifyingGlassIcon,
-  UserXMarkIcon,
+  XMarkIcon,
   EyeIcon,
   EyeSlashIcon,
   ChevronLeftIcon,
