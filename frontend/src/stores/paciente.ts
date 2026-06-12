@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Paciente, Consulta, AlertaClinico, DadosAntropometricos } from '../types/clinica'
 
-const mockPacientes: Paciente[] = [
+export const mockPacientes: Paciente[] = [
   {
     id: '1',
     nome: 'Ana Clara Souza',
@@ -18,8 +18,17 @@ const mockPacientes: Paciente[] = [
         dataAbertura: '10/01/2024',
         consultas: [
           { id: 'c1-1', data: 'Mar/2025', tipo: 'Retorno', peso: 11.2, tendenciaPeso: 'down', cid: 'Z00.1', encaminhamento: 'Gastroenterologia' },
-          { id: 'c1-2', data: 'Jan/2025', tipo: 'Egresso', peso: 11.5, tendenciaPeso: 'stable', cid: null, encaminhamento: null },
-          { id: 'c1-3', data: 'Out/2024', tipo: 'Retorno', peso: 10.8, tendenciaPeso: 'up', cid: 'J06.9', encaminhamento: null },
+          { id: 'c1-2', data: 'Fev/2025', tipo: 'externo', servicoOrigem: 'UBS Mangueira', peso: 10.9, tendenciaPeso: 'down', cid: null, encaminhamento: null, isExterno: true },
+          { id: 'c1-3', data: 'Jan/2025', tipo: 'Egresso', peso: 11.5, tendenciaPeso: 'stable', cid: null, encaminhamento: null },
+          { id: 'c1-4', data: 'Out/2024', tipo: 'Retorno', peso: 10.8, tendenciaPeso: 'up', cid: 'J06.9', encaminhamento: null },
+          { id: 'c1-5', data: 'Jul/2024', tipo: 'Retorno', peso: 10.2, tendenciaPeso: 'up', cid: 'Z00.1', encaminhamento: null },
+        ],
+      },
+      {
+        numero: 'HC-2022-00231',
+        dataAbertura: '05/03/2022',
+        consultas: [
+          { id: 'c1-6', data: 'Dez/2023', tipo: 'Retorno', peso: 9.5, tendenciaPeso: 'up', cid: 'Z00.1', encaminhamento: null },
         ],
       },
     ],
@@ -65,7 +74,52 @@ const mockPacientes: Paciente[] = [
       },
     ],
   },
+  {
+    id: '4',
+    nome: 'Miguel Santos',
+    dataNascimento: '10/04/2025',
+    idade: '1 ano',
+    idadeEmMeses: 12,
+    prontuario: 'HC-2025-00890',
+    prontuarioPrimario: 'HC-2025-00890',
+    cpf: '456.789.012-43',
+    prontuarios: [
+      {
+        numero: 'HC-2025-00890',
+        dataAbertura: '10/04/2025',
+        consultas: [
+          { id: 'c4-1', data: 'Abr/2026', tipo: 'Retorno', peso: 10.1, tendenciaPeso: 'up', cid: 'Z00.1', encaminhamento: null },
+          { id: 'c4-2', data: 'Jan/2026', tipo: 'Retorno', peso: 9.2, tendenciaPeso: 'up', cid: 'Z00.1', encaminhamento: null },
+        ],
+      },
+    ],
+  },
+  {
+    id: '5',
+    nome: 'Sophia Oliveira',
+    dataNascimento: '24/04/2023',
+    idade: '3 anos',
+    idadeEmMeses: 36,
+    prontuario: 'HC-2023-00445',
+    prontuarioPrimario: 'HC-2023-00445',
+    cpf: '567.890.123-54',
+    prontuarios: [
+      {
+        numero: 'HC-2023-00445',
+        dataAbertura: '24/04/2023',
+        consultas: [
+          { id: 'c5-1', data: 'Mai/2026', tipo: 'Retorno', peso: 14.5, tendenciaPeso: 'stable', cid: 'Z00.1', encaminhamento: null },
+          { id: 'c5-2', data: 'Fev/2026', tipo: 'Retorno', peso: 14.2, tendenciaPeso: 'up', cid: 'Z00.1', encaminhamento: null },
+          { id: 'c5-3', data: 'Nov/2025', tipo: 'Retorno', peso: 13.8, tendenciaPeso: 'up', cid: 'J20.9', encaminhamento: 'Pneumologia' },
+        ],
+      },
+    ],
+  },
 ]
+
+export function getPacienteById(id: string): Paciente | undefined {
+  return mockPacientes.find(p => p.id === id)
+}
 
 const mockAlertas: Record<string, AlertaClinico[]> = {
   '1': [
@@ -76,12 +130,18 @@ const mockAlertas: Record<string, AlertaClinico[]> = {
     { id: 'a3', tipo: 'atencao', categoria: 'encaminhamento', mensagem: 'Retorno de Neurologia pendente há 3 meses' },
   ],
   '3': [],
+  '4': [],
+  '5': [
+    { id: 'a4', tipo: 'atencao', categoria: 'encaminhamento', mensagem: 'Retorno de Pneumologia pendente há 45 dias' },
+  ],
 }
 
 const mockAntropometria: Record<string, DadosAntropometricos> = {
-  '1': { peso: 11.2, percentilPeso: 'p15', altura: 85.0, percentilAltura: 'p25', perimetroCefalico: 47.5, imc: 15.5 },
+  '1': { peso: 11.2, percentilPeso: 'p15', altura: 85.0, percentilAltura: 'p25', perimetroCefalico: null, imc: 15.5 },
   '2': { peso: 8.5, percentilPeso: 'p50', altura: 70.0, percentilAltura: 'p50', perimetroCefalico: 44.0, imc: 17.3 },
   '3': { peso: 16.2, percentilPeso: 'p50', altura: 102.0, percentilAltura: 'p50', perimetroCefalico: null, imc: 15.6 },
+  '4': { peso: 10.1, percentilPeso: 'p50', altura: 76.0, percentilAltura: 'p50', perimetroCefalico: 46.0, imc: 17.5 },
+  '5': { peso: 14.5, percentilPeso: 'p50', altura: 96.0, percentilAltura: 'p50', perimetroCefalico: null, imc: 15.7 },
 }
 
 export const usePacienteStore = defineStore('paciente', () => {
