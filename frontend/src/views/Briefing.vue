@@ -1,7 +1,18 @@
 <template>
   <div class="space-y-6">
+    <!-- Botão Voltar (modo leitura via base de pacientes) -->
+    <div v-if="isReadOnly" class="flex items-center gap-3">
+      <button
+        @click="router.push('/pacientes')"
+        class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
+      >
+        <ArrowLeftIcon class="h-4 w-4" />
+        Voltar para Base de Pacientes
+      </button>
+    </div>
+
     <!-- Banner modo leitura -->
-    <div v-if="modoLeitura" class="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+    <div v-if="isReadOnly" class="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
       <InformationCircleIcon class="h-4 w-4 shrink-0" />
       Visualização histórica — paciente não está em atendimento ativo
     </div>
@@ -11,20 +22,20 @@
       <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div class="space-y-1">
           <div class="flex items-center gap-3">
-            <h1 class="text-xl font-semibold text-slate-900">{{ pacienteAtivo?.nome }}</h1>
+            <h1 class="text-xl font-semibold text-slate-900">{{ currentPatient?.nome }}</h1>
             <span v-if="tipoEntrada" :class="entryTypeBadgeClass(tipoEntrada)" class="text-xs font-medium px-2 py-0.5 rounded-full">
               {{ tipoEntrada }}
             </span>
           </div>
           <p class="text-sm text-slate-500">
-            {{ pacienteAtivo?.idade }}
-            · Nascimento: {{ pacienteAtivo?.dataNascimento }}
+            {{ currentPatient?.idade }}
+            · Nascimento: {{ currentPatient?.dataNascimento }}
             · Prontuário: {{ prontuarioPrimario }}
           </p>
         </div>
 
         <div class="flex flex-wrap gap-2">
-          <template v-if="!modoLeitura">
+          <template v-if="!isReadOnly">
             <button
               v-if="consultaEmAndamento"
               @click="router.push('/consulta')"
@@ -63,7 +74,7 @@
 
       <!-- Banner consulta em andamento -->
       <div
-        v-if="!modoLeitura && consultaEmAndamento"
+        v-if="!isReadOnly && consultaEmAndamento"
         class="mt-4 flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700"
       >
         <ClockIcon class="h-4 w-4 shrink-0" />
@@ -124,7 +135,7 @@
                       <component :is="trendIcon(consulta.tendenciaPeso)" :class="trendClass(consulta.tendenciaPeso)" class="inline h-3 w-3 ml-0.5" />
                     </span>
                   </div>
-                  <div v-if="!modoLeitura" class="flex items-center gap-1 shrink-0">
+                  <div v-if="!isReadOnly" class="flex items-center gap-1 shrink-0">
                     <button
                       class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
                       @click="router.push(`/consulta/historico?date=${consulta.data}`)"
@@ -219,22 +230,22 @@
             <div class="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span class="text-slate-500">Peso:</span>
-                <span class="ml-1 font-medium text-slate-800">{{ antropometria?.peso }} kg</span>
-                <span class="ml-1 text-slate-400">({{ antropometria?.percentilPeso }})</span>
+                <span class="ml-1 font-medium text-slate-800">{{ currentAntropometria?.peso }} kg</span>
+                <span class="ml-1 text-slate-400">({{ currentAntropometria?.percentilPeso }})</span>
               </div>
               <div>
                 <span class="text-slate-500">Altura:</span>
-                <span class="ml-1 font-medium text-slate-800">{{ antropometria?.altura }} cm</span>
-                <span class="ml-1 text-slate-400">({{ antropometria?.percentilAltura }})</span>
+                <span class="ml-1 font-medium text-slate-800">{{ currentAntropometria?.altura }} cm</span>
+                <span class="ml-1 text-slate-400">({{ currentAntropometria?.percentilAltura }})</span>
               </div>
               <div>
                 <span class="text-slate-500">Perímetro Cefálico:</span>
-                <span v-if="antropometria?.perimetroCefalico != null" class="ml-1 font-medium text-slate-800">{{ antropometria.perimetroCefalico }} cm</span>
+                <span v-if="currentAntropometria?.perimetroCefalico != null" class="ml-1 font-medium text-slate-800">{{ currentAntropometria?.perimetroCefalico }} cm</span>
                 <span v-else class="ml-1 italic text-slate-400">não registrado</span>
               </div>
               <div>
                 <span class="text-slate-500">IMC:</span>
-                <span class="ml-1 font-medium text-slate-800">{{ antropometria?.imc }}</span>
+                <span class="ml-1 font-medium text-slate-800">{{ currentAntropometria?.imc }}</span>
               </div>
             </div>
 
@@ -258,7 +269,7 @@
         <p class="mb-4 text-sm text-slate-500">O prontuário completo está disponível no AGHU.</p>
 
         <div class="mb-3 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm space-y-0.5">
-          <p class="font-medium text-slate-800">{{ pacienteAtivo?.nome }}</p>
+          <p class="font-medium text-slate-800">{{ currentPatient?.nome }}</p>
           <p class="text-slate-500">Prontuário: {{ prontuarioPrimario }}</p>
         </div>
         <p class="mb-3 text-sm text-slate-600">
@@ -293,7 +304,7 @@
       <div class="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-6 shadow-lg">
         <h3 class="mb-2 text-base font-semibold text-slate-800">Iniciar atendimento?</h3>
         <p class="mb-6 text-sm text-slate-600">
-          Você está prestes a iniciar o atendimento de <strong>{{ pacienteAtivo?.nome }}</strong>.
+          Você está prestes a iniciar o atendimento de <strong>{{ currentPatient?.nome }}</strong>.
         </p>
         <div class="flex justify-end gap-2">
           <button
@@ -316,7 +327,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import {
   InformationCircleIcon,
   ClockIcon,
@@ -331,6 +342,7 @@ import {
   ExclamationTriangleIcon,
   DocumentDuplicateIcon,
   ExclamationCircleIcon,
+  ArrowLeftIcon,
 } from '@heroicons/vue/24/outline'
 import { Line } from 'vue-chartjs'
 import {
@@ -344,33 +356,63 @@ import {
 } from 'chart.js'
 import { useBriefingStore } from '../stores/briefing'
 import { storeToRefs } from 'pinia'
+import { getPacienteById } from '../stores/paciente'
 import type { TipoEntrada, CategoriaAlerta } from '../types/clinica'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip)
 
 const router = useRouter()
+const route = useRoute()
 const store = useBriefingStore()
-const { pacienteAtivo, historico, alertas, antropometria, modoLeitura } = storeToRefs(store)
+const { pacienteAtivo, historico, alertas, antropometria } = storeToRefs(store)
+
+const isReadOnly = computed(() => route.query.source === 'base')
+const patientIdFromUrl = computed(() => route.query.patientId as string | undefined)
+
+const currentPatient = computed(() => {
+  if (isReadOnly.value && patientIdFromUrl.value) {
+    return getPacienteById(patientIdFromUrl.value) ?? pacienteAtivo.value
+  }
+  return pacienteAtivo.value
+})
+
+const currentHistorico = computed(() => {
+  if (isReadOnly.value && patientIdFromUrl.value) {
+    const p = getPacienteById(patientIdFromUrl.value)
+    return p?.prontuarios?.flatMap(pr => pr.consultas) ?? []
+  }
+  return historico.value ?? []
+})
+
+const currentAlertas = computed(() => {
+  if (isReadOnly.value) return []
+  return alertas.value ?? []
+})
+
+const currentAntropometria = computed(() => {
+  if (isReadOnly.value) return null
+  return store.antropometria
+})
 
 const prontuarioOpen = ref(false)
 const confirmStartOpen = ref(false)
 
 const prontuarioPrimario = computed(
-  () => (pacienteAtivo.value as any)?.prontuarios?.[0]?.numero ?? (pacienteAtivo.value as any)?.prontuario ?? '—'
+  () => (currentPatient.value as any)?.prontuarios?.[0]?.numero ?? (currentPatient.value as any)?.prontuario ?? '—'
 )
 
-const tipoEntrada = computed(() => (pacienteAtivo.value as any)?.tipoEntrada as TipoEntrada | undefined)
-const consultaEmAndamento = computed(() => !modoLeitura.value && !!pacienteAtivo.value)
+const tipoEntrada = computed(() => (currentPatient.value as any)?.tipoEntrada as TipoEntrada | undefined)
+const consultaEmAndamento = computed(() => !isReadOnly.value && !!pacienteAtivo.value)
 const dataUltimaConsulta = computed(() => historicoOrdenado.value[0]?.data ?? null)
 
 onMounted(() => {
-  if (!pacienteAtivo.value) router.push('/fila')
+  if (!isReadOnly.value && !pacienteAtivo.value) router.push('/fila')
 })
 
-const historicoOrdenado = computed(() => [...(historico.value ?? [])].reverse())
+const historicoOrdenado = computed(() => [...currentHistorico.value].reverse())
 
 const alertasOrdenados = computed(() =>
-  [...(alertas.value ?? [])].sort((a, b) => {
+  [...currentAlertas.value].sort((a, b) => {
     if (a.tipo === 'critico' && b.tipo !== 'critico') return -1
     if (a.tipo !== 'critico' && b.tipo === 'critico') return 1
     return 0
@@ -379,7 +421,7 @@ const alertasOrdenados = computed(() =>
 
 const cidsFrequentes = computed(() => {
   const counts: Record<string, number> = {}
-  for (const c of historico.value ?? []) {
+  for (const c of currentHistorico.value) {
     if (c.cid) counts[c.cid] = (counts[c.cid] ?? 0) + 1
   }
   return Object.entries(counts)
@@ -390,7 +432,7 @@ const cidsFrequentes = computed(() => {
 
 const encaminhamentos = computed(() => {
   const set = new Set<string>()
-  for (const c of historico.value ?? []) {
+  for (const c of currentHistorico.value) {
     if (c.encaminhamento) set.add(c.encaminhamento)
   }
   return [...set]
@@ -448,9 +490,9 @@ function copyRecord() {
 }
 
 const sparklineData = computed(() => ({
-  labels: [...(historico.value ?? [])].map((c) => c.data),
+  labels: [...currentHistorico.value].map((c) => c.data),
   datasets: [{
-    data: [...(historico.value ?? [])].map((c) => c.peso),
+    data: [...currentHistorico.value].map((c) => c.peso),
     borderColor: '#0d9488',
     backgroundColor: 'rgba(13,148,136,0.08)',
     fill: true,
