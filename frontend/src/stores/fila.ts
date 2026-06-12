@@ -143,13 +143,6 @@ export const useFilaStore = defineStore('fila', () => {
   const pacienteStore = usePacienteStore()
 
   const entradas = ref<EntradaFila[]>(mockEntradas)
-  const busca = ref('')
-
-  const entradasFiltradas = computed(() =>
-    entradas.value.filter(e =>
-      e.paciente.nome.toLowerCase().includes(busca.value.toLowerCase())
-    )
-  )
 
   const stats = computed(() => ({
     total: entradas.value.length,
@@ -165,8 +158,8 @@ export const useFilaStore = defineStore('fila', () => {
 
   function iniciarConsulta(entrada: EntradaFila) {
     pacienteStore.selecionarPaciente(entrada.paciente, 'consulta')
-    router.push('/briefing')
+    router.push('/consulta')
   }
 
-  return { entradas, busca, entradasFiltradas, stats, verBriefing, iniciarConsulta }
+  return { entradas, stats, verBriefing, iniciarConsulta }
 })
