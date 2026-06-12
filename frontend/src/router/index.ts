@@ -40,6 +40,7 @@ const routes = [
         path: '',
         name: 'Login',
         component: () => import('../views/Login.vue'),
+        meta: { title: 'Login' },
       },
     ],
   },
@@ -51,6 +52,8 @@ const router = createRouter({
 });
 
 router.beforeEach((to, _from, next: NavigationGuardNext) => {
+  document.title = to.meta.title ? `${to.meta.title} — HC Pediatria` : 'HC Pediatria'
+
   // Pinia store must be used inside a function to ensure it's initialized
   const authStore = useAuthStore();
 
