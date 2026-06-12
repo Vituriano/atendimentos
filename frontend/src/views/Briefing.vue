@@ -1,175 +1,337 @@
 <template>
-  <div class="p-6 max-w-7xl mx-auto">
+  <div class="space-y-6">
     <!-- Banner modo leitura -->
-    <div v-if="modoLeitura" class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 flex items-center gap-3">
-      <InformationCircleIcon class="h-5 w-5 text-amber-600 flex-shrink-0" />
-      <p class="text-sm text-amber-800">Modo leitura — visualizando histórico sem iniciar atendimento.</p>
+    <div v-if="modoLeitura" class="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+      <InformationCircleIcon class="h-4 w-4 shrink-0" />
+      Visualização histórica — paciente não está em atendimento ativo
     </div>
 
     <!-- Header do paciente -->
-    <div class="bg-white rounded-xl border border-gray-200 p-5 mb-6 flex items-start justify-between">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">{{ pacienteAtivo?.nome }}</h1>
-        <div class="flex flex-wrap gap-4 mt-1 text-sm text-gray-600">
-          <span>{{ pacienteAtivo?.idade }}</span>
-          <span>·</span>
-          <span>Nascimento: {{ pacienteAtivo?.dataNascimento }}</span>
-          <span>·</span>
-          <span>Prontuário: {{ pacienteAtivo?.prontuario }}</span>
+    <div class="rounded-lg border border-slate-200 bg-white p-5">
+      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div class="space-y-1">
+          <div class="flex items-center gap-3">
+            <h1 class="text-xl font-semibold text-slate-900">{{ pacienteAtivo?.nome }}</h1>
+            <span v-if="tipoEntrada" :class="entryTypeBadgeClass(tipoEntrada)" class="text-xs font-medium px-2 py-0.5 rounded-full">
+              {{ tipoEntrada }}
+            </span>
+          </div>
+          <p class="text-sm text-slate-500">
+            {{ pacienteAtivo?.idade }}
+            · Nascimento: {{ pacienteAtivo?.dataNascimento }}
+            · Prontuário: {{ prontuarioPrimario }}
+          </p>
+        </div>
+
+        <div class="flex flex-wrap gap-2">
+          <template v-if="!modoLeitura">
+            <button
+              v-if="consultaEmAndamento"
+              @click="router.push('/consulta')"
+              class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <ClockIcon class="h-4 w-4" />
+              Continuar Atendimento
+              <span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">Em andamento</span>
+            </button>
+            <button
+              v-else
+              @click="confirmStartOpen = true"
+              class="inline-flex items-center gap-2 rounded-md bg-teal-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-700"
+            >
+              <PlayIcon class="h-4 w-4" />
+              Iniciar Atendimento
+            </button>
+          </template>
+
+          <button
+            @click="router.push('/caderneta')"
+            class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <BookOpenIcon class="h-4 w-4" />
+            Ver Caderneta Digital
+          </button>
+          <button
+            @click="prontuarioOpen = true"
+            class="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100"
+          >
+            <DocumentTextIcon class="h-4 w-4" />
+            Ver Prontuário Completo
+          </button>
         </div>
       </div>
-      <button
-        v-if="!modoLeitura"
-        @click="router.push('/consulta')"
-        class="ml-4 flex-shrink-0 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+
+      <!-- Banner consulta em andamento -->
+      <div
+        v-if="!modoLeitura && consultaEmAndamento"
+        class="mt-4 flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700"
       >
-        Iniciar Atendimento
-      </button>
+        <ClockIcon class="h-4 w-4 shrink-0" />
+        <span>Consulta em andamento</span>
+        <span class="ml-auto font-medium">Timer ativo no formulário</span>
+      </div>
     </div>
 
-    <!-- Layout 2 colunas -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Coluna esquerda: Timeline + Padrões de conduta -->
-      <div class="flex flex-col gap-6">
+    <!-- Grid 2 colunas -->
+    <div class="grid gap-6 lg:grid-cols-2">
 
-        <!-- Timeline de consultas -->
-        <div class="bg-white rounded-xl border border-gray-200 p-5">
-          <h2 class="text-base font-semibold text-gray-800 mb-4">Histórico de Consultas</h2>
-          <div v-if="historicoOrdenado.length === 0" class="text-sm text-gray-500">
-            Sem consultas anteriores.
+      <!-- Coluna esquerda -->
+      <div class="space-y-6">
+
+        <!-- Timeline -->
+        <div class="rounded-lg border border-slate-200 bg-white">
+          <div class="border-b border-slate-100 px-5 py-4">
+            <h2 class="text-sm font-semibold text-slate-800">Linha do Tempo</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Últimas consultas</p>
           </div>
-          <ol v-else class="relative border-l border-gray-200 ml-2 space-y-4">
-            <li
+          <div class="p-5 space-y-3">
+            <p v-if="historicoOrdenado.length === 0" class="text-sm text-slate-400">Sem consultas anteriores.</p>
+            <div
               v-for="consulta in historicoOrdenado"
               :key="consulta.id ?? consulta.data"
-              class="ml-4"
+              :class="[
+                'rounded-lg border p-3 space-y-1.5 transition-colors hover:border-slate-300',
+                consulta.isExterno ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-200'
+              ]"
             >
-              <span class="absolute -left-1.5 mt-1 h-3 w-3 rounded-full border-2 border-white bg-teal-500"></span>
-              <div class="flex items-center gap-2 text-sm">
-                <span class="font-medium text-gray-700">{{ consulta.data }}</span>
-                <span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                  {{ consulta.isExterno ? 'Externo' : consulta.tipo }}
-                </span>
-                <span v-if="consulta.isExterno && consulta.servicoOrigem" class="text-xs text-gray-400">
-                  ({{ consulta.servicoOrigem }})
-                </span>
-              </div>
-              <div class="flex items-center gap-3 mt-1">
-                <span class="text-sm text-gray-600">
-                  Peso: <span class="font-medium">{{ consulta.peso }} kg</span>
-                  <span :class="tendenciaClass(consulta.tendenciaPeso)" class="ml-1 font-bold">
-                    {{ tendenciaIcon(consulta.tendenciaPeso) }}
+              <!-- Externa -->
+              <template v-if="consulta.isExterno">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2">
+                    <ArrowDownTrayIcon class="h-4 w-4 text-slate-400" />
+                    <span class="text-sm font-medium text-slate-700">{{ consulta.data }}</span>
+                    <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">Externo</span>
+                    <span class="text-sm text-slate-600">
+                      {{ consulta.peso }}kg
+                      <component :is="trendIcon(consulta.tendenciaPeso)" :class="trendClass(consulta.tendenciaPeso)" class="inline h-3 w-3 ml-0.5" />
+                    </span>
+                  </div>
+                  <span class="cursor-help" :title="'Dados de atendimento externo ao HC, inseridos com base em informações da família.'">
+                    <InformationCircleIcon class="h-4 w-4 text-slate-400" />
                   </span>
-                </span>
-                <span v-if="consulta.cid" class="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
-                  CID: {{ consulta.cid }}
-                </span>
-              </div>
-              <p v-if="consulta.encaminhamento" class="text-xs text-purple-700 mt-0.5">
-                Encam.: {{ consulta.encaminhamento }}
-              </p>
-              <p v-if="consulta.observacoes" class="text-xs text-gray-400 italic mt-0.5">
-                {{ consulta.observacoes }}
-              </p>
-            </li>
-          </ol>
+                </div>
+                <div class="text-xs text-slate-400">{{ consulta.servicoOrigem }}</div>
+              </template>
+
+              <!-- Regular -->
+              <template v-else>
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-medium text-slate-700">{{ consulta.data }}</span>
+                    <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{{ consulta.tipo }}</span>
+                    <span class="text-sm text-slate-600">
+                      {{ consulta.peso }}kg
+                      <component :is="trendIcon(consulta.tendenciaPeso)" :class="trendClass(consulta.tendenciaPeso)" class="inline h-3 w-3 ml-0.5" />
+                    </span>
+                  </div>
+                  <div v-if="!modoLeitura" class="flex items-center gap-1 shrink-0">
+                    <button
+                      class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+                      @click="router.push(`/consulta/historico?date=${consulta.data}`)"
+                    >
+                      <DocumentTextIcon class="h-3 w-3" />
+                      Ver detalhes
+                    </button>
+                    <button
+                      class="inline-flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50"
+                      @click="router.push(`/consulta?reopen=true&date=${consulta.data}`)"
+                    >
+                      <ArrowPathIcon class="h-3 w-3" />
+                      Reabrir
+                    </button>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3 text-xs text-slate-400">
+                  <span>CID: {{ consulta.cid ?? '—' }}</span>
+                  <span>{{ consulta.encaminhamento ? `Encam.: ${consulta.encaminhamento}` : 'Sem encaminhamento' }}</span>
+                </div>
+              </template>
+            </div>
+          </div>
         </div>
 
         <!-- Padrões de conduta -->
-        <div v-if="historicoOrdenado.length > 0" class="bg-white rounded-xl border border-gray-200 p-5">
-          <h2 class="text-base font-semibold text-gray-800 mb-4">Padrões de Conduta</h2>
-
-          <!-- CIDs mais frequentes -->
-          <div v-if="cidsFrequentes.length > 0" class="mb-3">
-            <p class="text-xs font-medium text-gray-500 uppercase mb-2">CIDs mais frequentes</p>
-            <div class="flex flex-wrap gap-2">
-              <span
-                v-for="item in cidsFrequentes"
-                :key="item.cid"
-                class="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 rounded-full"
-              >
-                {{ item.cid }} ({{ item.count }}x)
-              </span>
-            </div>
+        <div class="rounded-lg border border-slate-200 bg-white">
+          <div class="border-b border-slate-100 px-5 py-4">
+            <h2 class="text-sm font-semibold text-slate-800">Padrão de Condutas</h2>
           </div>
-
-          <!-- Encaminhamentos -->
-          <div v-if="encaminhamentos.length > 0">
-            <p class="text-xs font-medium text-gray-500 uppercase mb-2">Encaminhamentos</p>
-            <div class="flex flex-wrap gap-2">
-              <span
-                v-for="enc in encaminhamentos"
-                :key="enc"
-                class="text-xs bg-purple-50 text-purple-700 border border-purple-200 px-2 py-1 rounded-full"
-              >
-                {{ enc }}
-              </span>
+          <div class="p-5 space-y-4">
+            <div>
+              <p class="text-xs font-medium uppercase text-slate-400 mb-1">CIDs mais frequentes</p>
+              <p class="text-sm text-slate-700">
+                <template v-if="cidsFrequentes.length > 0">{{ cidsFrequentes.map(c => `${c.cid} (${c.count}x)`).join(', ') }}</template>
+                <span v-else class="text-slate-400">Nenhum registrado</span>
+              </p>
+            </div>
+            <div>
+              <p class="text-xs font-medium uppercase text-slate-400 mb-1">Encaminhamentos</p>
+              <p class="text-sm text-slate-700">
+                <span v-if="encaminhamentos.length > 0">{{ encaminhamentos.join(' · ') }}</span>
+                <span v-else class="text-slate-400">Nenhum registrado</span>
+              </p>
+            </div>
+            <div>
+              <p class="text-xs font-medium uppercase text-slate-400 mb-1">Internações</p>
+              <p class="text-sm text-slate-400">Nenhuma registrada</p>
             </div>
           </div>
         </div>
 
       </div>
 
-      <!-- Coluna direita: Alertas + Antropometria + Sparkline -->
-      <div class="flex flex-col gap-6">
+      <!-- Coluna direita -->
+      <div class="space-y-6">
 
-        <!-- Alertas categorizados -->
-        <div class="bg-white rounded-xl border border-gray-200 p-5">
-          <h2 class="text-base font-semibold text-gray-800 mb-4">Alertas Clínicos</h2>
-          <div v-if="alertasOrdenados.length === 0" class="text-sm text-gray-500">
-            Nenhum alerta ativo.
+        <!-- Alertas -->
+        <div class="rounded-lg border-l-4 border border-amber-400 bg-white">
+          <div class="border-b border-slate-100 px-5 py-4">
+            <h2 class="flex items-center gap-2 text-sm font-semibold text-slate-800">
+              <ExclamationTriangleIcon class="h-4 w-4 text-amber-600" />
+              Alertas Ativos
+            </h2>
           </div>
-          <div v-else class="flex flex-col gap-3">
-            <AlertCard
+          <div class="p-5 space-y-3">
+            <p v-if="alertasOrdenados.length === 0" class="text-sm text-slate-400">Nenhum alerta ativo.</p>
+            <div
               v-for="alerta in alertasOrdenados"
               :key="alerta.id"
-              :alerta="alerta"
-            />
-          </div>
-        </div>
-
-        <!-- Dados antropométricos -->
-        <div v-if="antropometria" class="bg-white rounded-xl border border-gray-200 p-5">
-          <h2 class="text-base font-semibold text-gray-800 mb-4">Últimos Dados Antropométricos</h2>
-          <div class="grid grid-cols-2 gap-3">
-            <div class="bg-teal-50 rounded-lg p-3">
-              <p class="text-xs text-teal-600 font-medium">Peso</p>
-              <p class="text-lg font-bold text-teal-800">{{ antropometria.peso }} kg</p>
-              <p class="text-xs text-teal-600">{{ antropometria.percentilPeso }}</p>
-            </div>
-            <div class="bg-blue-50 rounded-lg p-3">
-              <p class="text-xs text-blue-600 font-medium">Altura</p>
-              <p class="text-lg font-bold text-blue-800">{{ antropometria.altura }} cm</p>
-              <p class="text-xs text-blue-600">{{ antropometria.percentilAltura }}</p>
-            </div>
-            <div class="bg-purple-50 rounded-lg p-3">
-              <p class="text-xs text-purple-600 font-medium">Perímetro Cefálico</p>
-              <p class="text-lg font-bold text-purple-800">
-                {{ antropometria.perimetroCefalico != null ? antropometria.perimetroCefalico + ' cm' : '—' }}
-              </p>
-            </div>
-            <div class="bg-orange-50 rounded-lg p-3">
-              <p class="text-xs text-orange-600 font-medium">IMC</p>
-              <p class="text-lg font-bold text-orange-800">{{ antropometria.imc }}</p>
+              class="flex items-start gap-3 text-sm"
+            >
+              <ExclamationCircleIcon v-if="alerta.tipo === 'critico'" class="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
+              <ExclamationTriangleIcon v-else class="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+              <span :class="alerta.tipo === 'critico' ? 'text-red-800' : 'text-amber-800'" class="flex-1">
+                <strong>{{ alerta.tipo === 'critico' ? 'ALERTA: ' : 'ATENÇÃO: ' }}</strong>{{ alerta.mensagem }}
+              </span>
+              <span :class="categoryBadgeClass(alerta.categoria)" class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium">
+                {{ categoryLabel(alerta.categoria) }}
+              </span>
             </div>
           </div>
         </div>
 
-        <!-- Sparkline de peso -->
-        <div v-if="historicoOrdenado.length > 1" class="bg-white rounded-xl border border-gray-200 p-5">
-          <h2 class="text-base font-semibold text-gray-800 mb-3">Evolução do Peso</h2>
-          <Line :data="sparklineData" :options="sparklineOptions" class="max-h-40" />
+        <!-- Dados coletados + sparkline -->
+        <div class="rounded-lg border border-slate-200 bg-white">
+          <div class="border-b border-slate-100 px-5 py-4">
+            <h2 class="text-sm font-semibold text-slate-800">Últimos Dados Coletados</h2>
+            <p v-if="dataUltimaConsulta" class="mt-0.5 text-xs text-slate-500">{{ dataUltimaConsulta }}</p>
+          </div>
+          <div class="p-5 space-y-4">
+            <div class="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span class="text-slate-500">Peso:</span>
+                <span class="ml-1 font-medium text-slate-800">{{ antropometria?.peso }} kg</span>
+                <span class="ml-1 text-slate-400">({{ antropometria?.percentilPeso }})</span>
+              </div>
+              <div>
+                <span class="text-slate-500">Altura:</span>
+                <span class="ml-1 font-medium text-slate-800">{{ antropometria?.altura }} cm</span>
+                <span class="ml-1 text-slate-400">({{ antropometria?.percentilAltura }})</span>
+              </div>
+              <div>
+                <span class="text-slate-500">Perímetro Cefálico:</span>
+                <span v-if="antropometria?.perimetroCefalico != null" class="ml-1 font-medium text-slate-800">{{ antropometria.perimetroCefalico }} cm</span>
+                <span v-else class="ml-1 italic text-slate-400">não registrado</span>
+              </div>
+              <div>
+                <span class="text-slate-500">IMC:</span>
+                <span class="ml-1 font-medium text-slate-800">{{ antropometria?.imc }}</span>
+              </div>
+            </div>
+
+            <div v-if="historicoOrdenado.length > 1" class="border-t border-slate-100 pt-4">
+              <p class="mb-2 text-xs font-medium text-slate-400">Evolução do Peso (últimas consultas)</p>
+              <Line :data="sparklineData" :options="sparklineOptions" class="max-h-36" />
+            </div>
+          </div>
         </div>
 
+      </div>
+    </div>
+
+    <!-- Dialog: Prontuário AGHU -->
+    <div v-if="prontuarioOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="prontuarioOpen = false">
+      <div class="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-lg">
+        <div class="mb-1 flex items-center gap-2">
+          <DocumentTextIcon class="h-5 w-5 text-teal-700" />
+          <h3 class="text-base font-semibold text-slate-800">Prontuário Completo</h3>
+        </div>
+        <p class="mb-4 text-sm text-slate-500">O prontuário completo está disponível no AGHU.</p>
+
+        <div class="mb-3 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm space-y-0.5">
+          <p class="font-medium text-slate-800">{{ pacienteAtivo?.nome }}</p>
+          <p class="text-slate-500">Prontuário: {{ prontuarioPrimario }}</p>
+        </div>
+        <p class="mb-3 text-sm text-slate-600">
+          Para acessar o histórico completo, evolução e exames anteriores, acesse o prontuário no
+          <strong>AGHU</strong> e busque pelo número acima.
+        </p>
+        <div class="mb-5 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+          <ExclamationTriangleIcon class="h-3.5 w-3.5 shrink-0" />
+          O prontuário legal do paciente é mantido no AGHU. Este sistema registra os dados estruturados das consultas realizadas aqui.
+        </div>
+
+        <div class="flex flex-col gap-2 sm:flex-row">
+          <button
+            @click="copyRecord"
+            class="inline-flex items-center justify-center gap-2 rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
+          >
+            <DocumentDuplicateIcon class="h-4 w-4" />
+            Copiar número do prontuário
+          </button>
+          <button
+            @click="prontuarioOpen = false"
+            class="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+          >
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dialog: Confirmar início -->
+    <div v-if="confirmStartOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="confirmStartOpen = false">
+      <div class="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-6 shadow-lg">
+        <h3 class="mb-2 text-base font-semibold text-slate-800">Iniciar atendimento?</h3>
+        <p class="mb-6 text-sm text-slate-600">
+          Você está prestes a iniciar o atendimento de <strong>{{ pacienteAtivo?.nome }}</strong>.
+        </p>
+        <div class="flex justify-end gap-2">
+          <button
+            @click="confirmStartOpen = false"
+            class="rounded-md px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+          >
+            Cancelar
+          </button>
+          <button
+            @click="confirmarInicio"
+            class="rounded-md bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
+          >
+            Confirmar e Iniciar
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { InformationCircleIcon } from '@heroicons/vue/24/outline'
+import {
+  InformationCircleIcon,
+  ClockIcon,
+  PlayIcon,
+  BookOpenIcon,
+  DocumentTextIcon,
+  ArrowDownTrayIcon,
+  ArrowPathIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
+  MinusIcon,
+  ExclamationTriangleIcon,
+  DocumentDuplicateIcon,
+  ExclamationCircleIcon,
+} from '@heroicons/vue/24/outline'
 import { Line } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -181,27 +343,34 @@ import {
   Tooltip,
 } from 'chart.js'
 import { useBriefingStore } from '../stores/briefing'
-import AlertCard from '../components/AlertCard.vue'
+import { storeToRefs } from 'pinia'
+import type { TipoEntrada, CategoriaAlerta } from '../types/clinica'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip)
 
 const router = useRouter()
 const store = useBriefingStore()
+const { pacienteAtivo, historico, alertas, antropometria, modoLeitura } = storeToRefs(store)
 
-const { pacienteAtivo, historico, alertas, antropometria, modoLeitura } = store
+const prontuarioOpen = ref(false)
+const confirmStartOpen = ref(false)
 
-onMounted(() => {
-  if (!pacienteAtivo) {
-    router.push('/fila')
-  }
-})
-
-const historicoOrdenado = computed(() =>
-  [...historico].reverse()
+const prontuarioPrimario = computed(
+  () => (pacienteAtivo.value as any)?.prontuarios?.[0]?.numero ?? (pacienteAtivo.value as any)?.prontuario ?? '—'
 )
 
+const tipoEntrada = computed(() => (pacienteAtivo.value as any)?.tipoEntrada as TipoEntrada | undefined)
+const consultaEmAndamento = computed(() => !modoLeitura.value && !!pacienteAtivo.value)
+const dataUltimaConsulta = computed(() => historicoOrdenado.value[0]?.data ?? null)
+
+onMounted(() => {
+  if (!pacienteAtivo.value) router.push('/fila')
+})
+
+const historicoOrdenado = computed(() => [...(historico.value ?? [])].reverse())
+
 const alertasOrdenados = computed(() =>
-  [...alertas].sort((a, b) => {
+  [...(alertas.value ?? [])].sort((a, b) => {
     if (a.tipo === 'critico' && b.tipo !== 'critico') return -1
     if (a.tipo !== 'critico' && b.tipo === 'critico') return 1
     return 0
@@ -210,10 +379,8 @@ const alertasOrdenados = computed(() =>
 
 const cidsFrequentes = computed(() => {
   const counts: Record<string, number> = {}
-  for (const c of historico) {
-    if (c.cid) {
-      counts[c.cid] = (counts[c.cid] ?? 0) + 1
-    }
+  for (const c of historico.value ?? []) {
+    if (c.cid) counts[c.cid] = (counts[c.cid] ?? 0) + 1
   }
   return Object.entries(counts)
     .map(([cid, count]) => ({ cid, count }))
@@ -223,47 +390,79 @@ const cidsFrequentes = computed(() => {
 
 const encaminhamentos = computed(() => {
   const set = new Set<string>()
-  for (const c of historico) {
+  for (const c of historico.value ?? []) {
     if (c.encaminhamento) set.add(c.encaminhamento)
   }
   return [...set]
 })
 
-function tendenciaIcon(trend: string): string {
-  if (trend === 'up') return '↑'
-  if (trend === 'down') return '↓'
-  return '→'
+function trendIcon(trend: string) {
+  if (trend === 'up') return ArrowUpIcon
+  if (trend === 'down') return ArrowDownIcon
+  return MinusIcon
 }
 
-function tendenciaClass(trend: string): string {
+function trendClass(trend: string) {
   if (trend === 'up') return 'text-green-600'
-  if (trend === 'down') return 'text-red-500'
-  return 'text-gray-400'
+  if (trend === 'down') return 'text-red-600'
+  return 'text-slate-400'
+}
+
+function entryTypeBadgeClass(tipo: string) {
+  const map: Record<string, string> = {
+    'Retorno': 'bg-teal-100 text-teal-800',
+    'Egresso': 'bg-sky-100 text-sky-800',
+    'Encaminhamento Externo': 'bg-violet-100 text-violet-800',
+    'Internacao': 'bg-rose-100 text-rose-800',
+  }
+  return map[tipo] ?? 'bg-slate-100 text-slate-700'
+}
+
+const categoryLabels: Record<string, string> = {
+  peso: 'Peso', marco: 'Marco', encaminhamento: 'Encaminhamento', falta: 'Falta', negligencia: 'Negligência',
+}
+
+function categoryLabel(cat: CategoriaAlerta) {
+  return categoryLabels[cat] ?? cat
+}
+
+function categoryBadgeClass(cat: CategoriaAlerta) {
+  const map: Record<string, string> = {
+    peso: 'bg-teal-100 text-teal-700',
+    marco: 'bg-violet-100 text-violet-700',
+    encaminhamento: 'bg-amber-100 text-amber-700',
+    falta: 'bg-orange-100 text-orange-700',
+    negligencia: 'bg-red-100 text-red-700',
+  }
+  return map[cat] ?? 'bg-slate-100 text-slate-600'
+}
+
+function confirmarInicio() {
+  confirmStartOpen.value = false
+  router.push('/consulta')
+}
+
+function copyRecord() {
+  navigator.clipboard.writeText(prontuarioPrimario.value).catch(() => {})
+  prontuarioOpen.value = false
 }
 
 const sparklineData = computed(() => ({
-  labels: [...historico].map((c) => c.data),
-  datasets: [
-    {
-      data: [...historico].map((c) => c.peso),
-      borderColor: '#0d9488',
-      backgroundColor: 'rgba(13,148,136,0.1)',
-      fill: true,
-      tension: 0.4,
-      pointRadius: 3,
-    },
-  ],
+  labels: [...(historico.value ?? [])].map((c) => c.data),
+  datasets: [{
+    data: [...(historico.value ?? [])].map((c) => c.peso),
+    borderColor: '#0d9488',
+    backgroundColor: 'rgba(13,148,136,0.08)',
+    fill: true,
+    tension: 0.4,
+    pointRadius: 3,
+    pointBackgroundColor: '#0d9488',
+  }],
 }))
 
 const sparklineOptions = {
   responsive: true,
-  plugins: {
-    legend: { display: false },
-    tooltip: { enabled: true },
-  },
-  scales: {
-    x: { display: false },
-    y: { display: false },
-  },
+  plugins: { legend: { display: false }, tooltip: { enabled: true } },
+  scales: { x: { display: false }, y: { display: false } },
 }
 </script>
