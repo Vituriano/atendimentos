@@ -2,116 +2,134 @@
   <div class="flex h-screen overflow-hidden bg-gray-50">
     <!-- Sidebar -->
     <aside
-      :class="[sidebarOpen ? 'w-64' : 'w-16', 'transition-all duration-300 bg-white border-r border-gray-200 flex flex-col shrink-0']"
+      :class="[sidebarOpen ? 'w-64' : 'w-16', 'transition-all duration-300 bg-white border-r border-slate-200 flex flex-col shrink-0']"
     >
       <!-- Header HC Pediatria -->
-      <div class="h-16 flex items-center px-4 bg-teal-600 text-white shrink-0 overflow-hidden">
-        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-800 font-bold text-sm">
+      <div class="h-16 flex items-center px-4 bg-gradient-to-b from-slate-50 to-white border-b border-slate-200 shrink-0 overflow-hidden">
+        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-teal-600 to-teal-800 text-white font-bold text-sm">
           HC
         </div>
-        <span v-if="sidebarOpen" class="ml-2 font-semibold text-lg whitespace-nowrap">HC Pediatria</span>
+        <span v-if="sidebarOpen" class="ml-2 font-semibold text-lg text-slate-800 whitespace-nowrap">HC Pediatria</span>
       </div>
 
       <!-- Nav content -->
       <nav class="flex-1 p-2 space-y-1 overflow-y-auto overflow-x-hidden">
         <!-- Seção GERAL -->
-        <p v-if="sidebarOpen" class="px-3 pt-2 pb-1 text-[10px] font-semibold tracking-wider text-gray-400 uppercase">
+        <p v-if="sidebarOpen" class="px-3 pt-2 pb-1 text-[10px] font-semibold tracking-wider text-slate-400 uppercase">
           Geral
         </p>
 
         <RouterLink
           to="/fila"
-          class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-700 transition-colors"
-          active-class="bg-teal-50 text-teal-700 font-medium"
+          class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+          active-class="bg-slate-100 text-slate-900 font-medium"
           :title="!sidebarOpen ? 'Fila de Atendimento' : undefined"
         >
-          <QueueListIcon class="h-5 w-5 shrink-0" />
+          <QueueListIcon class="h-4 w-4 shrink-0" />
           <span v-if="sidebarOpen">Fila de Atendimento</span>
         </RouterLink>
 
         <RouterLink
           to="/pacientes"
-          class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-700 transition-colors"
-          active-class="bg-teal-50 text-teal-700 font-medium"
+          class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+          active-class="bg-slate-100 text-slate-900 font-medium"
           :title="!sidebarOpen ? 'Base de Pacientes' : undefined"
         >
-          <UsersIcon class="h-5 w-5 shrink-0" />
+          <CircleStackIcon class="h-4 w-4 shrink-0" />
           <span v-if="sidebarOpen">Base de Pacientes</span>
         </RouterLink>
 
         <!-- Seção PACIENTE EM ATENDIMENTO -->
-        <template v-if="pacienteAtivo">
-          <div class="pt-2">
-            <p v-if="sidebarOpen" class="px-3 pb-1 text-[10px] font-semibold tracking-wider text-gray-400 uppercase">
-              Paciente em Atendimento
-            </p>
-          </div>
+        <div class="pt-2">
+          <p v-if="sidebarOpen" class="px-3 pb-1 text-[10px] font-semibold tracking-wider text-slate-400 uppercase">
+            Paciente em Atendimento
+          </p>
+        </div>
 
-          <!-- PatientChip (inline) -->
-          <div v-if="sidebarOpen" class="mx-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+        <!-- PatientChip quando há paciente -->
+        <template v-if="pacienteAtivo">
+          <div v-if="sidebarOpen" class="mx-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
             <div class="flex items-start gap-3">
-              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-600 text-white text-sm font-semibold">
+              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-700 text-white text-sm font-semibold">
                 {{ initials }}
               </div>
               <div class="min-w-0 flex-1">
-                <p class="truncate font-medium text-sm text-gray-800">{{ pacienteAtivo.nome }}</p>
-                <p class="text-xs text-gray-500">{{ pacienteAtivo.idade }}</p>
-                <span class="text-xs text-gray-500">{{ pacienteAtivo.prontuarios?.[0]?.numero ?? pacienteAtivo.prontuario }}</span>
+                <p class="truncate font-medium text-sm text-slate-800">{{ pacienteAtivo.nome }}</p>
+                <p class="text-xs text-slate-500">{{ pacienteAtivo.idade }}</p>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                  <span class="text-xs text-slate-500">{{ pacienteAtivo.prontuarios?.[0]?.numero ?? pacienteAtivo.prontuario }}</span>
+                  <span v-if="tipoEntradaPaciente" class="rounded-full border border-slate-300 px-1.5 py-0 text-[10px] text-slate-600">
+                    {{ tipoEntradaPaciente }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
           <div v-else class="flex justify-center py-1">
             <div
-              class="flex h-8 w-8 items-center justify-center rounded-full bg-teal-600 text-white text-xs font-semibold"
+              class="flex h-8 w-8 items-center justify-center rounded-full bg-teal-700 text-white text-xs font-semibold"
               :title="pacienteAtivo.nome"
             >
               {{ initials }}
             </div>
           </div>
 
-          <!-- Patient nav links -->
+          <!-- Patient nav links (active) -->
           <RouterLink
             to="/briefing"
-            class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-700 transition-colors"
-            active-class="bg-teal-50 text-teal-700 font-medium"
+            class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+            active-class="bg-slate-100 text-slate-900 font-medium"
             :title="!sidebarOpen ? 'Briefing Clínico' : undefined"
           >
-            <ClipboardDocumentListIcon class="h-5 w-5 shrink-0" />
+            <ClipboardDocumentListIcon class="h-4 w-4 shrink-0" />
             <span v-if="sidebarOpen">Briefing Clínico</span>
           </RouterLink>
 
           <RouterLink
             to="/consulta"
-            class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-700 transition-colors"
-            active-class="bg-teal-50 text-teal-700 font-medium"
+            class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+            active-class="bg-slate-100 text-slate-900 font-medium"
             :title="!sidebarOpen ? 'Formulário de Consulta' : undefined"
           >
-            <DocumentTextIcon class="h-5 w-5 shrink-0" />
+            <DocumentTextIcon class="h-4 w-4 shrink-0" />
             <span v-if="sidebarOpen">Formulário de Consulta</span>
           </RouterLink>
 
           <RouterLink
             to="/caderneta"
-            class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-700 transition-colors"
-            active-class="bg-teal-50 text-teal-700 font-medium"
+            class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+            active-class="bg-slate-100 text-slate-900 font-medium"
             :title="!sidebarOpen ? 'Caderneta Digital' : undefined"
           >
-            <BookOpenIcon class="h-5 w-5 shrink-0" />
+            <BookOpenIcon class="h-4 w-4 shrink-0" />
             <span v-if="sidebarOpen">Caderneta Digital</span>
           </RouterLink>
+        </template>
+
+        <!-- Patient nav links (disabled — sem paciente ativo) -->
+        <template v-else>
+          <div
+            v-for="item in patientNavItems"
+            :key="item.label"
+            class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-400 cursor-not-allowed opacity-50"
+            :title="!sidebarOpen ? item.label : 'Selecione um paciente na Fila de Atendimento'"
+          >
+            <component :is="item.icon" class="h-4 w-4 shrink-0" />
+            <span v-if="sidebarOpen">{{ item.label }}</span>
+          </div>
         </template>
       </nav>
 
       <!-- Footer: usuário + logout -->
-      <div class="border-t border-gray-200 p-2 shrink-0">
+      <div class="border-t border-slate-200 p-2 shrink-0">
         <div v-if="sidebarOpen" class="flex items-center gap-2 px-3 py-2">
-          <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-600 text-xs font-semibold">
+          <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-600 text-xs font-semibold">
             {{ userInitials }}
           </div>
-          <span class="flex-1 truncate text-sm text-gray-700">{{ displayName }}</span>
+          <span class="flex-1 truncate text-sm text-slate-700">{{ displayName }}</span>
           <button
             @click="handleLogout"
-            class="text-gray-400 hover:text-red-500 transition-colors"
+            class="text-slate-400 hover:text-red-500 transition-colors"
             title="Sair"
           >
             <ArrowRightOnRectangleIcon class="h-5 w-5" />
@@ -120,7 +138,7 @@
         <div v-else class="flex justify-center">
           <button
             @click="handleLogout"
-            class="p-2 text-gray-400 hover:text-red-500 transition-colors rounded-md"
+            class="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-md"
             title="Sair"
           >
             <ArrowRightOnRectangleIcon class="h-5 w-5" />
@@ -132,18 +150,19 @@
     <!-- Conteúdo principal -->
     <div class="flex-1 flex flex-col overflow-hidden">
       <!-- Header sticky -->
-      <header class="h-16 border-b border-gray-200 bg-white flex items-center px-4 gap-3 shrink-0">
+      <header class="h-16 border-b border-slate-200 bg-white flex items-center px-4 gap-2 shrink-0">
         <button
           @click="sidebarOpen = !sidebarOpen"
-          class="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 transition-colors"
+          class="p-1.5 rounded-md text-slate-500 hover:bg-slate-100 transition-colors"
           :title="sidebarOpen ? 'Recolher menu' : 'Expandir menu'"
         >
           <Bars3Icon class="h-5 w-5" />
         </button>
-        <h1 class="text-lg font-semibold text-gray-800">{{ route.meta.title ?? '' }}</h1>
+        <div class="h-4 w-px bg-slate-200 mx-1" />
+        <h1 class="text-xl font-bold tracking-tight text-slate-900">{{ route.meta.title ?? '' }}</h1>
       </header>
 
-      <main class="flex-1 overflow-auto p-6">
+      <main class="flex-1 overflow-auto px-6 py-6">
         <RouterView />
       </main>
     </div>
@@ -155,7 +174,7 @@ import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   QueueListIcon,
-  UsersIcon,
+  CircleStackIcon,
   ClipboardDocumentListIcon,
   DocumentTextIcon,
   BookOpenIcon,
@@ -172,15 +191,17 @@ const auth = useAuthStore()
 const pacienteStore = usePacienteStore()
 
 const pacienteAtivo = computed(() => pacienteStore.pacienteAtivo)
+const tipoEntradaPaciente = computed(() => (pacienteAtivo.value as any)?.tipoEntrada ?? null)
+
+const patientNavItems = [
+  { label: 'Briefing Clínico', icon: ClipboardDocumentListIcon },
+  { label: 'Formulário de Consulta', icon: DocumentTextIcon },
+  { label: 'Caderneta Digital', icon: BookOpenIcon },
+]
 
 const initials = computed(() => {
   const nome = pacienteAtivo.value?.nome ?? ''
-  return nome
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join('')
+  return nome.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('')
 })
 
 const displayName = computed(() => {
@@ -190,12 +211,7 @@ const displayName = computed(() => {
 })
 
 const userInitials = computed(() =>
-  displayName.value
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join('') || '?'
+  displayName.value.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?'
 )
 
 function handleLogout() {
