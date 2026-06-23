@@ -6,6 +6,7 @@ import Admin from '../views/Admin.vue';
 
 import Exemplos from '../views/Exemplos.vue';
 import Pacientes from '../views/Pacientes.vue';
+import Consulta from '../views/Consulta.vue';
 
 const routes = [
   {
@@ -30,6 +31,12 @@ const routes = [
     path: '/exemplos',
     name: 'Exemplos',
     component: Exemplos,
+  },
+  {
+    path: '/consulta',
+    name: 'Consulta',
+    component: Consulta,
+    meta: { requiresAuth: true },
   },
   {
     path: '/pacientes',
