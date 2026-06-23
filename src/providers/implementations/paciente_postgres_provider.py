@@ -5,6 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..interfaces.paciente_provider_interface import PacienteProviderInterface
 
+_ORIGEM = "AGHU-PostgreSQL"
+
 
 def _get_sql(file_path: str) -> str:
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -23,17 +25,18 @@ class PacientePostgresProvider(PacienteProviderInterface):
         query = text(_get_sql("paciente/listar_pacientes.sql"))
         offset = (page - 1) * limit
         result = await self.session.execute(query, {"nome": nome, "limit": limit, "offset": offset})
-        items = [dict(r) for r in result.mappings().all()]
+        items = [dict(r) | {"origemDescricao": _ORIGEM} for r in result.mappings().all()]
+        # TODO: adicionar COUNT(*) separado para retornar total real (não apenas total da página)
         return {"items": items, "total": len(items), "page": page, "limit": limit}
 
     async def buscar_por_cpf(self, cpf: str) -> dict[str, Any] | None:
         query = text(_get_sql("paciente/buscar_por_cpf.sql"))
         result = await self.session.execute(query, {"cpf": cpf})
         row = result.mappings().first()
-        return dict(row) if row else None
+        return (dict(row) | {"origemDescricao": _ORIGEM}) if row else None
 
     async def obter_paciente_por_prontuario(self, prontuario: str) -> dict[str, Any] | None:
         query = text(_get_sql("paciente/obter_paciente.sql"))
         result = await self.session.execute(query, {"prontuario": prontuario})
         row = result.mappings().first()
-        return dict(row) if row else None
+        return (dict(row) | {"origemDescricao": _ORIGEM}) if row else None

@@ -2,6 +2,8 @@ from typing import List, Dict, Any
 
 from ..interfaces.fila_provider_interface import FilaProviderInterface
 
+_ORIGEM = "AGHU-Mock"
+
 _FILA_INICIAL: List[Dict[str, Any]] = [
     {
         "id": 1,
@@ -70,7 +72,7 @@ class FilaMockProvider(FilaProviderInterface):
         self._fila: List[Dict[str, Any]] = copy.deepcopy(_FILA_INICIAL)
 
     async def listar_fila(self) -> List[Dict[str, Any]]:
-        return self._fila
+        return [{**item, "origemDescricao": _ORIGEM} for item in self._fila]
 
     async def stats_fila(self) -> Dict[str, int]:
         total = len(self._fila)
@@ -90,5 +92,5 @@ class FilaMockProvider(FilaProviderInterface):
         for item in self._fila:
             if item["id"] == id:
                 item["status"] = status
-                return item
+                return {**item, "origemDescricao": _ORIGEM}
         raise ValueError(f"Entrada com id={id} não encontrada na fila.")
