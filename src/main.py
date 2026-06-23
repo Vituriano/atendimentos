@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 
 from .resources.database import DatabaseManager, Base
-from .routers import paciente, auth, admin, aih, bpa, material
+from .routers import paciente, auth, admin, aih, bpa, material, fila
 
 # Carrega as variáveis de ambiente do arquivo .env
 load_dotenv()
@@ -65,6 +65,7 @@ app.include_router(admin.router)
 app.include_router(aih.router)
 app.include_router(bpa.router)
 app.include_router(material.router)
+app.include_router(fila.router)
 
 @app.get("/{full_path:path}")
 async def serve_frontend(full_path: str):
