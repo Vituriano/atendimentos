@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import List, Dict, Any
 
@@ -46,4 +46,7 @@ async def atualizar_status(
     provider: FilaProviderInterface = Depends(get_fila_provider(STRATEGY)),
 ) -> Dict[str, Any]:
     """Atualiza o status de um paciente na fila."""
-    return await fila_controller.atualizar_status(id, body.status, provider)
+    try:
+        return await fila_controller.atualizar_status(id, body.status, provider)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

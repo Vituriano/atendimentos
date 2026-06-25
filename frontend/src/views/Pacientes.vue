@@ -148,7 +148,7 @@ const searchQuery = ref('')
 const currentPage = ref(1)
 const revealedCpfs = ref(new Set<string>())
 
-const isCpfSearch = computed(() => /[\d.-]/.test(searchQuery.value))
+const isCpfSearch = computed(() => /^\d[\d.\-]*$/.test(searchQuery.value.trim()))
 const normalizedCpfQuery = computed(() => searchQuery.value.replace(/\D/g, ''))
 const isCpfComplete = computed(() => normalizedCpfQuery.value.length === 11)
 

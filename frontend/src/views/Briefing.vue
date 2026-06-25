@@ -1,13 +1,13 @@
 <template>
   <div class="space-y-6">
-    <!-- Botão Voltar (modo leitura via base de pacientes) -->
+    <!-- Botão Voltar (modo leitura via base de pacientes ou fila) -->
     <div v-if="isReadOnly" class="flex items-center gap-3">
       <button
-        @click="router.push('/pacientes')"
+        @click="router.push(route.query.source === 'fila' ? '/fila' : '/pacientes')"
         class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
       >
         <ArrowLeftIcon class="h-4 w-4" />
-        Voltar para Base de Pacientes
+        {{ route.query.source === 'fila' ? 'Voltar para Fila' : 'Voltar para Base de Pacientes' }}
       </button>
     </div>
 
@@ -352,6 +352,7 @@ import {
   Tooltip,
 } from 'chart.js'
 import { useBriefingStore } from '../stores/briefing'
+import { useConsultaStore } from '../stores/consulta'
 import { storeToRefs } from 'pinia'
 import { getPacienteById } from '../stores/paciente'
 import type { CategoriaAlerta } from '../types/clinica'
@@ -361,6 +362,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, 
 const router = useRouter()
 const route = useRoute()
 const store = useBriefingStore()
+const consultaStore = useConsultaStore()
 const { pacienteAtivo, historico, alertas } = storeToRefs(store)
 
 const isReadOnly = computed(() => route.query.source === 'base' || route.query.source === 'fila')
@@ -398,7 +400,7 @@ const prontuarioPrimario = computed(
   () => currentPatient.value?.prontuarioPrimario ?? currentPatient.value?.prontuario ?? '—'
 )
 
-const consultaEmAndamento = computed(() => !isReadOnly.value && !!pacienteAtivo.value)
+const consultaEmAndamento = computed(() => !isReadOnly.value && !!consultaStore.consultaIniciada)
 const dataUltimaConsulta = computed(() => historicoOrdenado.value[0]?.data ?? null)
 
 onMounted(() => {
