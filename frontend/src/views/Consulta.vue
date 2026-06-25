@@ -43,8 +43,9 @@
           <h2 class="mb-6 text-lg font-semibold text-slate-900">
             {{ secaoAtiva?.label }}
           </h2>
-          <!-- Placeholder — cada seção será implementada em tasks separadas -->
-          <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center text-sm text-slate-400">
+          <SecaoMarcos v-if="consulta.activeSection === 'milestones'" />
+          <!-- Placeholder para seções ainda não implementadas -->
+          <div v-else class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center text-sm text-slate-400">
             Conteúdo da seção "{{ secaoAtiva?.label }}" será implementado em breve.
           </div>
         </div>
@@ -116,6 +117,7 @@ import { usePacienteStore } from '../stores/paciente'
 import { useConsultaStore } from '../stores/consulta'
 import ConsultaNav from '../components/consulta/ConsultaNav.vue'
 import ConsultaTimer from '../components/consulta/ConsultaTimer.vue'
+import SecaoMarcos from '../components/consulta/SecaoMarcos.vue'
 
 const router = useRouter()
 const pacienteStore = usePacienteStore()
