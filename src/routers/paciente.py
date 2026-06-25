@@ -26,22 +26,6 @@ async def listar_pacientes(
     return await paciente_controller.listar_pacientes(provider, page=page, limit=limit, nome=nome)
 
 
-# /busca deve vir antes de /{prontuario} para não ser capturado como parâmetro
-@router.get("/busca", response_model=dict | None)
-async def buscar_por_cpf(
-    cpf: str = Query(..., description="CPF completo no formato XXX.XXX.XXX-XX"),
-    provider: PacienteProviderInterface = Depends(get_paciente_provider(STRATEGY)),
-) -> dict[str, Any] | None:
-    """Busca paciente por CPF completo. CPF parcial retorna 422."""
-    from re import sub
-    if len(sub(r"\D", "", cpf)) != 11:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="CPF deve ser informado completo (11 dígitos).",
-        )
-    return await paciente_controller.buscar_por_cpf(provider, cpf)
-
-
 @router.get("/{prontuario}", response_model=dict | None)
 async def obter_paciente(
     prontuario: str,

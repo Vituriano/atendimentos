@@ -11,7 +11,9 @@ SELECT
     pac.cor,
     ar.descricao                AS status,
     esp.nome_especialidade,
-    con.ind_origem
+    con.ind_origem,
+    -- TODO: confirmar coluna de faltas no AGHU com o DBA (ex: COUNT de aac_consultas com ind_falta = 'S')
+    0                            AS faltas
 FROM agh.aip_pacientes pac
 LEFT JOIN agh.aac_consultas con ON con.pac_codigo = pac.codigo
 LEFT JOIN agh.aac_retornos ar ON ar.seq = con.ret_seq
