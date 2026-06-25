@@ -16,12 +16,21 @@ export interface Prontuario {
 export interface Paciente {
   id: string
   nome: string
+  nomeSocial?: string
+  nomeMae?: string
+  nomePai?: string
   dataNascimento: string
   idade: string
   idadeEmMeses: number
+  sexo?: 'M' | 'F'
+  sexoBiologico?: 'M' | 'F'
+  cor?: string
   prontuario: string
   prontuarioPrimario?: string
   cpf?: string
+  especialidade?: string
+  indOrigem?: 'R' | 'EC' | 'E' | 'I'
+  tipoEntrada?: TipoEntrada
   prontuarios?: Prontuario[]
   deletedAt?: string
 }

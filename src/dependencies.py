@@ -6,7 +6,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .providers.interfaces.paciente_provider_interface import PacienteProviderInterface
 from .providers.implementations.paciente_postgres_provider import PacientePostgresProvider
 from .providers.implementations.paciente_csv_provider import PacienteCsvProvider
-from .resources.database import get_aghu_db_session
+from .providers.interfaces.fila_provider_interface import FilaProviderInterface
+from .providers.implementations.fila_mock_provider import FilaMockProvider
+from .providers.implementations.fila_sqlite_provider import FilaSqliteProvider
+from .resources.database import get_aghu_db_session, get_app_db_session
 
 # 1. Funções "getter" simples e independentes (privadas por convenção)
 def _get_paciente_postgres_provider(
@@ -30,3 +33,30 @@ def get_paciente_provider(strategy: str) -> Callable[..., PacienteProviderInterf
         return _get_paciente_csv_provider
     else:
         raise ValueError(f"Estratégia de provedor desconhecida: {strategy}")
+
+
+# --- Fila de Atendimento ---
+
+_fila_mock_provider_instance = FilaMockProvider()
+
+def _get_fila_mock_provider() -> FilaProviderInterface:
+    return _fila_mock_provider_instance
+
+
+def _get_fila_sqlite_provider(
+    session: AsyncSession = Depends(get_app_db_session),
+) -> FilaProviderInterface:
+    return FilaSqliteProvider(session=session)
+
+
+def get_fila_provider(strategy: str) -> Callable[..., FilaProviderInterface]:
+    """
+    Fábrica de providers da fila. Baseado na string 'strategy', retorna a função
+    de dependência correta que o FastAPI deve usar.
+    """
+    if strategy.upper() == "MOCK":
+        return _get_fila_mock_provider
+    elif strategy.upper() == "SQLITE":
+        return _get_fila_sqlite_provider
+    else:
+        raise ValueError(f"Estratégia de provedor de fila desconhecida: {strategy}")
