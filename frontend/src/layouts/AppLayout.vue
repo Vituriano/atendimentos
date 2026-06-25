@@ -95,15 +95,13 @@
             <span v-if="sidebarOpen">Formulário de Consulta</span>
           </RouterLink>
 
-          <RouterLink
-            to="/caderneta"
-            class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors"
-            active-class="bg-slate-100 text-slate-900 font-medium"
-            :title="!sidebarOpen ? 'Caderneta Digital' : undefined"
+          <span
+            class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-400 cursor-not-allowed"
+            :title="!sidebarOpen ? 'Caderneta Digital (em breve)' : undefined"
           >
             <BookOpenIcon class="h-4 w-4 shrink-0" />
-            <span v-if="sidebarOpen">Caderneta Digital</span>
-          </RouterLink>
+            <span v-if="sidebarOpen">Caderneta Digital <span class="text-xs">(em breve)</span></span>
+          </span>
         </template>
 
         <!-- Patient nav links (disabled — sem paciente ativo) -->

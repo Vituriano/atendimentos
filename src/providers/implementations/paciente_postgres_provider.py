@@ -1,4 +1,5 @@
 import os
+import re
 from typing import Any
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,6 +31,8 @@ class PacientePostgresProvider(PacienteProviderInterface):
         return {"items": items, "total": len(items), "page": page, "limit": limit}
 
     async def buscar_por_cpf(self, cpf: str) -> dict[str, Any] | None:
+        if len(re.sub(r"\D", "", cpf)) != 11:
+            return None
         query = text(_get_sql("paciente/buscar_por_cpf.sql"))
         result = await self.session.execute(query, {"cpf": cpf})
         row = result.mappings().first()

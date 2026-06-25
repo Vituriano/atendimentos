@@ -53,8 +53,9 @@
           </template>
 
           <button
-            @click="router.push('/caderneta')"
-            class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            disabled
+            class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-400 cursor-not-allowed"
+            title="Caderneta Digital (em breve)"
           >
             <BookOpenIcon class="h-4 w-4" />
             Ver Caderneta Digital
@@ -351,19 +352,18 @@ import {
   Filler,
   Tooltip,
 } from 'chart.js'
-import { useBriefingStore } from '../stores/briefing'
 import { useConsultaStore } from '../stores/consulta'
+import { usePacienteStore, getPacienteById } from '../stores/paciente'
 import { storeToRefs } from 'pinia'
-import { getPacienteById } from '../stores/paciente'
 import type { CategoriaAlerta } from '../types/clinica'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip)
 
 const router = useRouter()
 const route = useRoute()
-const store = useBriefingStore()
+const pacienteStore = usePacienteStore()
 const consultaStore = useConsultaStore()
-const { pacienteAtivo, historico, alertas } = storeToRefs(store)
+const { pacienteAtivo, historico, alertas } = storeToRefs(pacienteStore)
 
 const isReadOnly = computed(() => route.query.source === 'base' || route.query.source === 'fila')
 const patientIdFromUrl = computed(() => route.query.patientId as string | undefined)
@@ -390,7 +390,7 @@ const currentAlertas = computed(() => {
 
 const currentAntropometria = computed(() => {
   if (isReadOnly.value) return null
-  return store.antropometria
+  return pacienteStore.antropometria
 })
 
 const prontuarioOpen = ref(false)
