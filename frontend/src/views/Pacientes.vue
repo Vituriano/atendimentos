@@ -12,30 +12,16 @@
       <input
         v-model="searchQuery"
         type="text"
-        placeholder="Buscar por nome ou CPF..."
+        placeholder="Buscar por nome..."
         class="w-full pl-9 pr-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
       />
-    </div>
-
-    <!-- LGPD CPF warning -->
-    <div
-      v-if="isCpfSearch && !isCpfComplete && searchQuery.length > 0"
-      class="rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800"
-    >
-      Digite o CPF completo para buscar (LGPD)
     </div>
 
     <!-- Empty state -->
     <div v-if="filteredPacientes.length === 0" class="flex flex-col items-center justify-center py-16 text-center">
       <XMarkIcon class="h-10 w-10 text-slate-300 mb-3" />
-      <p class="text-sm font-medium text-slate-600">
-        {{ isCpfSearch && !isCpfComplete ? 'Digite o CPF completo' : 'Nenhum paciente encontrado' }}
-      </p>
-      <p class="text-xs text-slate-400 mt-1">
-        {{ isCpfSearch && !isCpfComplete
-          ? 'Por razões de privacidade (LGPD), a busca por CPF requer o número completo.'
-          : 'Tente ajustar os termos de busca.' }}
-      </p>
+      <p class="text-sm font-medium text-slate-600">Nenhum paciente encontrado</p>
+      <p class="text-xs text-slate-400 mt-1">Tente ajustar os termos de busca.</p>
     </div>
 
     <!-- Table -->
@@ -47,7 +33,6 @@
               <th class="pl-5 pr-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide w-72">Paciente</th>
               <th class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden sm:table-cell w-24">Idade</th>
               <th class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden md:table-cell w-40">Prontuário</th>
-              <th class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden lg:table-cell w-48">CPF</th>
               <th class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden xl:table-cell w-36">Última consulta</th>
             </tr>
           </thead>
@@ -74,20 +59,6 @@
               </td>
               <td class="px-3 py-3 text-sm text-slate-700 hidden sm:table-cell">{{ paciente.idade }}</td>
               <td class="px-3 py-3 text-sm text-slate-500 hidden md:table-cell">{{ paciente.prontuario }}</td>
-              <td class="px-3 py-3 hidden lg:table-cell" @click.stop>
-                <div class="flex items-center gap-2">
-                  <span class="text-sm font-mono text-slate-500">
-                    {{ revealedCpfs.has(paciente.id) ? paciente.cpf : maskCpf(paciente.cpf ?? '') }}
-                  </span>
-                  <button
-                    class="p-1 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-                    @click="toggleCpfReveal(paciente.id)"
-                  >
-                    <EyeSlashIcon v-if="revealedCpfs.has(paciente.id)" class="h-3.5 w-3.5" />
-                    <EyeIcon v-else class="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </td>
               <td class="px-3 py-3 text-sm text-slate-500 hidden xl:table-cell">
                 {{ getLastConsultation(paciente) }}
               </td>
@@ -132,36 +103,24 @@ import {
   UsersIcon,
   MagnifyingGlassIcon,
   XMarkIcon,
-  EyeIcon,
-  EyeSlashIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
 } from '@heroicons/vue/24/outline'
 import { mockPacientes } from '../stores/paciente'
 import type { Paciente } from '../types/clinica'
-import { maskCpf } from '../utils/cpf'
 
 const router = useRouter()
 
 const PAGE_SIZE = 20
 const searchQuery = ref('')
 const currentPage = ref(1)
-const revealedCpfs = ref(new Set<string>())
-
-const isCpfSearch = computed(() => /^\d[\d.\-]*$/.test(searchQuery.value.trim()))
-const normalizedCpfQuery = computed(() => searchQuery.value.replace(/\D/g, ''))
-const isCpfComplete = computed(() => normalizedCpfQuery.value.length === 11)
 
 const filteredPacientes = computed<Paciente[]>(() => {
-  if (!searchQuery.value.trim()) {
-    return [...mockPacientes].sort((a, b) => a.nome.localeCompare(b.nome))
-  }
-  if (isCpfSearch.value) {
-    if (!isCpfComplete.value) return []
-    return mockPacientes.filter(p => (p.cpf ?? '').replace(/\D/g, '') === normalizedCpfQuery.value)
-  }
   const q = searchQuery.value.toLowerCase().trim()
-  return [...mockPacientes].filter(p => p.nome.toLowerCase().includes(q)).sort((a, b) => a.nome.localeCompare(b.nome))
+  const list = q
+    ? mockPacientes.filter(p => p.nome.toLowerCase().includes(q))
+    : [...mockPacientes]
+  return list.sort((a, b) => a.nome.localeCompare(b.nome))
 })
 
 watch(searchQuery, () => { currentPage.value = 1 })
@@ -174,20 +133,6 @@ const paginatedPacientes = computed(() =>
 
 function getInitials(nome: string): string {
   return nome.split(' ').filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('')
-}
-
-
-function toggleCpfReveal(id: string) {
-  const next = new Set(revealedCpfs.value)
-  if (next.has(id)) {
-    next.delete(id)
-  } else {
-    next.add(id)
-    setTimeout(() => {
-      revealedCpfs.value = new Set([...revealedCpfs.value].filter(x => x !== id))
-    }, 5000)
-  }
-  revealedCpfs.value = next
 }
 
 function getLastConsultation(paciente: Paciente): string {

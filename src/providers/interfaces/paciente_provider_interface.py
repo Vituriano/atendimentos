@@ -10,9 +10,5 @@ class PacienteProviderInterface(ABC):
         """Retorna {"items": [...], "total": N, "page": N, "limit": N}."""
 
     @abstractmethod
-    async def buscar_por_cpf(self, cpf: str) -> dict[str, Any] | None:
-        """Retorna o paciente pelo CPF completo ou None. Nunca aceita CPF parcial."""
-
-    @abstractmethod
     async def obter_paciente_por_prontuario(self, prontuario: str) -> dict[str, Any] | None:
         """Retorna um paciente pelo número de prontuário ou None se não encontrado."""

@@ -32,27 +32,6 @@ async def test_listar_pacientes_com_filtro_nome(mocker):
 
 
 @pytest.mark.asyncio
-async def test_buscar_por_cpf_retorna_paciente(mocker):
-    mock_provider = mocker.AsyncMock(spec=PacienteProviderInterface)
-    mock_provider.buscar_por_cpf.return_value = {"prontuario": "10000016", "nome": "ANA CLARA"}
-
-    result = await paciente_controller.buscar_por_cpf(mock_provider, "123.456.789-10")
-
-    assert result["prontuario"] == "10000016"
-    mock_provider.buscar_por_cpf.assert_called_once_with("123.456.789-10")
-
-
-@pytest.mark.asyncio
-async def test_buscar_por_cpf_retorna_none_quando_nao_encontrado(mocker):
-    mock_provider = mocker.AsyncMock(spec=PacienteProviderInterface)
-    mock_provider.buscar_por_cpf.return_value = None
-
-    result = await paciente_controller.buscar_por_cpf(mock_provider, "000.000.000-00")
-
-    assert result is None
-
-
-@pytest.mark.asyncio
 async def test_obter_paciente_por_prontuario_retorna_paciente(mocker):
     mock_provider = mocker.AsyncMock(spec=PacienteProviderInterface)
     mock_provider.obter_paciente_por_prontuario.return_value = {"prontuario": "10000016", "nome": "ANA CLARA"}
