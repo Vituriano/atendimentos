@@ -1,4 +1,4 @@
-prontuario,nome,nome,nome_mae,nome_pai,dt_nascimento,sexo,sexo_biologico,cor,status,nome_especialidade,ind_origem,faltas
+prontuario,nome,nome_completo,nome_mae,nome_pai,dt_nascimento,sexo,sexo_biologico,cor,status,nome_especialidade,ind_origem,faltas
 10000016,ANA CLARA SOUZA,ANA CLARA SOUZA,SANDRA SOUZA,ROBERTO SOUZA,2024-01-10,F,F,PARDA,PACIENTE AGENDADO,PEDIATRIA GERAL,R,0
 10000217,PEDRO HENRIQUE LIMA,PEDRO HENRIQUE LIMA,FATIMA LIMA,JORGE LIMA,2025-07-15,M,M,BRANCA,PACIENTE AGENDADO,NEUROPEDIATRIA,EC,1
 10000334,ISABELA FERREIRA,ISABELA FERREIRA,LUCIA FERREIRA,CARLOS FERREIRA,2022-04-20,F,F,PRETA,EM ATENDIMENTO,PEDIATRIA GERAL,R,0
