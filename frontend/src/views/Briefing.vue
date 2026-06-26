@@ -353,7 +353,7 @@ import {
   Tooltip,
 } from 'chart.js'
 import { useConsultaStore } from '../stores/consulta'
-import { usePacienteStore, getPacienteById } from '../stores/paciente'
+import { usePacienteStore } from '../stores/paciente'
 import { storeToRefs } from 'pinia'
 import type { CategoriaAlerta } from '../types/clinica'
 
@@ -368,30 +368,13 @@ const { pacienteAtivo, historico, alertas } = storeToRefs(pacienteStore)
 const isReadOnly = computed(() => route.query.source === 'base' || route.query.source === 'fila')
 const patientIdFromUrl = computed(() => route.query.patientId as string | undefined)
 
-const currentPatient = computed(() => {
-  if (isReadOnly.value && patientIdFromUrl.value) {
-    return getPacienteById(patientIdFromUrl.value) ?? pacienteAtivo.value
-  }
-  return pacienteAtivo.value
-})
+const currentPatient = computed(() => pacienteAtivo.value)
 
-const currentHistorico = computed(() => {
-  if (isReadOnly.value && patientIdFromUrl.value) {
-    const p = getPacienteById(patientIdFromUrl.value)
-    return p?.prontuarios?.flatMap(pr => pr.consultas) ?? []
-  }
-  return historico.value ?? []
-})
+const currentHistorico = computed(() => historico.value ?? [])
 
-const currentAlertas = computed(() => {
-  if (isReadOnly.value) return []
-  return alertas.value ?? []
-})
+const currentAlertas = computed(() => alertas.value ?? [])
 
-const currentAntropometria = computed(() => {
-  if (isReadOnly.value) return null
-  return pacienteStore.antropometria
-})
+const currentAntropometria = computed(() => pacienteStore.antropometria)
 
 const prontuarioOpen = ref(false)
 const confirmStartOpen = ref(false)
@@ -403,8 +386,14 @@ const prontuarioPrimario = computed(
 const consultaEmAndamento = computed(() => !isReadOnly.value && !!consultaStore.consultaIniciada)
 const dataUltimaConsulta = computed(() => historicoOrdenado.value[0]?.data ?? null)
 
-onMounted(() => {
-  if (!currentPatient.value) router.push('/fila')
+onMounted(async () => {
+  if (!currentPatient.value) {
+    router.push('/fila')
+    return
+  }
+  if (isReadOnly.value && patientIdFromUrl.value) {
+    await pacienteStore.carregarBriefing(patientIdFromUrl.value)
+  }
 })
 
 const historicoOrdenado = computed(() => [...currentHistorico.value].reverse())
