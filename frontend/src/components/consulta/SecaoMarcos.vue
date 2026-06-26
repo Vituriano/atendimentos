@@ -5,7 +5,6 @@ import {
   XMarkIcon,
   MinusIcon,
   ExclamationTriangleIcon,
-  CheckCircleIcon,
 } from '@heroicons/vue/24/solid'
 import { usePacienteStore } from '../../stores/paciente'
 import { useConsultaStore, type ClassificacaoDesenvolvimento } from '../../stores/consulta'
@@ -56,30 +55,6 @@ const marcosComAlerta = computed(() =>
   grupoAtivo.value.marcos.filter(m => marcoTemAlerta(m))
 )
 
-const celulasEditaveis = computed(() => {
-  const { marcos, colunas } = grupoAtivo.value
-  return marcos.flatMap(marco =>
-    colunas
-      .filter(col => isEditable(marco.faixaEtariaMeses, col))
-      .map(col => `${marco.id}-${col}`)
-  )
-})
-
-const totalAvaliados = computed(() =>
-  celulasEditaveis.value.filter(key => {
-    const v = consultaStore.statusMarcos[key]
-    return v !== null && v !== undefined
-  }).length
-)
-
-const secaoCompleta = computed(() => {
-  if (!consultaStore.classificacaoDesenvolvimento) return false
-  if (celulasEditaveis.value.length === 0) return false
-  return celulasEditaveis.value.every(key => {
-    const v = consultaStore.statusMarcos[key]
-    return v !== null && v !== undefined
-  })
-})
 
 const classificacaoOpcoes: Array<{
   value: ClassificacaoDesenvolvimento
@@ -133,21 +108,6 @@ const classificacaoOpcoes: Array<{
       </div>
     </div>
 
-    <!-- Cabeçalho: faixa etária e progresso -->
-    <div class="flex items-center justify-between">
-      <span class="text-xs text-slate-500">
-        Faixa etária: <span class="font-medium text-slate-700">{{ grupoAtivo.label }}</span>
-        &nbsp;·&nbsp; {{ totalAvaliados }}/{{ celulasEditaveis.length }} avaliados
-      </span>
-      <span
-        v-if="secaoCompleta"
-        class="flex items-center gap-1 text-xs text-green-700 font-medium"
-      >
-        <CheckCircleIcon class="h-4 w-4" />
-        Seção completa
-      </span>
-    </div>
-
     <!-- Tabela de marcos -->
     <div class="overflow-x-auto rounded-lg border border-slate-200">
       <table class="w-full text-sm">
@@ -163,7 +123,7 @@ const classificacaoOpcoes: Array<{
               class="text-center font-medium p-2 min-w-[52px] border-r last:border-r-0 text-xs"
               :class="isColunaAtual(col) ? 'bg-teal-100 text-teal-800' : ''"
             >
-              <div>{{ col }}m</div>
+              <div>{{ col }}</div>
               <span
                 v-if="isColunaAtual(col)"
                 class="inline-block text-[10px] bg-teal-200 text-teal-800 px-1 rounded mt-0.5"
@@ -259,19 +219,19 @@ const classificacaoOpcoes: Array<{
         <div class="w-5 h-5 rounded border bg-green-100 border-green-500 flex items-center justify-center">
           <CheckIcon class="h-3 w-3 text-green-600" />
         </div>
-        Confirmado
+        Confirmado (observado nesta consulta)
       </div>
       <div class="flex items-center gap-1.5">
         <div class="w-5 h-5 rounded border bg-red-100 border-red-500 flex items-center justify-center">
           <XMarkIcon class="h-3 w-3 text-red-600" />
         </div>
-        Não atingido
+        Não atingido (esperado não observado)
       </div>
       <div class="flex items-center gap-1.5">
         <div class="w-5 h-5 rounded border border-slate-200 flex items-center justify-center">
           <MinusIcon class="h-3 w-3 text-slate-300" />
         </div>
-        Fora da janela
+        Não avaliado
       </div>
       <div class="flex items-center gap-1.5">
         <div class="w-5 h-5 rounded bg-teal-50 border border-teal-200"></div>

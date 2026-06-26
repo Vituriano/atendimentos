@@ -128,13 +128,13 @@ export const mockPacientes: Paciente[] = [
     nomeMae: 'Claudia Oliveira',
     nomePai: 'Marcelo Oliveira',
     dataNascimento: '24/04/2023',
-    idade: '3 anos e 2 meses',
-    idadeEmMeses: 38,
+    idade: '3 anos',
+    idadeEmMeses: 36,
     sexo: 'F',
     sexoBiologico: 'F',
     cor: 'BRANCA',
-    prontuario: '10000556',
-    prontuarioPrimario: '10000556',
+    prontuario: 'HC-2023-00445',
+    prontuarioPrimario: 'HC-2023-00445',
     cpf: '567.890.123-54',
     especialidade: 'PNEUMOLOGIA PEDIATRICA',
     indOrigem: 'R',
@@ -146,6 +146,304 @@ export const mockPacientes: Paciente[] = [
           { id: 'c5-1', data: 'Mai/2026', tipo: 'Retorno', peso: 14.5, tendenciaPeso: 'stable', cid: 'Z00.1', encaminhamento: null },
           { id: 'c5-2', data: 'Fev/2026', tipo: 'Retorno', peso: 14.2, tendenciaPeso: 'up', cid: 'Z00.1', encaminhamento: null },
           { id: 'c5-3', data: 'Nov/2025', tipo: 'Retorno', peso: 13.8, tendenciaPeso: 'up', cid: 'J20.9', encaminhamento: 'Pneumologia' },
+        ],
+      },
+      {
+        numero: 'HC-2021-00789',
+        dataAbertura: '15/06/2021',
+        consultas: [
+          { id: 'c5-4', data: 'Abr/2023', tipo: 'Retorno', peso: 11.5, tendenciaPeso: 'up', cid: 'Z00.1', encaminhamento: null },
+          { id: 'c5-5', data: 'Jan/2023', tipo: 'Retorno', peso: 10.8, tendenciaPeso: 'up', cid: 'Z00.1', encaminhamento: null },
+        ],
+      },
+    ],
+  },
+  {
+    id: '6',
+    nome: 'Bernardo Costa',
+    dataNascimento: '05/08/2024',
+    idade: '1 ano e 9 meses',
+    idadeEmMeses: 21,
+    prontuario: 'HC-2024-01123',
+    prontuarioPrimario: 'HC-2024-01123',
+    cpf: '678.901.234-65',
+    prontuarios: [
+      {
+        numero: 'HC-2024-01123',
+        dataAbertura: '05/08/2024',
+        consultas: [
+          { id: 'c6-1', data: 'Mai/2026', tipo: 'Retorno', peso: 12.0, tendenciaPeso: 'up', cid: 'Z00.1', encaminhamento: null },
+          { id: 'c6-2', data: 'Fev/2026', tipo: 'Retorno', peso: 11.5, tendenciaPeso: 'up', cid: 'Z00.1', encaminhamento: null },
+        ],
+      },
+    ],
+  },
+  {
+    id: '7',
+    nome: 'Camila Rodrigues',
+    dataNascimento: '18/12/2021',
+    idade: '4 anos e 5 meses',
+    idadeEmMeses: 53,
+    prontuario: 'HC-2021-00892',
+    prontuarioPrimario: 'HC-2021-00892',
+    cpf: '789.012.345-76',
+    prontuarios: [
+      {
+        numero: 'HC-2021-00892',
+        dataAbertura: '18/12/2021',
+        consultas: [
+          { id: 'c7-1', data: 'Mai/2026', tipo: 'Retorno', peso: 17.5, tendenciaPeso: 'stable', cid: 'Z00.1', encaminhamento: null },
+          { id: 'c7-2', data: 'Fev/2026', tipo: 'Retorno', peso: 17.2, tendenciaPeso: 'up', cid: 'Z00.1', encaminhamento: null },
+        ],
+      },
+    ],
+  },
+  {
+    id: '8',
+    nome: 'Davi Almeida',
+    dataNascimento: '30/03/2025',
+    idade: '1 ano e 2 meses',
+    idadeEmMeses: 14,
+    prontuario: 'HC-2025-00234',
+    prontuarioPrimario: 'HC-2025-00234',
+    cpf: '890.123.456-87',
+    prontuarios: [
+      {
+        numero: 'HC-2025-00234',
+        dataAbertura: '30/03/2025',
+        consultas: [
+          { id: 'c8-1', data: 'Mai/2026', tipo: 'Retorno', peso: 10.8, tendenciaPeso: 'up', cid: 'Z00.1', encaminhamento: null },
+        ],
+      },
+    ],
+  },
+  {
+    id: '9',
+    nome: 'Eduarda Martins',
+    dataNascimento: '12/06/2023',
+    idade: '2 anos e 11 meses',
+    idadeEmMeses: 35,
+    prontuario: 'HC-2023-00678',
+    prontuarioPrimario: 'HC-2023-00678',
+    cpf: '901.234.567-98',
+    prontuarios: [
+      {
+        numero: 'HC-2023-00678',
+        dataAbertura: '12/06/2023',
+        consultas: [
+          { id: 'c9-1', data: 'Mai/2026', tipo: 'Retorno', peso: 13.5, tendenciaPeso: 'stable', cid: 'Z00.1', encaminhamento: null },
+          { id: 'c9-2', data: 'Fev/2026', tipo: 'Retorno', peso: 13.2, tendenciaPeso: 'up', cid: 'K59.0', encaminhamento: 'Gastroenterologia' },
+        ],
+      },
+    ],
+  },
+  {
+    id: '10',
+    nome: 'Felipe Nascimento',
+    dataNascimento: '25/09/2022',
+    idade: '3 anos e 8 meses',
+    idadeEmMeses: 44,
+    prontuario: 'HC-2022-01345',
+    prontuarioPrimario: 'HC-2022-01345',
+    cpf: '012.345.678-09',
+    prontuarios: [
+      {
+        numero: 'HC-2022-01345',
+        dataAbertura: '25/09/2022',
+        consultas: [
+          { id: 'c10-1', data: 'Abr/2026', tipo: 'Retorno', peso: 15.8, tendenciaPeso: 'up', cid: 'Z00.1', encaminhamento: null },
+        ],
+      },
+    ],
+  },
+  {
+    id: '11',
+    nome: 'Giovanna Pereira',
+    dataNascimento: '08/02/2024',
+    idade: '2 anos e 3 meses',
+    idadeEmMeses: 27,
+    prontuario: 'HC-2024-00456',
+    prontuarioPrimario: 'HC-2024-00456',
+    cpf: '111.222.333-44',
+    prontuarios: [
+      {
+        numero: 'HC-2024-00456',
+        dataAbertura: '08/02/2024',
+        consultas: [
+          { id: 'c11-1', data: 'Mai/2026', tipo: 'Retorno', peso: 12.3, tendenciaPeso: 'up', cid: 'Z00.1', encaminhamento: null },
+          { id: 'c11-2', data: 'Fev/2026', tipo: 'Retorno', peso: 11.8, tendenciaPeso: 'up', cid: 'Z00.1', encaminhamento: null },
+        ],
+      },
+    ],
+  },
+  {
+    id: '12',
+    nome: 'Henrique Barbosa',
+    dataNascimento: '14/11/2023',
+    idade: '2 anos e 6 meses',
+    idadeEmMeses: 30,
+    prontuario: 'HC-2023-01567',
+    prontuarioPrimario: 'HC-2023-01567',
+    cpf: '222.333.444-55',
+    prontuarios: [
+      {
+        numero: 'HC-2023-01567',
+        dataAbertura: '14/11/2023',
+        consultas: [
+          { id: 'c12-1', data: 'Mai/2026', tipo: 'Retorno', peso: 13.1, tendenciaPeso: 'stable', cid: 'Z00.1', encaminhamento: null },
+        ],
+      },
+    ],
+  },
+  {
+    id: '13',
+    nome: 'Isadora Ramos',
+    dataNascimento: '03/07/2025',
+    idade: '10 meses',
+    idadeEmMeses: 10,
+    prontuario: 'HC-2025-00789',
+    prontuarioPrimario: 'HC-2025-00789',
+    cpf: '333.444.555-66',
+    prontuarios: [
+      {
+        numero: 'HC-2025-00789',
+        dataAbertura: '03/07/2025',
+        consultas: [
+          { id: 'c13-1', data: 'Mai/2026', tipo: 'Retorno', peso: 9.2, tendenciaPeso: 'up', cid: 'Z00.1', encaminhamento: null },
+        ],
+      },
+    ],
+  },
+  {
+    id: '14',
+    nome: 'João Gabriel Teixeira',
+    dataNascimento: '21/01/2022',
+    idade: '4 anos e 4 meses',
+    idadeEmMeses: 52,
+    prontuario: 'HC-2022-00234',
+    prontuarioPrimario: 'HC-2022-00234',
+    cpf: '444.555.666-77',
+    prontuarios: [
+      {
+        numero: 'HC-2022-00234',
+        dataAbertura: '21/01/2022',
+        consultas: [
+          { id: 'c14-1', data: 'Mai/2026', tipo: 'Retorno', peso: 18.0, tendenciaPeso: 'stable', cid: 'Z00.1', encaminhamento: null },
+          { id: 'c14-2', data: 'Fev/2026', tipo: 'Retorno', peso: 17.5, tendenciaPeso: 'up', cid: 'H65.9', encaminhamento: 'Otorrinolaringologia' },
+        ],
+      },
+    ],
+  },
+  {
+    id: '15',
+    nome: 'Larissa Fernandes',
+    dataNascimento: '09/05/2024',
+    idade: '2 anos',
+    idadeEmMeses: 24,
+    prontuario: 'HC-2024-01890',
+    prontuarioPrimario: 'HC-2024-01890',
+    cpf: '555.666.777-88',
+    prontuarios: [
+      {
+        numero: 'HC-2024-01890',
+        dataAbertura: '09/05/2024',
+        consultas: [
+          { id: 'c15-1', data: 'Mai/2026', tipo: 'Retorno', peso: 11.5, tendenciaPeso: 'up', cid: 'Z00.1', encaminhamento: null },
+        ],
+      },
+    ],
+  },
+  {
+    id: '16',
+    nome: 'Matheus Gonçalves',
+    dataNascimento: '16/10/2023',
+    idade: '2 anos e 7 meses',
+    idadeEmMeses: 31,
+    prontuario: 'HC-2023-00912',
+    prontuarioPrimario: 'HC-2023-00912',
+    cpf: '666.777.888-99',
+    prontuarios: [
+      {
+        numero: 'HC-2023-00912',
+        dataAbertura: '16/10/2023',
+        consultas: [
+          { id: 'c16-1', data: 'Mai/2026', tipo: 'Retorno', peso: 13.8, tendenciaPeso: 'up', cid: 'Z00.1', encaminhamento: null },
+        ],
+      },
+    ],
+  },
+  {
+    id: '17',
+    nome: 'Natália Cardoso',
+    dataNascimento: '28/04/2025',
+    idade: '1 ano e 1 mês',
+    idadeEmMeses: 13,
+    prontuario: 'HC-2025-01456',
+    prontuarioPrimario: 'HC-2025-01456',
+    cpf: '777.888.999-00',
+    prontuarios: [
+      {
+        numero: 'HC-2025-01456',
+        dataAbertura: '28/04/2025',
+        consultas: [
+          { id: 'c17-1', data: 'Mai/2026', tipo: 'Retorno', peso: 9.8, tendenciaPeso: 'up', cid: 'Z00.1', encaminhamento: null },
+        ],
+      },
+    ],
+  },
+  {
+    id: '18',
+    nome: 'Otávio Ribeiro',
+    dataNascimento: '07/08/2022',
+    idade: '3 anos e 9 meses',
+    idadeEmMeses: 45,
+    prontuario: 'HC-2022-01678',
+    prontuarioPrimario: 'HC-2022-01678',
+    cpf: '888.999.000-11',
+    prontuarios: [
+      {
+        numero: 'HC-2022-01678',
+        dataAbertura: '07/08/2022',
+        consultas: [
+          { id: 'c18-1', data: 'Mai/2026', tipo: 'Retorno', peso: 16.2, tendenciaPeso: 'stable', cid: 'Z00.1', encaminhamento: null },
+        ],
+      },
+    ],
+  },
+  {
+    id: '19',
+    nome: 'Patrícia Mendes',
+    dataNascimento: '19/12/2024',
+    idade: '1 ano e 5 meses',
+    idadeEmMeses: 17,
+    prontuario: 'HC-2024-02345',
+    prontuarioPrimario: 'HC-2024-02345',
+    cpf: '999.000.111-22',
+    prontuarios: [
+      {
+        numero: 'HC-2024-02345',
+        dataAbertura: '19/12/2024',
+        consultas: [
+          { id: 'c19-1', data: 'Mai/2026', tipo: 'Retorno', peso: 10.5, tendenciaPeso: 'up', cid: 'Z00.1', encaminhamento: null },
+        ],
+      },
+    ],
+  },
+  {
+    id: '20',
+    nome: 'Rafael Carvalho',
+    dataNascimento: '02/03/2023',
+    idade: '3 anos e 2 meses',
+    idadeEmMeses: 38,
+    prontuario: 'HC-2023-01234',
+    prontuarioPrimario: 'HC-2023-01234',
+    cpf: '100.200.300-40',
+    prontuarios: [
+      {
+        numero: 'HC-2023-01234',
+        dataAbertura: '02/03/2023',
+        consultas: [
+          { id: 'c20-1', data: 'Mai/2026', tipo: 'Retorno', peso: 14.8, tendenciaPeso: 'up', cid: 'Z00.1', encaminhamento: null },
         ],
       },
     ],

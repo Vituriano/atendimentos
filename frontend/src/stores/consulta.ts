@@ -75,7 +75,7 @@ export const useConsultaStore = defineStore('consulta', () => {
   const canGoPrev = computed(() => currentIndex.value > 0)
   const canGoNext = computed(() => currentIndex.value < secoes.value.length - 1)
 
-  // Marcos do desenvolvimento — chave composta: `${marcoId}-${idadeEmMeses}`
+  // Marcos do desenvolvimento — chave composta: `${marcoId}-${idadeColuna}`
   const statusMarcos = ref<Record<string, StatusMarco | null>>({})
   const observacoesMarcos = ref<Record<string, string>>({})
   const classificacaoDesenvolvimento = ref<ClassificacaoDesenvolvimento | null>(null)
