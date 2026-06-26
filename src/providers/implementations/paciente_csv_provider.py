@@ -1,14 +1,9 @@
 import csv
-import re
 from typing import Any
 
 from ..interfaces.paciente_provider_interface import PacienteProviderInterface
 
 _ORIGEM = "AGHU-CSV"
-
-
-def _cpf_digits(cpf: str) -> str:
-    return re.sub(r"\D", "", cpf)
 
 
 class PacienteCsvProvider(PacienteProviderInterface):
@@ -37,16 +32,6 @@ class PacienteCsvProvider(PacienteProviderInterface):
         start = (page - 1) * limit
         items = rows[start : start + limit]
         return {"items": items, "total": total, "page": page, "limit": limit}
-
-    async def buscar_por_cpf(self, cpf: str) -> dict[str, Any] | None:
-        # Nunca aceitar CPF parcial — LGPD
-        if len(_cpf_digits(cpf)) != 11:
-            return None
-        rows = self._read_all()
-        for row in rows:
-            if _cpf_digits(row.get("cpf", "")) == _cpf_digits(cpf):
-                return row
-        return None
 
     async def obter_paciente_por_prontuario(self, prontuario: str) -> dict[str, Any] | None:
         rows = self._read_all()

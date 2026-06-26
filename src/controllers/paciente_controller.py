@@ -12,13 +12,6 @@ async def listar_pacientes(
     return await provider.listar_pacientes(page=page, limit=limit, nome=nome)
 
 
-async def buscar_por_cpf(
-    provider: PacienteProviderInterface,
-    cpf: str,
-) -> dict[str, Any] | None:
-    return await provider.buscar_por_cpf(cpf)
-
-
 async def obter_paciente_por_prontuario(
     provider: PacienteProviderInterface,
     prontuario: str,

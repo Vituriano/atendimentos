@@ -16,7 +16,7 @@ export const mockPacientes: Paciente[] = [
     cor: 'PARDA',
     prontuario: '10000016',
     prontuarioPrimario: '10000016',
-    cpf: '123.456.789-10',
+
     especialidade: 'PEDIATRIA GERAL',
     indOrigem: 'R',
     prontuarios: [
@@ -53,7 +53,6 @@ export const mockPacientes: Paciente[] = [
     cor: 'BRANCA',
     prontuario: '10000217',
     prontuarioPrimario: '10000217',
-    cpf: '234.567.890-21',
     especialidade: 'NEUROPEDIATRIA',
     indOrigem: 'EC',
     prontuarios: [
@@ -80,7 +79,6 @@ export const mockPacientes: Paciente[] = [
     cor: 'PRETA',
     prontuario: '10000334',
     prontuarioPrimario: '10000334',
-    cpf: '345.678.901-32',
     especialidade: 'PEDIATRIA GERAL',
     indOrigem: 'R',
     prontuarios: [
@@ -108,7 +106,6 @@ export const mockPacientes: Paciente[] = [
     cor: 'PARDA',
     prontuario: '10000445',
     prontuarioPrimario: '10000445',
-    cpf: '456.789.012-43',
     especialidade: 'CARDIOLOGIA PEDIATRICA',
     indOrigem: 'E',
     prontuarios: [

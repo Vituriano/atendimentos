@@ -58,7 +58,6 @@
                       {{ entrada.faltas }} faltas
                     </span>
                   </div>
-                  <div class="text-xs text-slate-400">CPF: {{ maskCpf(entrada.paciente.cpf ?? '', 'partial') }}</div>
                   <!-- Mobile: extra info -->
                   <div class="flex flex-wrap gap-2 sm:hidden mt-1">
                     <span class="text-xs text-slate-500">{{ entrada.paciente.idade }}</span>
@@ -180,7 +179,6 @@ import {
 } from '@heroicons/vue/24/outline'
 import { useFilaStore } from '../stores/fila'
 import type { EntradaFila, TipoEntrada, StatusFila } from '../types/clinica'
-import { maskCpf } from '../utils/cpf'
 
 const fila = useFilaStore()
 
