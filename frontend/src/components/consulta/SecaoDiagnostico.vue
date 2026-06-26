@@ -12,7 +12,7 @@
     </div>
 
     <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">CID-10 Principal</label>
+      <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">CID-10 Principal <span class="text-red-500">*</span></label>
       <input
         :value="diagnostico.cid10Principal"
         type="text"
