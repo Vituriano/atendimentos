@@ -39,12 +39,23 @@
 
       <!-- Section content -->
       <main class="flex-1 overflow-y-auto p-6">
-        <div class="mx-auto max-w-3xl">
-          <h2 class="mb-6 text-lg font-semibold text-slate-900">
-            {{ secaoAtiva?.label }}
-          </h2>
-          <!-- Placeholder — cada seção será implementada em tasks separadas -->
-          <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center text-sm text-slate-400">
+        <div class="space-y-6">
+          <!-- Section header: icon + title + description + separator -->
+          <div class="space-y-2">
+            <div class="flex items-center gap-3">
+              <component
+                :is="sectionIcons[consulta.activeSection]"
+                class="h-6 w-6 text-teal-700"
+              />
+              <h2 class="text-xl font-semibold text-slate-900">{{ secaoAtiva?.label }}</h2>
+            </div>
+            <p class="text-sm text-slate-500">{{ sectionDescriptions[consulta.activeSection] }}</p>
+            <hr class="border-slate-200" />
+          </div>
+
+          <SecaoMarcos v-if="consulta.activeSection === 'milestones'" />
+          <!-- Placeholder para seções ainda não implementadas -->
+          <div v-else class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center text-sm text-slate-400">
             Conteúdo da seção "{{ secaoAtiva?.label }}" será implementado em breve.
           </div>
         </div>
@@ -110,12 +121,57 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChevronLeftIcon, ChevronRightIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import {
+  ChevronLeftIcon, ChevronRightIcon, XMarkIcon,
+  ChartBarIcon, DocumentTextIcon, ShieldCheckIcon, SparklesIcon,
+  AcademicCapIcon, HeartIcon, ClipboardDocumentCheckIcon, CpuChipIcon,
+  UsersIcon, HomeIcon, PaperAirplaneIcon, DocumentMagnifyingGlassIcon,
+  WrenchScrewdriverIcon, DocumentArrowDownIcon,
+} from '@heroicons/vue/24/outline'
 import { storeToRefs } from 'pinia'
 import { usePacienteStore } from '../stores/paciente'
-import { useConsultaStore } from '../stores/consulta'
+import { useConsultaStore, type SecaoId } from '../stores/consulta'
 import ConsultaNav from '../components/consulta/ConsultaNav.vue'
 import ConsultaTimer from '../components/consulta/ConsultaTimer.vue'
+import SecaoMarcos from '../components/consulta/SecaoMarcos.vue'
+
+const sectionIcons: Record<SecaoId, unknown> = {
+  anthropometric: ChartBarIcon,
+  anamnesis: DocumentTextIcon,
+  imunizacoes: ShieldCheckIcon,
+  triagemNeonatal: SparklesIcon,
+  escolaridade: AcademicCapIcon,
+  clinical: HeartIcon,
+  milestones: ClipboardDocumentCheckIcon,
+  mchat: CpuChipIcon,
+  historiaFamiliar: UsersIcon,
+  dinamicaFamiliar: HeartIcon,
+  socioeconomico: HomeIcon,
+  referral: PaperAirplaneIcon,
+  diagnostico: DocumentMagnifyingGlassIcon,
+  condutasHipoteses: DocumentTextIcon,
+  procedimentos: WrenchScrewdriverIcon,
+  externo: DocumentArrowDownIcon,
+}
+
+const sectionDescriptions: Record<SecaoId, string> = {
+  anthropometric: 'Registre as medidas aferidas nesta consulta.',
+  anamnesis: 'Queixa principal, HDA, alimentação e hábitos de vida.',
+  imunizacoes: 'Registre o status vacinal conforme o Calendário Nacional de Imunização (PNI).',
+  escolaridade: 'Crescimento e desenvolvimento — avaliação escolar (opinião dos familiares).',
+  triagemNeonatal: 'Registro dos testes de triagem neonatal e dados do nascimento.',
+  clinical: 'Avaliação cefálo-caudal por sistemas. Selecione os sistemas avaliados.',
+  milestones: 'Acompanhamento do desenvolvimento neuropsicomotor por faixa etária.',
+  mchat: 'Triagem de risco para Transtorno do Espectro Autista. Aplicável de 16 a 30 meses.',
+  historiaFamiliar: 'Condições de saúde e contexto dos familiares próximos.',
+  dinamicaFamiliar: 'Triagem psicossocial — perguntas estruturadas sobre contexto familiar.',
+  socioeconomico: 'Condições de moradia e contexto socioeconômico familiar — coletado apenas na primeira consulta.',
+  referral: 'Registre os encaminhamentos gerados nesta consulta.',
+  diagnostico: 'Registro do diagnóstico principal e secundários (CID-10 / SID).',
+  condutasHipoteses: 'Raciocínio clínico e plano de cuidado desta consulta.',
+  procedimentos: 'Procedimentos realizados durante o atendimento, vinculados ao diagnóstico.',
+  externo: 'Dados de consultas realizadas em outros serviços, fornecidos pela família.',
+}
 
 const router = useRouter()
 const pacienteStore = usePacienteStore()

@@ -1,6 +1,9 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { usePacienteStore } from './paciente'
+import type { StatusMarco } from '../types/clinica'
+
+export type ClassificacaoDesenvolvimento = 'adequado' | 'alerta' | 'provavel-atraso'
 
 export type SecaoId =
   | 'anthropometric' | 'anamnesis' | 'imunizacoes' | 'triagemNeonatal'
@@ -17,6 +20,7 @@ export interface Secao {
 export const useConsultaStore = defineStore('consulta', () => {
   const pacienteStore = usePacienteStore()
 
+  // Navegação entre seções
   const activeSection = ref<SecaoId>('anthropometric')
   const completedSections = ref(new Set<SecaoId>())
   const consultaIniciada = ref<Date | null>(null)
@@ -71,6 +75,41 @@ export const useConsultaStore = defineStore('consulta', () => {
   const canGoPrev = computed(() => currentIndex.value > 0)
   const canGoNext = computed(() => currentIndex.value < secoes.value.length - 1)
 
+  // Marcos do desenvolvimento — chave composta: `${marcoId}-${idadeColuna}`
+  const statusMarcos = ref<Record<string, StatusMarco | null>>({})
+  const observacoesMarcos = ref<Record<string, string>>({})
+  const classificacaoDesenvolvimento = ref<ClassificacaoDesenvolvimento | null>(null)
+
+  const totalMarcosRegistrados = computed(
+    () => Object.values(statusMarcos.value).filter(v => v !== null).length
+  )
+
+  function toggleStatusMarco(marcoId: string, idadeColuna: number, status: StatusMarco) {
+    const key = `${marcoId}-${idadeColuna}`
+    const atual = statusMarcos.value[key]
+    statusMarcos.value = {
+      ...statusMarcos.value,
+      [key]: atual === status ? null : status,
+    }
+  }
+
+  function getStatusMarco(marcoId: string, idadeColuna: number): StatusMarco | null {
+    return statusMarcos.value[`${marcoId}-${idadeColuna}`] ?? null
+  }
+
+  function setObservacaoMarco(marcoId: string, obs: string) {
+    observacoesMarcos.value = { ...observacoesMarcos.value, [marcoId]: obs }
+  }
+
+  function getObservacaoMarco(marcoId: string): string {
+    return observacoesMarcos.value[marcoId] ?? ''
+  }
+
+  function setClassificacao(classificacao: ClassificacaoDesenvolvimento | null) {
+    classificacaoDesenvolvimento.value = classificacao
+  }
+
+  // Funções de navegação
   function iniciarConsulta() {
     consultaIniciada.value = new Date()
     activeSection.value = 'anthropometric'
@@ -102,6 +141,9 @@ export const useConsultaStore = defineStore('consulta', () => {
     consultaIniciada.value = null
     activeSection.value = 'anthropometric'
     completedSections.value = new Set()
+    statusMarcos.value = {}
+    observacoesMarcos.value = {}
+    classificacaoDesenvolvimento.value = null
   }
 
   return {
@@ -112,11 +154,20 @@ export const useConsultaStore = defineStore('consulta', () => {
     currentIndex,
     canGoPrev,
     canGoNext,
+    statusMarcos,
+    observacoesMarcos,
+    classificacaoDesenvolvimento,
+    totalMarcosRegistrados,
     iniciarConsulta,
     setActiveSection,
     markSectionComplete,
     goNext,
     goPrev,
     resetConsulta,
+    toggleStatusMarco,
+    getStatusMarco,
+    setObservacaoMarco,
+    getObservacaoMarco,
+    setClassificacao,
   }
 })
