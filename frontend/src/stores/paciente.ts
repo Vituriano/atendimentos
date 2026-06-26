@@ -132,7 +132,6 @@ export const mockPacientes: Paciente[] = [
     cor: 'BRANCA',
     prontuario: 'HC-2023-00445',
     prontuarioPrimario: 'HC-2023-00445',
-    cpf: '567.890.123-54',
     especialidade: 'PNEUMOLOGIA PEDIATRICA',
     indOrigem: 'R',
     prontuarios: [
@@ -163,7 +162,6 @@ export const mockPacientes: Paciente[] = [
     idadeEmMeses: 21,
     prontuario: 'HC-2024-01123',
     prontuarioPrimario: 'HC-2024-01123',
-    cpf: '678.901.234-65',
     prontuarios: [
       {
         numero: 'HC-2024-01123',
@@ -183,7 +181,6 @@ export const mockPacientes: Paciente[] = [
     idadeEmMeses: 53,
     prontuario: 'HC-2021-00892',
     prontuarioPrimario: 'HC-2021-00892',
-    cpf: '789.012.345-76',
     prontuarios: [
       {
         numero: 'HC-2021-00892',
@@ -203,7 +200,6 @@ export const mockPacientes: Paciente[] = [
     idadeEmMeses: 14,
     prontuario: 'HC-2025-00234',
     prontuarioPrimario: 'HC-2025-00234',
-    cpf: '890.123.456-87',
     prontuarios: [
       {
         numero: 'HC-2025-00234',
@@ -222,7 +218,6 @@ export const mockPacientes: Paciente[] = [
     idadeEmMeses: 35,
     prontuario: 'HC-2023-00678',
     prontuarioPrimario: 'HC-2023-00678',
-    cpf: '901.234.567-98',
     prontuarios: [
       {
         numero: 'HC-2023-00678',
@@ -242,7 +237,6 @@ export const mockPacientes: Paciente[] = [
     idadeEmMeses: 44,
     prontuario: 'HC-2022-01345',
     prontuarioPrimario: 'HC-2022-01345',
-    cpf: '012.345.678-09',
     prontuarios: [
       {
         numero: 'HC-2022-01345',
@@ -261,7 +255,6 @@ export const mockPacientes: Paciente[] = [
     idadeEmMeses: 27,
     prontuario: 'HC-2024-00456',
     prontuarioPrimario: 'HC-2024-00456',
-    cpf: '111.222.333-44',
     prontuarios: [
       {
         numero: 'HC-2024-00456',
@@ -281,7 +274,6 @@ export const mockPacientes: Paciente[] = [
     idadeEmMeses: 30,
     prontuario: 'HC-2023-01567',
     prontuarioPrimario: 'HC-2023-01567',
-    cpf: '222.333.444-55',
     prontuarios: [
       {
         numero: 'HC-2023-01567',
@@ -300,7 +292,6 @@ export const mockPacientes: Paciente[] = [
     idadeEmMeses: 10,
     prontuario: 'HC-2025-00789',
     prontuarioPrimario: 'HC-2025-00789',
-    cpf: '333.444.555-66',
     prontuarios: [
       {
         numero: 'HC-2025-00789',
@@ -319,7 +310,6 @@ export const mockPacientes: Paciente[] = [
     idadeEmMeses: 52,
     prontuario: 'HC-2022-00234',
     prontuarioPrimario: 'HC-2022-00234',
-    cpf: '444.555.666-77',
     prontuarios: [
       {
         numero: 'HC-2022-00234',
@@ -339,7 +329,6 @@ export const mockPacientes: Paciente[] = [
     idadeEmMeses: 24,
     prontuario: 'HC-2024-01890',
     prontuarioPrimario: 'HC-2024-01890',
-    cpf: '555.666.777-88',
     prontuarios: [
       {
         numero: 'HC-2024-01890',
@@ -358,7 +347,6 @@ export const mockPacientes: Paciente[] = [
     idadeEmMeses: 31,
     prontuario: 'HC-2023-00912',
     prontuarioPrimario: 'HC-2023-00912',
-    cpf: '666.777.888-99',
     prontuarios: [
       {
         numero: 'HC-2023-00912',
@@ -377,7 +365,6 @@ export const mockPacientes: Paciente[] = [
     idadeEmMeses: 13,
     prontuario: 'HC-2025-01456',
     prontuarioPrimario: 'HC-2025-01456',
-    cpf: '777.888.999-00',
     prontuarios: [
       {
         numero: 'HC-2025-01456',
@@ -396,7 +383,6 @@ export const mockPacientes: Paciente[] = [
     idadeEmMeses: 45,
     prontuario: 'HC-2022-01678',
     prontuarioPrimario: 'HC-2022-01678',
-    cpf: '888.999.000-11',
     prontuarios: [
       {
         numero: 'HC-2022-01678',
@@ -415,7 +401,6 @@ export const mockPacientes: Paciente[] = [
     idadeEmMeses: 17,
     prontuario: 'HC-2024-02345',
     prontuarioPrimario: 'HC-2024-02345',
-    cpf: '999.000.111-22',
     prontuarios: [
       {
         numero: 'HC-2024-02345',
@@ -434,7 +419,6 @@ export const mockPacientes: Paciente[] = [
     idadeEmMeses: 38,
     prontuario: 'HC-2023-01234',
     prontuarioPrimario: 'HC-2023-01234',
-    cpf: '100.200.300-40',
     prontuarios: [
       {
         numero: 'HC-2023-01234',
