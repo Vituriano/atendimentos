@@ -60,6 +60,7 @@
           <SecaoImunizacoes v-else-if="consulta.activeSection === 'imunizacoes'" />
           <SecaoEscolaridade v-else-if="consulta.activeSection === 'escolaridade'" />
           <SecaoTriagemNeonatal v-else-if="consulta.activeSection === 'triagemNeonatal'" />
+          <SecaoExameFisico v-else-if="consulta.activeSection === 'clinical'" />
           <SecaoMarcos v-else-if="consulta.activeSection === 'milestones'" />
           <SecaoHistoriaFamiliar v-else-if="consulta.activeSection === 'historiaFamiliar'" />
           <SecaoDinamicaFamiliar v-else-if="consulta.activeSection === 'dinamicaFamiliar'" />
@@ -157,6 +158,7 @@ import SecaoMarcos from '../components/consulta/SecaoMarcos.vue'
 import SecaoAntropometria from '../components/consulta/SecaoAntropometria.vue'
 import SecaoAnamnese from '../components/consulta/SecaoAnamnese.vue'
 import SecaoImunizacoes from '../components/consulta/SecaoImunizacoes.vue'
+import SecaoExameFisico from '../components/consulta/SecaoExameFisico.vue'
 import SecaoEscolaridade from '../components/consulta/SecaoEscolaridade.vue'
 import SecaoTriagemNeonatal from '../components/consulta/SecaoTriagemNeonatal.vue'
 import SecaoEncaminhamentos from '../components/consulta/SecaoEncaminhamentos.vue'
