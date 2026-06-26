@@ -30,11 +30,10 @@
             Salvar Rascunho
           </button>
           <button
-            class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
-            :disabled="consulta.finalizandoConsulta"
+            class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 transition-colors"
             @click="confirmFinalizarOpen = true"
           >
-            {{ consulta.finalizandoConsulta ? 'Finalizando...' : 'Finalizar Consulta' }}
+            Finalizar Consulta
           </button>
         </div>
       </header>
@@ -57,18 +56,7 @@
 
           <SecaoAntropometria v-if="consulta.activeSection === 'anthropometric'" />
           <SecaoAnamnese v-else-if="consulta.activeSection === 'anamnesis'" />
-          <SecaoImunizacoes v-else-if="consulta.activeSection === 'imunizacoes'" />
-          <SecaoEscolaridade v-else-if="consulta.activeSection === 'escolaridade'" />
-          <SecaoTriagemNeonatal v-else-if="consulta.activeSection === 'triagemNeonatal'" />
           <SecaoMarcos v-else-if="consulta.activeSection === 'milestones'" />
-          <SecaoHistoriaFamiliar v-else-if="consulta.activeSection === 'historiaFamiliar'" />
-          <SecaoDinamicaFamiliar v-else-if="consulta.activeSection === 'dinamicaFamiliar'" />
-          <SecaoCondicoesSocioeconomicas v-else-if="consulta.activeSection === 'socioeconomico'" />
-          <SecaoEncaminhamentos v-else-if="consulta.activeSection === 'referral'" />
-          <SecaoDiagnostico v-else-if="consulta.activeSection === 'diagnostico'" />
-          <SecaoHipotesesCondutas v-else-if="consulta.activeSection === 'condutasHipoteses'" />
-          <SecaoProcedimentos v-else-if="consulta.activeSection === 'procedimentos'" />
-          <SecaoDadosExternos v-else-if="consulta.activeSection === 'externo'" />
           <!-- Placeholder para seções ainda não implementadas -->
           <div v-else class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center text-sm text-slate-400">
             Conteúdo da seção "{{ secaoAtiva?.label }}" será implementado em breve.
@@ -115,23 +103,18 @@
       <p class="mb-6 text-sm text-slate-600">
         A consulta será marcada como concluída. Verifique se todas as seções foram preenchidas antes de finalizar.
       </p>
-      <p v-if="consulta.erroFinalizarConsulta" class="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-        {{ consulta.erroFinalizarConsulta }}
-      </p>
       <div class="flex justify-end gap-3">
         <button
-          class="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-          :disabled="consulta.finalizandoConsulta"
+          class="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
           @click="confirmFinalizarOpen = false"
         >
           Cancelar
         </button>
         <button
-          class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
-          :disabled="consulta.finalizandoConsulta"
+          class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
           @click="finalizarConsulta"
         >
-          {{ consulta.finalizandoConsulta ? 'Finalizando...' : 'Confirmar' }}
+          Confirmar
         </button>
       </div>
     </div>
@@ -139,7 +122,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ChevronLeftIcon, ChevronRightIcon, XMarkIcon,
@@ -156,17 +139,6 @@ import ConsultaTimer from '../components/consulta/ConsultaTimer.vue'
 import SecaoMarcos from '../components/consulta/SecaoMarcos.vue'
 import SecaoAntropometria from '../components/consulta/SecaoAntropometria.vue'
 import SecaoAnamnese from '../components/consulta/SecaoAnamnese.vue'
-import SecaoImunizacoes from '../components/consulta/SecaoImunizacoes.vue'
-import SecaoEscolaridade from '../components/consulta/SecaoEscolaridade.vue'
-import SecaoTriagemNeonatal from '../components/consulta/SecaoTriagemNeonatal.vue'
-import SecaoEncaminhamentos from '../components/consulta/SecaoEncaminhamentos.vue'
-import SecaoHistoriaFamiliar from '../components/consulta/SecaoHistoriaFamiliar.vue'
-import SecaoDinamicaFamiliar from '../components/consulta/SecaoDinamicaFamiliar.vue'
-import SecaoCondicoesSocioeconomicas from '../components/consulta/SecaoCondicoesSocioeconomicas.vue'
-import SecaoDiagnostico from '../components/consulta/SecaoDiagnostico.vue'
-import SecaoHipotesesCondutas from '../components/consulta/SecaoHipotesesCondutas.vue'
-import SecaoProcedimentos from '../components/consulta/SecaoProcedimentos.vue'
-import SecaoDadosExternos from '../components/consulta/SecaoDadosExternos.vue'
 
 const sectionIcons: Record<SecaoId, unknown> = {
   anthropometric: ChartBarIcon,
@@ -215,45 +187,26 @@ const confirmFinalizarOpen = ref(false)
 
 const secaoAtiva = computed(() => consulta.secoes.find(s => s.id === consulta.activeSection))
 
-async function carregarContextoDaConsulta() {
-  const pacienteId = pacienteAtivo.value?.id
-  if (!pacienteId) {
+onMounted(async () => {
+  if (!pacienteAtivo.value) {
     router.push('/fila')
     return
   }
-
-  consulta.prepararConsultaPaciente(pacienteId)
-  await consulta.carregarConsultaAtiva()
-}
-
-onMounted(carregarContextoDaConsulta)
-
-watch(
-  () => pacienteAtivo.value?.id,
-  async (novoPacienteId, pacienteAnteriorId) => {
-    if (!novoPacienteId) {
-      router.push('/fila')
-      return
-    }
-
-    if (novoPacienteId !== pacienteAnteriorId) {
-      await carregarContextoDaConsulta()
-    }
+  if (!consulta.consultaIniciada) {
+    consulta.iniciarConsulta()
   }
-)
+
+  await consulta.carregarConsultaAtiva()
+})
 
 function salvarRascunho() {
   // placeholder — implementado na task "Salvar consulta"
 }
 
-async function finalizarConsulta() {
-  try {
-    await consulta.finalizarConsulta()
-    confirmFinalizarOpen.value = false
-    pacienteStore.limparPaciente()
-    router.push('/fila')
-  } catch {
-    confirmFinalizarOpen.value = true
-  }
+function finalizarConsulta() {
+  confirmFinalizarOpen.value = false
+  consulta.resetConsulta()
+  pacienteStore.limparPaciente()
+  router.push('/fila')
 }
 </script>
