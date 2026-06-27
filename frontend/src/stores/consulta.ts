@@ -1293,18 +1293,18 @@ export const useConsultaStore = defineStore('consulta', () => {
   const exameFisico = ref<ExameFisicoForm>({
     geral: criarSistemaVazio(),
     pele: criarSistemaVazio(),
-    cabecaPescoco: criarSistemaVazio(),
     olhos: criarSistemaVazio(),
     ouvidos: criarSistemaVazio(),
-    nariz: criarSistemaVazio(),
-    bocaGarganta: criarSistemaVazio(),
+    bocaDentes: criarSistemaVazio(), // <-- Atualizado
+    cabeca: criarSistemaVazio(),     // <-- Atualizado
+    ganglios: criarSistemaVazio(),   // <-- Novo
+    pescoco: criarSistemaVazio(),    // <-- Atualizado
     cardiovascular: criarSistemaVazio(),
     respiratorio: criarSistemaVazio(),
-    abdome: criarSistemaVazio(),
+    gastrointestinal: criarSistemaVazio(), // <-- Atualizado
     genitourinario: criarSistemaVazio(),
-    extremidades: criarSistemaVazio(),
-    neurologico: criarSistemaVazio(),
     musculoesqueletico: criarSistemaVazio(),
+    nervoso: criarSistemaVazio(),          // <-- Atualizado
   })
   const avaliadosCount = computed(
     () => Object.values(exameFisico.value).filter(s => s.status !== '').length

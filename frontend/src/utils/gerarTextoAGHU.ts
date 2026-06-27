@@ -20,18 +20,18 @@ import type { StatusMarco, ExameFisico } from '../types/clinica'
 const SISTEMAS_LABELS: Record<keyof ExameFisico, string> = {
   geral: 'Geral',
   pele: 'Pele',
-  cabecaPescoco: 'Cabeca/Pescoco',
   olhos: 'Olhos',
   ouvidos: 'Ouvidos',
-  nariz: 'Nariz',
-  bocaGarganta: 'Boca/Garganta',
+  bocaDentes: 'Boca e Dentes',
+  cabeca: 'Cabeça',
+  ganglios: 'Gânglios Linfáticos',
+  pescoco: 'Pescoço',
   cardiovascular: 'Cardiovascular',
-  respiratorio: 'Respiratorio',
-  abdome: 'Abdome',
-  genitourinario: 'Genitourinario',
-  extremidades: 'Extremidades',
-  neurologico: 'Neurologico',
-  musculoesqueletico: 'Musculoesqueletico',
+  respiratorio: 'Respiratório',
+  gastrointestinal: 'Gastrointestinal',
+  genitourinario: 'Genitourinário',
+  musculoesqueletico: 'Musculoesquelético',
+  nervoso: 'Sistema Nervoso'
 }
 
 type ExameFisicoForm = {
