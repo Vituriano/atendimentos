@@ -16,12 +16,21 @@ export interface Prontuario {
 export interface Paciente {
   id: string
   nome: string
+  cpf?: string
+  nomeCompleto?: string
+  nomeMae?: string
+  nomePai?: string
   dataNascimento: string
   idade: string
   idadeEmMeses: number
+  sexo?: 'M' | 'F'
+  sexoBiologico?: 'M' | 'F'
+  cor?: string
   prontuario: string
   prontuarioPrimario?: string
-  cpf?: string
+  especialidade?: string
+  indOrigem?: 'R' | 'EC' | 'E' | 'I'
+  tipoEntrada?: TipoEntrada
   prontuarios?: Prontuario[]
   deletedAt?: string
 }
@@ -32,7 +41,7 @@ export interface EntradaFila {
   paciente: Paciente
   tipoEntrada: TipoEntrada
   status: StatusFila
-  tempoEspera: string | null
+  tempoEspera?: string | null
   faltas?: number
   deletedAt?: string
 }

@@ -1,15 +1,14 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any
+from typing import Any
 
 class PacienteProviderInterface(ABC):
-    """Interface (contrato) para provedores de dados de pacientes."""
 
     @abstractmethod
-    async def listar_pacientes(self) -> List[Dict[str, Any]]:
-        """Deve retornar uma lista de pacientes."""
-        pass
+    async def listar_pacientes(
+        self, page: int = 1, limit: int = 20, nome: str | None = None
+    ) -> dict[str, Any]:
+        """Retorna {"items": [...], "total": N, "page": N, "limit": N}."""
 
     @abstractmethod
-    async def obter_paciente_por_codigo(self, codigo: int) -> Dict[str, Any]:
-        """Deve retornar um único paciente pelo seu código."""
-        pass
+    async def obter_paciente_por_prontuario(self, prontuario: str) -> dict[str, Any] | None:
+        """Retorna um paciente pelo número de prontuário ou None se não encontrado."""
