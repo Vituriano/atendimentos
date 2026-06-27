@@ -34,5 +34,10 @@ export const useFilaStore = defineStore('fila', () => {
     router.push('/consulta')
   }
 
-  return { entradas, stats, verBriefing, iniciarConsulta }
+  function concluirConsulta(pacienteId: string) {
+    const entrada = entradas.value.find(e => e.paciente.id === pacienteId)
+    if (entrada) entrada.status = 'Finalizado'
+  }
+
+  return { entradas, stats, verBriefing, iniciarConsulta, concluirConsulta }
 })
