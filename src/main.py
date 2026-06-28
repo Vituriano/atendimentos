@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 
 from .resources.database import DatabaseManager, Base
+from .resources.schema import ensure_local_dev_schema
 from .routers import paciente, auth, admin, aih, bpa, material, fila, consulta
 
 # Carrega as variáveis de ambiente do arquivo .env
@@ -35,6 +36,7 @@ async def lifespan(app: FastAPI):
     # Create tables for App DB (if they don't exist) - for development only, Alembic handles this in production
     async with app.state.app_db.engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    await ensure_local_dev_schema(app.state.app_db.engine)
     print("App SQLite tables checked/created.")
 
     yield

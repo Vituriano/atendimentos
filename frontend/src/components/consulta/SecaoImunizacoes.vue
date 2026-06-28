@@ -94,6 +94,7 @@
       </div>
 
       <button
+        v-if="false"
         type="button"
         class="inline-flex items-center justify-center rounded-lg bg-teal-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
         :disabled="salvandoImunizacoes"

@@ -31,6 +31,11 @@ const routes = [
         meta: { title: 'Formulário de Consulta' },
       },
       {
+        path: 'caderneta',
+        component: () => import('../views/Caderneta.vue'),
+        meta: { title: 'Caderneta Digital' },
+      },
+      {
         path: 'admin',
         component: () => import('../views/Admin.vue'),
         meta: { title: 'Admin' },

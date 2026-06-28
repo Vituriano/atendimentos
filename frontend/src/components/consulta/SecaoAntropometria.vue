@@ -17,6 +17,8 @@ import {
 const pacienteStore = usePacienteStore()
 const consultaStore = useConsultaStore()
 
+let atualizandoRascunhoPelaTela = false
+
 const form = reactive({
   pesoKg: valorInicial(consultaStore.antropometria.pesoKg),
   alturaCm: valorInicial(consultaStore.antropometria.alturaCm),
@@ -28,6 +30,8 @@ const form = reactive({
 watch(
   () => consultaStore.antropometria,
   dados => {
+    if (atualizandoRascunhoPelaTela) return
+
     form.pesoKg = valorInicial(dados.pesoKg)
     form.alturaCm = valorInicial(dados.alturaCm)
     form.perimetroCefalicoCm = valorInicial(dados.perimetroCefalicoCm)
@@ -145,6 +149,44 @@ const alertas = computed(() => {
 
   return mensagens
 })
+
+function atualizarRascunhoAntropometria() {
+  atualizandoRascunhoPelaTela = true
+
+  consultaStore.antropometria = {
+    pesoKg: peso.value,
+    alturaCm: altura.value,
+    perimetroCefalicoCm: perimetroCefalico.value,
+    pressaoSistolicaMmHg: pressaoSistolica.value,
+    pressaoDiastolicaMmHg: pressaoDiastolica.value,
+    imc: imc.value,
+    classificacaoImc: classificacaoImc.value,
+    atualizadoEm: consultaStore.antropometria.atualizadoEm,
+  }
+
+  const possuiAlgumDado = [
+    peso.value,
+    altura.value,
+    perimetroCefalico.value,
+    pressaoSistolica.value,
+    pressaoDiastolica.value,
+  ].some(valor => valor !== null)
+
+  if (possuiAlgumDado) {
+    consultaStore.markSectionStarted('anthropometric')
+  }
+  consultaStore.setSectionComplete('anthropometric', camposObrigatoriosPreenchidos.value)
+
+  queueMicrotask(() => {
+    atualizandoRascunhoPelaTela = false
+  })
+}
+
+watch(
+  () => [form.pesoKg, form.alturaCm, form.perimetroCefalicoCm, form.pressaoSistolicaMmHg, form.pressaoDiastolicaMmHg],
+  atualizarRascunhoAntropometria,
+  { immediate: true }
+)
 
 async function salvarSecao() {
   if (!camposObrigatoriosPreenchidos.value || consultaStore.salvandoAntropometria) return
@@ -315,11 +357,12 @@ async function salvarSecao() {
             {{ consultaStore.erroSalvamentoAntropometria }}
           </p>
           <p v-else-if="secaoCompleta" class="mt-1 text-xs text-slate-400">Seção salva no banco e marcada como completa.</p>
-          <p v-else class="mt-1 text-xs text-slate-400">Depois de conferir os dados, clique em Salvar seção.</p>
+          <p v-else class="mt-1 text-xs text-slate-400">Depois de conferir os dados, clique em Salvar Rascunho no topo da tela.</p>
         </div>
       </div>
 
       <button
+        v-if="false"
         class="rounded-lg px-5 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-slate-300"
         :class="camposObrigatoriosPreenchidos ? 'bg-teal-600 hover:bg-teal-700' : 'bg-slate-300'"
         :disabled="!camposObrigatoriosPreenchidos || consultaStore.salvandoAntropometria"
