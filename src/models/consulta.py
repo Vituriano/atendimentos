@@ -95,6 +95,12 @@ class Consulta(Base):
         cascade="all, delete-orphan",
         order_by="ConsultaDadosExternos.ordem",
     )
+    marcos_desenvolvimento = relationship(
+        "ConsultaMarcoDesenvolvimento",
+        back_populates="consulta",
+        cascade="all, delete-orphan",
+        order_by="ConsultaMarcoDesenvolvimento.idade_coluna_meses",
+    )
 
 
 class ConsultaAntropometria(Base):
@@ -430,3 +436,22 @@ class Alerta(Base):
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
     deleted_at = Column(DateTime, nullable=True)
+
+
+class ConsultaMarcoDesenvolvimento(Base):
+    __tablename__ = "consulta_marcos_desenvolvimento"
+    __table_args__ = (
+        UniqueConstraint("consulta_id", "marco_id", "idade_coluna_meses", name="uq_consulta_marco_idade"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    consulta_id = Column(Integer, ForeignKey("consultas.id"), nullable=False, index=True)
+    marco_id = Column(Text, nullable=False, index=True)
+    idade_coluna_meses = Column(Integer, nullable=False)
+    status = Column(String(32), nullable=False)
+    observacao = Column(Text, nullable=True)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+    deleted_at = Column(DateTime, nullable=True)
+
+    consulta = relationship("Consulta", back_populates="marcos_desenvolvimento")

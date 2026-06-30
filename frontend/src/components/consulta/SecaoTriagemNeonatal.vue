@@ -19,10 +19,9 @@
           <label class="text-sm font-medium text-slate-700" for="idade-gestacional">Idade gestacional ao nascer (semanas)</label>
           <input
             id="idade-gestacional"
-            :value="triagem.idadeGestacionalSemanas ?? ''"
-            type="number"
-            min="20"
-            max="45"
+            :value="camposNumericos.idadeGestacionalSemanas"
+            type="text"
+            inputmode="decimal"
             placeholder="Ex: 34"
             class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 shadow-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
             @input="atualizarNumero('idadeGestacionalSemanas', ($event.target as HTMLInputElement).value)"
@@ -34,10 +33,9 @@
           <label class="text-sm font-medium text-slate-700" for="peso-nascimento">Peso ao nascimento (gramas)</label>
           <input
             id="peso-nascimento"
-            :value="triagem.pesoNascimentoGramas ?? ''"
-            type="number"
-            min="300"
-            max="7000"
+            :value="camposNumericos.pesoNascimentoGramas"
+            type="text"
+            inputmode="numeric"
             placeholder="Ex: 2450"
             class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 shadow-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
             @input="atualizarNumero('pesoNascimentoGramas', ($event.target as HTMLInputElement).value)"
@@ -148,6 +146,7 @@
         <p v-if="mensagemSucesso" class="mt-1 text-sm text-teal-700">{{ mensagemSucesso }}</p>
       </div>
       <button
+        v-if="false"
         class="rounded-lg bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
         :disabled="consulta.salvandoTriagemNeonatal"
         @click="salvar"
@@ -159,7 +158,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { usePacienteStore } from '../../stores/paciente'
 import {
@@ -180,6 +179,22 @@ type ChaveTeste = 'testePezinho' | 'testeOrelhinha' | 'testeOlhinho' | 'testeCor
 type CampoTeste = keyof TesteTriagemNeonatal
 
 const triagem = computed(() => consulta.triagemNeonatal)
+let atualizandoNumeroPelaTela = false
+
+const camposNumericos = reactive({
+  idadeGestacionalSemanas: valorInicialNumero(triagem.value.idadeGestacionalSemanas),
+  pesoNascimentoGramas: valorInicialNumero(triagem.value.pesoNascimentoGramas),
+})
+
+watch(
+  () => [triagem.value.idadeGestacionalSemanas, triagem.value.pesoNascimentoGramas],
+  () => {
+    if (atualizandoNumeroPelaTela) return
+
+    camposNumericos.idadeGestacionalSemanas = valorInicialNumero(triagem.value.idadeGestacionalSemanas)
+    camposNumericos.pesoNascimentoGramas = valorInicialNumero(triagem.value.pesoNascimentoGramas)
+  }
+)
 
 const testes = computed(() => [
   { key: 'testePezinho' as const, titulo: 'Teste do Pezinho', valor: triagem.value.testePezinho },
@@ -221,6 +236,17 @@ const idadeCorrigidaTexto = computed(() => {
   return `${idadeCorrigida.toFixed(1).replace('.', ',')} meses`
 })
 
+function valorInicialNumero(valor: number | null | undefined): string {
+  return valor === null || valor === undefined ? '' : String(valor).replace('.', ',')
+}
+
+function parseNumeroPtBr(valor: string): number | null {
+  const normalizado = valor.trim().replace(',', '.')
+  if (!normalizado) return null
+  const numero = Number(normalizado)
+  return Number.isFinite(numero) ? numero : null
+}
+
 function clonarDados(): DadosTriagemNeonatalConsulta {
   return {
     idadeGestacionalSemanas: triagem.value.idadeGestacionalSemanas,
@@ -236,9 +262,16 @@ function clonarDados(): DadosTriagemNeonatalConsulta {
 
 function atualizarNumero(campo: CampoNumero, valor: string) {
   mensagemSucesso.value = ''
+  camposNumericos[campo] = valor
+
   const dados = clonarDados()
-  dados[campo] = valor === '' ? null : Number(valor)
+  dados[campo] = parseNumeroPtBr(valor)
+
+  atualizandoNumeroPelaTela = true
   consulta.atualizarTriagemNeonatal(dados)
+  queueMicrotask(() => {
+    atualizandoNumeroPelaTela = false
+  })
 }
 
 function atualizarTexto(campo: CampoTexto, valor: string) {

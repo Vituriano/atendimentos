@@ -632,6 +632,7 @@ async function salvarSecao() {
 
       <div class="flex flex-col items-stretch gap-2 md:items-end">
         <button
+          v-if="false"
           class="rounded-lg px-5 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-slate-300"
           :class="secaoIniciada ? 'bg-teal-600 hover:bg-teal-700' : 'bg-slate-300'"
           :disabled="!secaoIniciada || consultaStore.salvandoAnamnese"
@@ -646,7 +647,7 @@ async function salvarSecao() {
           {{ mensagemSalvamento }}
         </p>
         <p v-else class="text-xs text-slate-400">
-          Os dados digitados ficam na tela; clique em Salvar seção para gravar no banco.
+          Os dados digitados ficam na tela; clique em Salvar Rascunho no topo da tela para gravar no banco.
         </p>
       </div>
     </section>

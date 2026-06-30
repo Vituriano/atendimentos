@@ -47,25 +47,25 @@ export interface EntradaFila {
 }
 
 export interface SistemaExame {
-  status: SistemaStatus
+  status: SistemaStatus | '';
   descricao: string
 }
 
 export interface ExameFisico {
-  geral: SistemaExame
-  pele: SistemaExame
-  cabecaPescoco: SistemaExame
-  olhos: SistemaExame
-  ouvidos: SistemaExame
-  nariz: SistemaExame
-  bocaGarganta: SistemaExame
-  cardiovascular: SistemaExame
-  respiratorio: SistemaExame
-  abdome: SistemaExame
-  genitourinario: SistemaExame
-  extremidades: SistemaExame
-  neurologico: SistemaExame
-  musculoesqueletico: SistemaExame
+  geral: SistemaExame;
+  pele: SistemaExame;
+  olhos: SistemaExame;
+  ouvidos: SistemaExame;
+  bocaDentes: SistemaExame; // <-- Atualizado
+  cabeca: SistemaExame;     // <-- Atualizado
+  ganglios: SistemaExame;   // <-- Novo
+  pescoco: SistemaExame;    // <-- Atualizado
+  cardiovascular: SistemaExame;
+  respiratorio: SistemaExame;
+  gastrointestinal: SistemaExame; // <-- Atualizado
+  genitourinario: SistemaExame;
+  musculoesqueletico: SistemaExame;
+  nervoso: SistemaExame;          // <-- Atualizado
 }
 
 export interface CodigoCID {
