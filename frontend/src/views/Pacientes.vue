@@ -5,7 +5,7 @@
       <!-- Stats -->
       <div class="flex items-center gap-2 text-sm text-slate-500">
         <UsersIcon class="h-4 w-4" />
-        <span>{{ displayPacientes.length }} pacientes cadastrados</span>
+        <span>{{ pacienteStore.totalPacientes }} pacientes cadastrados</span>
       </div>
 
       <!-- Search -->
@@ -40,7 +40,7 @@
             </thead>
             <tbody class="divide-y divide-slate-100">
               <tr
-                v-for="paciente in paginatedPacientes"
+                v-for="paciente in displayPacientes"
                 :key="paciente.id"
                 class="cursor-pointer hover:bg-slate-50 h-14 transition-colors"
                 @click="handleRowClick(paciente)"
@@ -70,14 +70,14 @@
         </div>
 
         <!-- Pagination -->
-        <div v-if="displayPacientes.length > PAGE_SIZE" class="flex items-center justify-between pt-2 border-t border-slate-200">
+        <div v-if="pacienteStore.totalPacientes > PAGE_SIZE" class="flex items-center justify-between pt-2 border-t border-slate-200">
           <p class="text-sm text-slate-500">
-            Mostrando {{ (currentPage - 1) * PAGE_SIZE + 1 }}–{{ Math.min(currentPage * PAGE_SIZE, displayPacientes.length) }} de {{ displayPacientes.length }} pacientes
+            Mostrando {{ (currentPage - 1) * PAGE_SIZE + 1 }}–{{ Math.min(currentPage * PAGE_SIZE, pacienteStore.totalPacientes) }} de {{ pacienteStore.totalPacientes }} pacientes
           </p>
           <div class="flex items-center gap-2">
             <button
               :disabled="currentPage === 1"
-              @click="currentPage--"
+              @click="irParaPagina(currentPage - 1)"
               class="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <ChevronLeftIcon class="h-4 w-4" />
@@ -86,7 +86,7 @@
             <span class="text-sm font-medium px-2">{{ currentPage }} / {{ totalPages }}</span>
             <button
               :disabled="currentPage === totalPages"
-              @click="currentPage++"
+              @click="irParaPagina(currentPage + 1)"
               class="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Próxima
@@ -122,27 +122,26 @@ const currentPage = ref(1)
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
-const displayPacientes = computed<Paciente[]>(() => {
-  const q = searchQuery.value.toLowerCase().trim()
-  const list = q
-    ? pacienteStore.pacientes.filter(p => p.nome.toLowerCase().includes(q))
-    : [...pacienteStore.pacientes]
-  return list.sort((a, b) => a.nome.localeCompare(b.nome))
-})
+const displayPacientes = computed<Paciente[]>(() =>
+  [...pacienteStore.pacientes].sort((a, b) => a.nome.localeCompare(b.nome))
+)
 
-watch(searchQuery, (novoValor) => {
+function fetchPacientes() {
+  pacienteStore.carregarPacientes(currentPage.value, searchQuery.value || undefined)
+}
+
+function irParaPagina(pagina: number) {
+  currentPage.value = pagina
+  fetchPacientes()
+}
+
+watch(searchQuery, () => {
   currentPage.value = 1
   if (debounceTimer) clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(() => {
-    pacienteStore.carregarPacientes(1, novoValor || undefined)
-  }, 300)
+  debounceTimer = setTimeout(fetchPacientes, 300)
 })
 
-const totalPages = computed(() => Math.max(1, Math.ceil(displayPacientes.value.length / PAGE_SIZE)))
-
-const paginatedPacientes = computed(() =>
-  displayPacientes.value.slice((currentPage.value - 1) * PAGE_SIZE, currentPage.value * PAGE_SIZE)
-)
+const totalPages = computed(() => Math.max(1, Math.ceil(pacienteStore.totalPacientes / PAGE_SIZE)))
 
 function getInitials(nome: string): string {
   return nome.split(' ').filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('')
@@ -158,7 +157,5 @@ function handleRowClick(paciente: Paciente) {
   router.push(`/briefing?source=base&patientId=${paciente.id}`)
 }
 
-onMounted(() => {
-  pacienteStore.carregarPacientes()
-})
+onMounted(fetchPacientes)
 </script>

@@ -391,9 +391,8 @@ onMounted(async () => {
     router.push('/fila')
     return
   }
-  if (isReadOnly.value && patientIdFromUrl.value) {
-    await pacienteStore.carregarBriefing(patientIdFromUrl.value)
-  }
+  const idParaCarregar = patientIdFromUrl.value ?? currentPatient.value.id
+  await pacienteStore.carregarBriefing(idParaCarregar)
 })
 
 const historicoOrdenado = computed(() => [...currentHistorico.value].reverse())

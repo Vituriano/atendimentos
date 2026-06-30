@@ -18,6 +18,38 @@ function classificarFaixa(valor: number, min: number, max: number): string {
   return 'normal'
 }
 
+function mapPacienteApi(p: Record<string, unknown>): Paciente {
+  const hoje = new Date()
+  const dtNasc = p.dt_nascimento ?? p.data_nascimento
+  const dataNascimento = dtNasc ? String(dtNasc) : ''
+  let idadeEmMeses = 0
+  if (dataNascimento) {
+    const nasc = new Date(dataNascimento)
+    idadeEmMeses = (hoje.getFullYear() - nasc.getFullYear()) * 12 + (hoje.getMonth() - nasc.getMonth())
+  }
+  const anos = Math.floor(idadeEmMeses / 12)
+  const mesesRest = idadeEmMeses % 12
+  const idade = anos > 0
+    ? mesesRest > 0 ? `${anos} anos e ${mesesRest} meses` : `${anos} anos`
+    : `${idadeEmMeses} meses`
+  return {
+    id: String(p.prontuario ?? p.id ?? ''),
+    nome: String(p.nome ?? ''),
+    nomeMae: p.nome_mae ? String(p.nome_mae) : undefined,
+    nomePai: p.nome_pai ? String(p.nome_pai) : undefined,
+    dataNascimento,
+    idade,
+    idadeEmMeses,
+    sexo: (p.sexo === 'M' || p.sexo === 'F') ? p.sexo : undefined,
+    sexoBiologico: (p.sexo_biologico === 'M' || p.sexo_biologico === 'F') ? p.sexo_biologico : undefined,
+    cor: p.cor ? String(p.cor) : undefined,
+    prontuario: String(p.prontuario ?? ''),
+    prontuarioPrimario: String(p.prontuario_primario ?? p.prontuario ?? ''),
+    especialidade: p.nome_especialidade ? String(p.nome_especialidade) : (p.especialidade ? String(p.especialidade) : undefined),
+    indOrigem: (['R', 'EC', 'E', 'I'] as const).find(v => v === p.ind_origem),
+  }
+}
+
 export const usePacienteStore = defineStore('paciente', () => {
   const toast = useToast()
 
@@ -27,6 +59,7 @@ export const usePacienteStore = defineStore('paciente', () => {
   const antropometria = ref<DadosAntropometricos | null>(null)
   const modoLeitura = ref(false)
   const pacientes = ref<Paciente[]>([])
+  const totalPacientes = ref(0)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
@@ -129,44 +162,24 @@ export const usePacienteStore = defineStore('paciente', () => {
     try {
       const params: Record<string, string | number> = { page }
       if (nome) params.nome = nome
-      const { data } = await api.get<{ items: Record<string, unknown>[] } | Record<string, unknown>[]>('/api/pacientes', { params })
-      const items: Record<string, unknown>[] = Array.isArray(data) ? data : ((data as { items: Record<string, unknown>[] }).items ?? [])
-      const hoje = new Date()
-      pacientes.value = items.map(p => {
-        const dtNasc = p.dt_nascimento ?? p.data_nascimento
-        const dataNascimento = dtNasc ? String(dtNasc) : ''
-        let idadeEmMeses = 0
-        if (dataNascimento) {
-          const nasc = new Date(dataNascimento)
-          idadeEmMeses = (hoje.getFullYear() - nasc.getFullYear()) * 12 + (hoje.getMonth() - nasc.getMonth())
-        }
-        const anos = Math.floor(idadeEmMeses / 12)
-        const mesesRest = idadeEmMeses % 12
-        const idade = anos > 0
-          ? mesesRest > 0 ? `${anos} anos e ${mesesRest} meses` : `${anos} anos`
-          : `${idadeEmMeses} meses`
-        return {
-          id: String(p.prontuario ?? p.id ?? ''),
-          nome: String(p.nome ?? ''),
-          nomeMae: p.nome_mae ? String(p.nome_mae) : undefined,
-          nomePai: p.nome_pai ? String(p.nome_pai) : undefined,
-          dataNascimento,
-          idade,
-          idadeEmMeses,
-          sexo: (p.sexo === 'M' || p.sexo === 'F') ? p.sexo : undefined,
-          sexoBiologico: (p.sexo_biologico === 'M' || p.sexo_biologico === 'F') ? p.sexo_biologico : undefined,
-          cor: p.cor ? String(p.cor) : undefined,
-          prontuario: String(p.prontuario ?? ''),
-          prontuarioPrimario: String(p.prontuario_primario ?? p.prontuario ?? ''),
-          especialidade: p.nome_especialidade ? String(p.nome_especialidade) : (p.especialidade ? String(p.especialidade) : undefined),
-          indOrigem: (['R', 'EC', 'E', 'I'] as const).find(v => v === p.ind_origem),
-        }
-      })
+      const { data } = await api.get<{ items: Record<string, unknown>[]; total?: number } | Record<string, unknown>[]>('/api/pacientes', { params })
+      const items: Record<string, unknown>[] = Array.isArray(data) ? data : (data.items ?? [])
+      pacientes.value = items.map(mapPacienteApi)
+      totalPacientes.value = Array.isArray(data) ? items.length : (data.total ?? items.length)
     } catch {
       error.value = 'Erro ao carregar lista de pacientes.'
       toast.error(error.value)
     } finally {
       isLoading.value = false
+    }
+  }
+
+  async function buscarPacientePorId(id: string): Promise<Paciente | null> {
+    try {
+      const { data } = await api.get<Record<string, unknown> | null>(`/api/pacientes/${id}`)
+      return data ? mapPacienteApi(data) : null
+    } catch {
+      return null
     }
   }
 
@@ -179,10 +192,12 @@ export const usePacienteStore = defineStore('paciente', () => {
     temPacienteAtivo,
     idadeEmMeses,
     pacientes,
+    totalPacientes,
     isLoading,
     error,
     selecionarPaciente,
     limparPaciente,
+    buscarPacientePorId,
     setHistorico,
     setAlertas,
     carregarBriefing,
