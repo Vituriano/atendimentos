@@ -77,13 +77,16 @@ export const useFilaStore = defineStore('fila', () => {
     }
   }
 
-  function verBriefing(entrada: EntradaFila) {
-    pacienteStore.selecionarPaciente(entrada.paciente, 'leitura')
+  async function verBriefing(entrada: EntradaFila) {
+    const completo = await pacienteStore.buscarPacientePorId(entrada.paciente.id)
+    pacienteStore.selecionarPaciente(completo ?? entrada.paciente, 'leitura')
     router.push(`/briefing?source=fila&patientId=${entrada.paciente.id}`)
   }
 
-  function iniciarConsulta(entrada: EntradaFila) {
-    pacienteStore.selecionarPaciente({ ...entrada.paciente, tipoEntrada: entrada.tipoEntrada }, 'consulta')
+  async function iniciarConsulta(entrada: EntradaFila) {
+    const completo = await pacienteStore.buscarPacientePorId(entrada.paciente.id)
+    const paciente = completo ?? entrada.paciente
+    pacienteStore.selecionarPaciente({ ...paciente, tipoEntrada: entrada.tipoEntrada }, 'consulta')
     router.push('/consulta')
   }
 
