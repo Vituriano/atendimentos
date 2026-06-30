@@ -1,103 +1,106 @@
 <template>
   <div class="space-y-6">
-    <!-- Stats -->
-    <div class="flex items-center gap-2 text-sm text-slate-500">
-      <UsersIcon class="h-4 w-4" />
-      <span>{{ mockPacientes.length }} pacientes cadastrados</span>
-    </div>
-
-    <!-- Search -->
-    <div class="relative max-w-md">
-      <MagnifyingGlassIcon class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-      <input
-        v-model="searchQuery"
-        type="text"
-        placeholder="Buscar por nome..."
-        class="w-full pl-9 pr-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-      />
-    </div>
-
-    <!-- Empty state -->
-    <div v-if="filteredPacientes.length === 0" class="flex flex-col items-center justify-center py-16 text-center">
-      <XMarkIcon class="h-10 w-10 text-slate-300 mb-3" />
-      <p class="text-sm font-medium text-slate-600">Nenhum paciente encontrado</p>
-      <p class="text-xs text-slate-400 mt-1">Tente ajustar os termos de busca.</p>
-    </div>
-
-    <!-- Table -->
+    <LoadingIndicator v-if="pacienteStore.isLoading" />
     <template v-else>
-      <div class="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
-        <table class="min-w-full">
-          <thead>
-            <tr class="bg-slate-50 border-b border-slate-200">
-              <th class="pl-5 pr-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide w-72">Paciente</th>
-              <th class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden sm:table-cell w-24">Idade</th>
-              <th class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden md:table-cell w-40">Prontuário</th>
-              <th class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden xl:table-cell w-36">Última consulta</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100">
-            <tr
-              v-for="paciente in paginatedPacientes"
-              :key="paciente.id"
-              class="cursor-pointer hover:bg-slate-50 h-14 transition-colors"
-              @click="handleRowClick(paciente)"
-            >
-              <td class="pl-5 pr-3 py-3">
-                <div class="flex items-center gap-3">
-                  <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-100 text-teal-700 text-sm font-semibold">
-                    {{ getInitials(paciente.nome) }}
-                  </div>
-                  <div class="min-w-0">
-                    <p class="font-medium text-slate-900 truncate">{{ paciente.nome }}</p>
-                    <div class="flex flex-wrap gap-2 sm:hidden mt-0.5 text-xs text-slate-500">
-                      <span>{{ paciente.idade }}</span>
-                      <span>{{ paciente.prontuario }}</span>
+      <!-- Stats -->
+      <div class="flex items-center gap-2 text-sm text-slate-500">
+        <UsersIcon class="h-4 w-4" />
+        <span>{{ displayPacientes.length }} pacientes cadastrados</span>
+      </div>
+
+      <!-- Search -->
+      <div class="relative max-w-md">
+        <MagnifyingGlassIcon class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Buscar por nome..."
+          class="w-full pl-9 pr-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+        />
+      </div>
+
+      <!-- Empty state -->
+      <div v-if="displayPacientes.length === 0" class="flex flex-col items-center justify-center py-16 text-center">
+        <XMarkIcon class="h-10 w-10 text-slate-300 mb-3" />
+        <p class="text-sm font-medium text-slate-600">Nenhum paciente encontrado</p>
+        <p class="text-xs text-slate-400 mt-1">Tente ajustar os termos de busca.</p>
+      </div>
+
+      <!-- Table -->
+      <template v-else>
+        <div class="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
+          <table class="min-w-full">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-200">
+                <th class="pl-5 pr-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide w-72">Paciente</th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden sm:table-cell w-24">Idade</th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden md:table-cell w-40">Prontuário</th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wide hidden xl:table-cell w-36">Última consulta</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr
+                v-for="paciente in paginatedPacientes"
+                :key="paciente.id"
+                class="cursor-pointer hover:bg-slate-50 h-14 transition-colors"
+                @click="handleRowClick(paciente)"
+              >
+                <td class="pl-5 pr-3 py-3">
+                  <div class="flex items-center gap-3">
+                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-100 text-teal-700 text-sm font-semibold">
+                      {{ getInitials(paciente.nome) }}
+                    </div>
+                    <div class="min-w-0">
+                      <p class="font-medium text-slate-900 truncate">{{ paciente.nome }}</p>
+                      <div class="flex flex-wrap gap-2 sm:hidden mt-0.5 text-xs text-slate-500">
+                        <span>{{ paciente.idade }}</span>
+                        <span>{{ paciente.prontuario }}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </td>
-              <td class="px-3 py-3 text-sm text-slate-700 hidden sm:table-cell">{{ paciente.idade }}</td>
-              <td class="px-3 py-3 text-sm text-slate-500 hidden md:table-cell">{{ paciente.prontuario }}</td>
-              <td class="px-3 py-3 text-sm text-slate-500 hidden xl:table-cell">
-                {{ getLastConsultation(paciente) }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Pagination -->
-      <div v-if="filteredPacientes.length > PAGE_SIZE" class="flex items-center justify-between pt-2 border-t border-slate-200">
-        <p class="text-sm text-slate-500">
-          Mostrando {{ (currentPage - 1) * PAGE_SIZE + 1 }}–{{ Math.min(currentPage * PAGE_SIZE, filteredPacientes.length) }} de {{ filteredPacientes.length }} pacientes
-        </p>
-        <div class="flex items-center gap-2">
-          <button
-            :disabled="currentPage === 1"
-            @click="currentPage--"
-            class="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <ChevronLeftIcon class="h-4 w-4" />
-            Anterior
-          </button>
-          <span class="text-sm font-medium px-2">{{ currentPage }} / {{ totalPages }}</span>
-          <button
-            :disabled="currentPage === totalPages"
-            @click="currentPage++"
-            class="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Próxima
-            <ChevronRightIcon class="h-4 w-4" />
-          </button>
+                </td>
+                <td class="px-3 py-3 text-sm text-slate-700 hidden sm:table-cell">{{ paciente.idade }}</td>
+                <td class="px-3 py-3 text-sm text-slate-500 hidden md:table-cell">{{ paciente.prontuario }}</td>
+                <td class="px-3 py-3 text-sm text-slate-500 hidden xl:table-cell">
+                  {{ getLastConsultation(paciente) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-      </div>
+
+        <!-- Pagination -->
+        <div v-if="displayPacientes.length > PAGE_SIZE" class="flex items-center justify-between pt-2 border-t border-slate-200">
+          <p class="text-sm text-slate-500">
+            Mostrando {{ (currentPage - 1) * PAGE_SIZE + 1 }}–{{ Math.min(currentPage * PAGE_SIZE, displayPacientes.length) }} de {{ displayPacientes.length }} pacientes
+          </p>
+          <div class="flex items-center gap-2">
+            <button
+              :disabled="currentPage === 1"
+              @click="currentPage--"
+              class="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <ChevronLeftIcon class="h-4 w-4" />
+              Anterior
+            </button>
+            <span class="text-sm font-medium px-2">{{ currentPage }} / {{ totalPages }}</span>
+            <button
+              :disabled="currentPage === totalPages"
+              @click="currentPage++"
+              class="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Próxima
+              <ChevronRightIcon class="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </template>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   UsersIcon,
@@ -106,29 +109,39 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
 } from '@heroicons/vue/24/outline'
-import { mockPacientes } from '../stores/paciente'
+import { usePacienteStore } from '../stores/paciente'
 import type { Paciente } from '../types/clinica'
+import LoadingIndicator from '../components/LoadingIndicator.vue'
 
 const router = useRouter()
+const pacienteStore = usePacienteStore()
 
 const PAGE_SIZE = 20
 const searchQuery = ref('')
 const currentPage = ref(1)
 
-const filteredPacientes = computed<Paciente[]>(() => {
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+const displayPacientes = computed<Paciente[]>(() => {
   const q = searchQuery.value.toLowerCase().trim()
   const list = q
-    ? mockPacientes.filter(p => p.nome.toLowerCase().includes(q))
-    : [...mockPacientes]
+    ? pacienteStore.pacientes.filter(p => p.nome.toLowerCase().includes(q))
+    : [...pacienteStore.pacientes]
   return list.sort((a, b) => a.nome.localeCompare(b.nome))
 })
 
-watch(searchQuery, () => { currentPage.value = 1 })
+watch(searchQuery, (novoValor) => {
+  currentPage.value = 1
+  if (debounceTimer) clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => {
+    pacienteStore.carregarPacientes(1, novoValor || undefined)
+  }, 300)
+})
 
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredPacientes.value.length / PAGE_SIZE)))
+const totalPages = computed(() => Math.max(1, Math.ceil(displayPacientes.value.length / PAGE_SIZE)))
 
 const paginatedPacientes = computed(() =>
-  filteredPacientes.value.slice((currentPage.value - 1) * PAGE_SIZE, currentPage.value * PAGE_SIZE)
+  displayPacientes.value.slice((currentPage.value - 1) * PAGE_SIZE, currentPage.value * PAGE_SIZE)
 )
 
 function getInitials(nome: string): string {
@@ -141,6 +154,11 @@ function getLastConsultation(paciente: Paciente): string {
 }
 
 function handleRowClick(paciente: Paciente) {
+  pacienteStore.selecionarPaciente(paciente, 'leitura')
   router.push(`/briefing?source=base&patientId=${paciente.id}`)
 }
+
+onMounted(() => {
+  pacienteStore.carregarPacientes()
+})
 </script>

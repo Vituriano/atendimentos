@@ -1,5 +1,9 @@
 <template>
   <div class="space-y-6">
+    <LoadingIndicator v-if="fila.isLoading" />
+    <div v-else-if="fila.error" class="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700 text-sm">
+      {{ fila.error }}
+    </div>
     <!-- Stat cards -->
     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <div
@@ -179,6 +183,7 @@ import {
 } from '@heroicons/vue/24/outline'
 import { useFilaStore } from '../stores/fila'
 import type { EntradaFila, TipoEntrada, StatusFila } from '../types/clinica'
+import LoadingIndicator from '../components/LoadingIndicator.vue'
 
 const fila = useFilaStore()
 
@@ -257,6 +262,9 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
-onMounted(() => window.addEventListener('keydown', handleKeydown))
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
+  fila.carregarFila()
+})
 onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
 </script>

@@ -425,6 +425,19 @@ class ConsultaDadosExternos(Base):
     consulta = relationship("Consulta", back_populates="dados_externos")
 
 
+class Alerta(Base):
+    __tablename__ = "alertas"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    paciente_id = Column(Text, nullable=False, index=True)
+    tipo = Column(Text, nullable=False)
+    categoria = Column(Text, nullable=False)
+    mensagem = Column(Text, nullable=False)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+    deleted_at = Column(DateTime, nullable=True)
+
+
 class ConsultaMarcoDesenvolvimento(Base):
     __tablename__ = "consulta_marcos_desenvolvimento"
     __table_args__ = (
