@@ -133,6 +133,7 @@ interface AnamneseApiResponse {
 
 export interface DadosImunizacoesConsulta {
   statusVacinal: string
+  statusVacinas: Record<string, 'aplicada' | 'em-atraso'>
   atualizadoEm: string | null
 }
 
@@ -965,6 +966,7 @@ function clonarEscolaridade(dados: DadosEscolaridadeConsulta): DadosEscolaridade
 function criarImunizacoesVazia(): DadosImunizacoesConsulta {
   return {
     statusVacinal: '',
+    statusVacinas: {},
     atualizadoEm: null,
   }
 }
@@ -972,6 +974,7 @@ function criarImunizacoesVazia(): DadosImunizacoesConsulta {
 function imunizacoesApiParaStore(apiData: ImunizacoesApiResponse): DadosImunizacoesConsulta {
   return {
     statusVacinal: apiData.status_vacinal ?? '',
+    statusVacinas: {},
     atualizadoEm: apiData.atualizado_em,
   }
 }
@@ -1814,6 +1817,7 @@ export const useConsultaStore = defineStore('consulta', () => {
 
       if (!data.imunizacoes) {
         imunizacoes.value = {
+          ...imunizacoes.value,
           statusVacinal: statusVacinalAntesDoEnvio,
           atualizadoEm: new Date().toISOString(),
         }
@@ -2280,18 +2284,38 @@ export const useConsultaStore = defineStore('consulta', () => {
 
   function atualizarStatusImunizacoes() {
     const possuiStatusVacinal = imunizacoes.value.statusVacinal.trim().length > 0
-    if (possuiStatusVacinal) {
+    const possuiVacinaMarcada = Object.keys(imunizacoes.value.statusVacinas).length > 0
+    const possuiConteudo = possuiStatusVacinal || possuiVacinaMarcada
+    if (possuiConteudo) {
       markSectionStarted('imunizacoes')
     }
-    setSectionComplete('imunizacoes', possuiStatusVacinal)
+    setSectionComplete('imunizacoes', possuiConteudo)
   }
 
   function atualizarStatusVacinal(valor: string) {
     imunizacoes.value = {
+      ...imunizacoes.value,
       statusVacinal: valor,
       atualizadoEm: new Date().toISOString(),
     }
     atualizarStatusImunizacoes()
+  }
+
+  function toggleStatusVacina(vacinaId: string, doseId: string, status: 'aplicada' | 'em-atraso') {
+    const chave = `${vacinaId}--${doseId}`
+    const atual = imunizacoes.value.statusVacinas[chave]
+    const novo = { ...imunizacoes.value.statusVacinas }
+    if (atual === status) {
+      delete novo[chave]
+    } else {
+      novo[chave] = status
+    }
+    imunizacoes.value = { ...imunizacoes.value, statusVacinas: novo }
+    atualizarStatusImunizacoes()
+  }
+
+  function getStatusVacina(vacinaId: string, doseId: string): 'aplicada' | 'em-atraso' | null {
+    return imunizacoes.value.statusVacinas[`${vacinaId}--${doseId}`] ?? null
   }
 
   function atualizarStatusAnamnese() {
@@ -3044,6 +3068,8 @@ export const useConsultaStore = defineStore('consulta', () => {
     atualizarAnamnese,
     atualizarCampoAnamnese,
     atualizarStatusVacinal,
+    toggleStatusVacina,
+    getStatusVacina,
     atualizarEscolaridade,
     atualizarCampoEscolaridade,
     atualizarTriagemNeonatal,
