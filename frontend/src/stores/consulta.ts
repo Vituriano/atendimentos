@@ -1348,48 +1348,6 @@ export const useConsultaStore = defineStore('consulta', () => {
     classificacaoDesenvolvimento.value = classificacao
   }
 
-  // Exame físico
-  const SISTEMAS_KEYS = [
-    'geral', 'pele', 'cabecaPescoco', 'olhos', 'ouvidos', 'nariz', 'bocaGarganta',
-    'cardiovascular', 'respiratorio', 'abdome', 'genitourinario', 'extremidades',
-    'neurologico', 'musculoesqueletico',
-  ] as const
-
-  function criarExameFisicoVazio(): ExameFisico {
-    const vazio = { status: 'nao-avaliado' as SistemaStatus, descricao: '' }
-    return {
-      geral: { ...vazio }, pele: { ...vazio }, cabecaPescoco: { ...vazio },
-      olhos: { ...vazio }, ouvidos: { ...vazio }, nariz: { ...vazio },
-      bocaGarganta: { ...vazio }, cardiovascular: { ...vazio }, respiratorio: { ...vazio },
-      abdome: { ...vazio }, genitourinario: { ...vazio }, extremidades: { ...vazio },
-      neurologico: { ...vazio }, musculoesqueletico: { ...vazio },
-    }
-  }
-
-  const exameFisico = ref<ExameFisico>(criarExameFisicoVazio())
-
-  const avaliadosCount = computed(
-    () => SISTEMAS_KEYS.filter(k => exameFisico.value[k].status !== 'nao-avaliado').length
-  )
-
-  const allStatusesSelected = computed(
-    () => SISTEMAS_KEYS.every(k => exameFisico.value[k].status !== 'nao-avaliado')
-  )
-
-  function updateSistemaStatus(id: keyof ExameFisico, status: SistemaStatus | '') {
-    exameFisico.value = {
-      ...exameFisico.value,
-      [id]: { ...exameFisico.value[id], status: status || 'nao-avaliado' },
-    }
-  }
-
-  function updateSistemaDescricao(id: keyof ExameFisico, descricao: string) {
-    exameFisico.value = {
-      ...exameFisico.value,
-      [id]: { ...exameFisico.value[id], descricao },
-    }
-  }
-
   function limparDadosDaConsultaAtual() {
     consultaAtivaId.value = null
     completedSections.value = new Set()
