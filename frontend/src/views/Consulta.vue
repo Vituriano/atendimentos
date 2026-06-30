@@ -1,7 +1,18 @@
 <template>
   <div class="flex h-full">
-    <!-- Sidebar nav -->
-    <aside class="w-56 shrink-0 border-r border-slate-200 bg-white overflow-y-auto">
+
+    <!-- Tela pós-finalização (cobre o layout inteiro) -->
+    <ResumoConsulta
+      v-if="mostrarResumo"
+      class="flex-1 min-w-0"
+      :texto-a-g-h-u="textoAGHU"
+      :encaminhamentos="consulta.encaminhamentos"
+      :textos-encaminhamento="textosEncaminhamento"
+      @nova-consulta="novaConsulta"
+    />
+
+    <!-- Sidebar nav (oculto quando mostrando resumo) -->
+    <aside v-if="!mostrarResumo" class="w-56 shrink-0 border-r border-slate-200 bg-white overflow-y-auto">
       <ConsultaNav
         :secoes="consulta.secoes"
         :active-section="consulta.activeSection"
@@ -11,8 +22,8 @@
       />
     </aside>
 
-    <!-- Main content -->
-    <div class="flex flex-1 flex-col overflow-hidden">
+    <!-- Main content (oculto quando mostrando resumo) -->
+    <div v-if="!mostrarResumo" class="flex flex-1 flex-col overflow-hidden">
       <!-- Header -->
       <header class="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3 shrink-0">
         <div class="flex items-center gap-4">
@@ -32,7 +43,7 @@
           <button
             class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
             :disabled="consulta.finalizandoConsulta"
-            @click="confirmFinalizarOpen = true"
+            @click="mostrarDialogFinalizacao = true"
           >
             {{ consulta.finalizandoConsulta ? 'Finalizando...' : 'Finalizar Consulta' }}
           </button>
@@ -60,6 +71,7 @@
           <SecaoImunizacoes v-else-if="consulta.activeSection === 'imunizacoes'" />
           <SecaoEscolaridade v-else-if="consulta.activeSection === 'escolaridade'" />
           <SecaoTriagemNeonatal v-else-if="consulta.activeSection === 'triagemNeonatal'" />
+          <SecaoExameFisico v-else-if="consulta.activeSection === 'clinical'" />
           <SecaoMarcos v-else-if="consulta.activeSection === 'milestones'" />
           <SecaoHistoriaFamiliar v-else-if="consulta.activeSection === 'historiaFamiliar'" />
           <SecaoDinamicaFamiliar v-else-if="consulta.activeSection === 'dinamicaFamiliar'" />
@@ -99,50 +111,20 @@
     </div>
   </div>
 
-  <!-- Dialog de confirmação -->
-  <div
-    v-if="confirmFinalizarOpen"
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-    @click.self="confirmFinalizarOpen = false"
-  >
-    <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-      <div class="mb-4 flex items-start justify-between">
-        <h3 class="text-base font-semibold text-slate-900">Finalizar consulta?</h3>
-        <button class="text-slate-400 hover:text-slate-600" @click="confirmFinalizarOpen = false">
-          <XMarkIcon class="h-5 w-5" />
-        </button>
-      </div>
-      <p class="mb-6 text-sm text-slate-600">
-        A consulta será marcada como concluída. Verifique se todas as seções foram preenchidas antes de finalizar.
-      </p>
-      <p v-if="consulta.erroFinalizarConsulta" class="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-        {{ consulta.erroFinalizarConsulta }}
-      </p>
-      <div class="flex justify-end gap-3">
-        <button
-          class="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-          :disabled="consulta.finalizandoConsulta"
-          @click="confirmFinalizarOpen = false"
-        >
-          Cancelar
-        </button>
-        <button
-          class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
-          :disabled="consulta.finalizandoConsulta"
-          @click="finalizarConsulta"
-        >
-          {{ consulta.finalizandoConsulta ? 'Finalizando...' : 'Confirmar' }}
-        </button>
-      </div>
-    </div>
-  </div>
+  <!-- Dialog de finalização com validação -->
+  <DialogFinalizacao
+    v-if="mostrarDialogFinalizacao"
+    @confirm-with-aghu="confirmarComAGHU"
+    @confirm-without-aghu="confirmarSemAGHU"
+    @cancel="mostrarDialogFinalizacao = false"
+  />
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  ChevronLeftIcon, ChevronRightIcon, XMarkIcon,
+  ChevronLeftIcon, ChevronRightIcon,
   ChartBarIcon, DocumentTextIcon, ShieldCheckIcon, SparklesIcon,
   AcademicCapIcon, HeartIcon, ClipboardDocumentCheckIcon, CpuChipIcon,
   UsersIcon, HomeIcon, PaperAirplaneIcon, DocumentMagnifyingGlassIcon,
@@ -151,12 +133,18 @@ import {
 import { storeToRefs } from 'pinia'
 import { usePacienteStore } from '../stores/paciente'
 import { useConsultaStore, type SecaoId } from '../stores/consulta'
+import { useFilaStore } from '../stores/fila'
+import { getGrupoAtivo } from '../data/marcos-desenvolvimento'
+import { gerarTextoAGHU, gerarTextoEncaminhamento } from '../utils/gerarTextoAGHU'
 import ConsultaNav from '../components/consulta/ConsultaNav.vue'
 import ConsultaTimer from '../components/consulta/ConsultaTimer.vue'
+import DialogFinalizacao from '../components/consulta/DialogFinalizacao.vue'
+import ResumoConsulta from '../components/consulta/ResumoConsulta.vue'
 import SecaoMarcos from '../components/consulta/SecaoMarcos.vue'
 import SecaoAntropometria from '../components/consulta/SecaoAntropometria.vue'
 import SecaoAnamnese from '../components/consulta/SecaoAnamnese.vue'
 import SecaoImunizacoes from '../components/consulta/SecaoImunizacoes.vue'
+import SecaoExameFisico from '../components/consulta/SecaoExameFisico.vue'
 import SecaoEscolaridade from '../components/consulta/SecaoEscolaridade.vue'
 import SecaoTriagemNeonatal from '../components/consulta/SecaoTriagemNeonatal.vue'
 import SecaoEncaminhamentos from '../components/consulta/SecaoEncaminhamentos.vue'
@@ -210,8 +198,12 @@ const router = useRouter()
 const pacienteStore = usePacienteStore()
 const { pacienteAtivo } = storeToRefs(pacienteStore)
 const consulta = useConsultaStore()
+const filaStore = useFilaStore()
 
-const confirmFinalizarOpen = ref(false)
+const mostrarDialogFinalizacao = ref(false)
+const mostrarResumo = ref(false)
+const textoAGHU = ref('')
+const textosEncaminhamento = ref<string[]>([])
 
 const secaoAtiva = computed(() => consulta.secoes.find(s => s.id === consulta.activeSection))
 
@@ -246,14 +238,66 @@ function salvarRascunho() {
   // placeholder — implementado na task "Salvar consulta"
 }
 
-async function finalizarConsulta() {
-  try {
-    await consulta.finalizarConsulta()
-    confirmFinalizarOpen.value = false
-    pacienteStore.limparPaciente()
-    router.push('/fila')
-  } catch {
-    confirmFinalizarOpen.value = true
-  }
+function calcularDuracaoMinutos(): number {
+  if (!consulta.consultaIniciada) return 0
+  return Math.round((Date.now() - consulta.consultaIniciada.getTime()) / 60000)
+}
+
+function gerarTextos() {
+  if (!pacienteAtivo.value) return
+  const paciente = pacienteAtivo.value
+  const idadeEmMeses = paciente.idadeEmMeses
+  const grupo = getGrupoAtivo(idadeEmMeses)
+
+  textoAGHU.value = gerarTextoAGHU({
+    paciente,
+    tipoEntrada: paciente.tipoEntrada ?? 'Retorno',
+    duracaoMinutos: calcularDuracaoMinutos(),
+    is0to2: idadeEmMeses <= 24,
+    is3to9: idadeEmMeses >= 36 && idadeEmMeses <= 108,
+    antropometria: consulta.antropometria,
+    anamnese: consulta.anamnese,
+    imunizacoes: consulta.imunizacoes,
+    triagemNeonatal: consulta.triagemNeonatal,
+    escolaridade: consulta.escolaridade,
+    encaminhamentos: consulta.encaminhamentos,
+    historiaFamiliar: consulta.historiaFamiliar,
+    dinamicaFamiliar: consulta.dinamicaFamiliar,
+    condicoesSocioeconomicas: consulta.condicoesSocioeconomicas,
+    diagnostico: consulta.diagnostico,
+    hipotesesCondutas: consulta.hipotesesCondutas,
+    procedimentos: consulta.procedimentos,
+    dadosExternos: consulta.dadosExternos,
+    statusMarcos: consulta.statusMarcos,
+    marcosDoGrupo: grupo.marcos,
+    idadeEmMeses,
+    classificacaoDesenvolvimento: consulta.classificacaoDesenvolvimento,
+    exameFisico: consulta.exameFisico,
+  })
+
+  textosEncaminhamento.value = consulta.encaminhamentos.map(enc =>
+    gerarTextoEncaminhamento(enc, paciente, consulta.diagnostico, consulta.antropometria)
+  )
+}
+
+function confirmarComAGHU() {
+  mostrarDialogFinalizacao.value = false
+  gerarTextos()
+  if (pacienteAtivo.value) filaStore.concluirConsulta(pacienteAtivo.value.id)
+  mostrarResumo.value = true
+}
+
+function confirmarSemAGHU() {
+  mostrarDialogFinalizacao.value = false
+  if (pacienteAtivo.value) filaStore.concluirConsulta(pacienteAtivo.value.id)
+  consulta.resetConsulta()
+  pacienteStore.limparPaciente()
+  router.push('/fila')
+}
+
+function novaConsulta() {
+  consulta.resetConsulta()
+  pacienteStore.limparPaciente()
+  router.push('/fila')
 }
 </script>

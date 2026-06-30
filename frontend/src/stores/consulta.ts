@@ -1283,6 +1283,42 @@ export const useConsultaStore = defineStore('consulta', () => {
   const observacoesMarcos = ref<Record<string, string>>({})
   const classificacaoDesenvolvimento = ref<ClassificacaoDesenvolvimento | null>(null)
 
+  type SistemaStatusSelection = SistemaStatus | ''
+  type ExameFisicoForm = {
+    [K in keyof ExameFisico]: { status: SistemaStatusSelection; descricao: string }
+  }
+  function criarSistemaVazio(): { status: SistemaStatusSelection; descricao: string } {
+    return { status: '', descricao: '' }
+  }
+  const exameFisico = ref<ExameFisicoForm>({
+    geral: criarSistemaVazio(),
+    pele: criarSistemaVazio(),
+    cabecaPescoco: criarSistemaVazio(),
+    olhos: criarSistemaVazio(),
+    ouvidos: criarSistemaVazio(),
+    nariz: criarSistemaVazio(),
+    bocaGarganta: criarSistemaVazio(),
+    cardiovascular: criarSistemaVazio(),
+    respiratorio: criarSistemaVazio(),
+    abdome: criarSistemaVazio(),
+    genitourinario: criarSistemaVazio(),
+    extremidades: criarSistemaVazio(),
+    neurologico: criarSistemaVazio(),
+    musculoesqueletico: criarSistemaVazio(),
+  })
+  const avaliadosCount = computed(
+    () => Object.values(exameFisico.value).filter(s => s.status !== '').length
+  )
+  const allStatusesSelected = computed(
+    () => Object.values(exameFisico.value).every(s => s.status !== '')
+  )
+  function updateSistemaStatus(id: keyof ExameFisico, status: SistemaStatusSelection) {
+    exameFisico.value[id].status = status
+  }
+  function updateSistemaDescricao(id: keyof ExameFisico, descricao: string) {
+    exameFisico.value[id].descricao = descricao
+  }
+
   const totalMarcosRegistrados = computed(
     () => Object.values(statusMarcos.value).filter(v => v !== null).length
   )
