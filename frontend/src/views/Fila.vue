@@ -227,7 +227,7 @@ function toggleDropdown(id: string) {
 }
 
 function handleRowClick(entrada: EntradaFila) {
-  pendingBriefing.value = entrada
+  abrirConfirmacaoConsulta(entrada)
 }
 
 function handleVerBriefing(entrada: EntradaFila) {
