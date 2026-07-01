@@ -10,13 +10,13 @@ Os itens estão agrupados por categoria de prioridade: lacunas de schema (bloque
 
 ## Cronograma até o Demo Day (07/08)
 
-Dividido em duas imagens (fundo transparente, para uso em dois slides):
+Dividido em duas imagens (fundo transparente, cores e fonte alinhadas à identidade visual do app — teal/slate, fonte Baloo 2 — para uso em dois slides):
 
-![Roadmap parte 1 de 2 — schema de dados e regras de negócio](assets/roadmap-gantt-1.png)
+![Roadmap parte 1 de 2 — schema de dados, regras de negócio e Dashboard (3 entregas)](assets/roadmap-gantt-1.png)
 
-![Roadmap parte 2 de 2 — Dashboard, qualidade e fechamento](assets/roadmap-gantt-2.png)
+![Roadmap parte 2 de 2 — qualidade e fechamento (2 entregas)](assets/roadmap-gantt-2.png)
 
-Fonte dos diagramas (Mermaid, regenerável com `npx @mermaid-js/mermaid-cli -i roadmap-gantt-N.mmd -o roadmap-gantt-N.png -b transparent`): `assets/roadmap-gantt-1.mmd` e `assets/roadmap-gantt-2.mmd`.
+Fonte dos diagramas (Mermaid, regenerável com `npx @mermaid-js/mermaid-cli -i roadmap-gantt-N.mmd -o roadmap-gantt-N.png -b transparent`): `assets/roadmap-gantt-1.mmd` e `assets/roadmap-gantt-2.mmd`. Requer a fonte "Baloo 2" (Google Fonts, gratuita) instalada no sistema que for regenerar a imagem.
 
 | Semana | Datas | Entrega |
 |---|---|---|

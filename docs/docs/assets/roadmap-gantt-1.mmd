@@ -1,28 +1,4 @@
-%%{init: {
-  "theme": "base",
-  "themeVariables": {
-    "primaryColor": "#e5e7eb",
-    "primaryTextColor": "#1f2937",
-    "primaryBorderColor": "#9ca3af",
-    "secondaryColor": "#d1d5db",
-    "tertiaryColor": "#f3f4f6",
-    "critBorderColor": "#6b7280",
-    "critBkgColor": "#9ca3af",
-    "doneBkgColor": "#9ca3af",
-    "doneBorderColor": "#6b7280",
-    "activeBkgColor": "#d1d5db",
-    "activeBorderColor": "#6b7280",
-    "taskBkgColor": "#e5e7eb",
-    "taskBorderColor": "#9ca3af",
-    "taskTextColor": "#1f2937",
-    "taskTextOutsideColor": "#1f2937",
-    "sectionBkgColor": "#f9fafb",
-    "sectionBkgColor2": "#f3f4f6",
-    "gridColor": "#d1d5db",
-    "todayLineColor": "#9ca3af",
-    "fontFamily": "Helvetica, Arial, sans-serif"
-  }
-}}%%
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ccfbf1", "primaryTextColor": "#134e4a", "primaryBorderColor": "#0d9488", "secondaryColor": "#99f6e4", "tertiaryColor": "#f1f5f9", "critBorderColor": "#b45309", "critBkgColor": "#f59e0b", "doneBkgColor": "#0f766e", "doneBorderColor": "#134e4a", "activeBkgColor": "#5eead4", "activeBorderColor": "#0f766e", "taskBkgColor": "#ccfbf1", "taskBorderColor": "#0d9488", "taskTextColor": "#134e4a", "taskTextOutsideColor": "#1e293b", "sectionBkgColor": "#f8fafc", "sectionBkgColor2": "#f1f5f9", "gridColor": "#e2e8f0", "todayLineColor": "#0d9488", "fontFamily": "\"Baloo 2\", sans-serif"}, "gantt": {"barHeight": 42, "barGap": 14, "topPadding": 65, "titleTopMargin": 40, "leftPadding": 230, "fontSize": 15, "sectionFontSize": 15}, "themeCSS": ".titleText { font-family: \"Baloo 2\", sans-serif; font-size: 50px !important; } text { font-family: \"Baloo 2\", sans-serif !important; }"}}%%
 gantt
     title Roadmap (1/2)
     dateFormat YYYY-MM-DD
@@ -38,3 +14,8 @@ gantt
     Validacoes obrigatorias (CID-10, confirmacao de retorno) :b1, after v1, 4d
     Geracao automatica de alertas clinicos                   :b2, after b1, 3d
     Validacao com usuario final (checkpoint 2)               :crit, v2, after b2, 1d
+
+    section Dashboard Gerencial
+    Backend de KPIs e alertas populacionais                  :d1, after v2, 4d
+    Tela de Dashboard (Vue)                                   :d2, after d1, 3d
+    Validacao com usuario final (checkpoint 3)               :crit, v3, after d2, 1d
