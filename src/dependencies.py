@@ -9,6 +9,9 @@ from .providers.implementations.paciente_csv_provider import PacienteCsvProvider
 from .providers.interfaces.fila_provider_interface import FilaProviderInterface
 from .providers.implementations.fila_mock_provider import FilaMockProvider
 from .providers.implementations.fila_sqlite_provider import FilaSqliteProvider
+from .providers.implementations.fila_csv_provider import FilaCsvProvider
+from .providers.interfaces.alertas_provider_interface import AlertaProviderInterface
+from .providers.implementations.alertas_sqlite_provider import AlertaSqliteProvider
 from .resources.database import get_aghu_db_session, get_app_db_session
 
 # 1. Funções "getter" simples e independentes (privadas por convenção)
@@ -49,6 +52,12 @@ def _get_fila_sqlite_provider(
     return FilaSqliteProvider(session=session)
 
 
+def _get_fila_csv_provider() -> FilaProviderInterface:
+    fila_csv_path = os.getenv("FILA_CSV_PATH", "data/fila.csv")
+    pacientes_csv_path = os.getenv("PACIENTE_CSV_PATH", "data/pacientes.csv")
+    return FilaCsvProvider(fila_csv_path=fila_csv_path, pacientes_csv_path=pacientes_csv_path)
+
+
 def get_fila_provider(strategy: str) -> Callable[..., FilaProviderInterface]:
     """
     Fábrica de providers da fila. Baseado na string 'strategy', retorna a função
@@ -58,5 +67,26 @@ def get_fila_provider(strategy: str) -> Callable[..., FilaProviderInterface]:
         return _get_fila_mock_provider
     elif strategy.upper() == "SQLITE":
         return _get_fila_sqlite_provider
+    elif strategy.upper() == "CSV":
+        return _get_fila_csv_provider
     else:
         raise ValueError(f"Estratégia de provedor de fila desconhecida: {strategy}")
+
+
+# --- Alertas Clínicos ---
+
+def _get_alertas_sqlite_provider(
+    session: AsyncSession = Depends(get_app_db_session),
+) -> AlertaProviderInterface:
+    return AlertaSqliteProvider(session=session)
+
+
+def get_alertas_provider(strategy: str) -> Callable[..., AlertaProviderInterface]:
+    """
+    Fábrica de providers de alertas. Baseado na string 'strategy', retorna a função
+    de dependência correta que o FastAPI deve usar.
+    """
+    if strategy.upper() == "SQLITE":
+        return _get_alertas_sqlite_provider
+    else:
+        raise ValueError(f"Estratégia de provedor de alertas desconhecida: {strategy}")

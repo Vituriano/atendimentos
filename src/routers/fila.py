@@ -8,8 +8,9 @@ from ..providers.interfaces.fila_provider_interface import FilaProviderInterface
 from ..auth.auth import auth_handler
 
 # --- PONTO ÚNICO DE CONFIGURAÇÃO PARA ESTE ROTEADOR ---
-# Para usar banco SQLite, altere esta linha para "sqlite"
-STRATEGY = "mock"
+# "csv" lê data/pacientes.csv (dev). "mock" usa dados fixos em memória. "sqlite"
+# ainda não está implementado (ver fila_sqlite_provider.py).
+STRATEGY = "csv"
 # -------------------------------------------------------
 
 router = APIRouter(
