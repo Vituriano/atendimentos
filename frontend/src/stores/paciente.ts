@@ -7,6 +7,26 @@ import api from '../services/api'
 
 const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
 
+function parseDataNascimentoPaciente(valor: string): Date | null {
+  const data = valor.trim()
+  if (!data) return null
+
+  const br = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(data)
+  if (br) {
+    const [, dia, mes, ano] = br.map(Number)
+    return new Date(ano, mes - 1, dia)
+  }
+
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(data)
+  if (iso) {
+    const [, ano, mes, dia] = iso.map(Number)
+    return new Date(ano, mes - 1, dia)
+  }
+
+  const parsed = new Date(data)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
 function formatarDataConsulta(isoDate: string): string {
   const d = new Date(isoDate)
   return `${MESES[d.getMonth()]}/${d.getFullYear()}`
@@ -23,15 +43,26 @@ function mapPacienteApi(p: Record<string, unknown>): Paciente {
   const dtNasc = p.dt_nascimento ?? p.data_nascimento
   const dataNascimento = dtNasc ? String(dtNasc) : ''
   let idadeEmMeses = 0
+  let idadeEmDias = 0
   if (dataNascimento) {
-    const nasc = new Date(dataNascimento)
-    idadeEmMeses = (hoje.getFullYear() - nasc.getFullYear()) * 12 + (hoje.getMonth() - nasc.getMonth())
+    const nasc = parseDataNascimentoPaciente(dataNascimento)
+    if (nasc) {
+      idadeEmMeses = (hoje.getFullYear() - nasc.getFullYear()) * 12 + (hoje.getMonth() - nasc.getMonth())
+      if (hoje.getDate() < nasc.getDate()) idadeEmMeses -= 1
+      idadeEmMeses = Math.max(idadeEmMeses, 0)
+      idadeEmDias = Math.max(Math.floor((hoje.getTime() - nasc.getTime()) / 86400000), 0)
+    }
   }
   const anos = Math.floor(idadeEmMeses / 12)
   const mesesRest = idadeEmMeses % 12
+  const semanas = Math.floor(idadeEmDias / 7)
   const idade = anos > 0
     ? mesesRest > 0 ? `${anos} anos e ${mesesRest} meses` : `${anos} anos`
-    : `${idadeEmMeses} meses`
+    : idadeEmMeses > 0
+      ? `${idadeEmMeses} meses`
+      : semanas > 0
+        ? `${semanas} semanas`
+        : `${idadeEmDias} dias`
   return {
     id: String(p.prontuario ?? p.id ?? ''),
     nome: String(p.nome ?? ''),

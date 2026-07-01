@@ -1,10 +1,13 @@
 """
-Popula o app.db local (SQLite) com histórico clínico completo para TODOS os
-pacientes de data/pacientes.csv (a base de pacientes — não confundir com
-data/fila.csv, que é só o subconjunto agendado para "hoje").
+Popula o app.db local (SQLite) com histórico clínico completo para os
+10 pacientes de desenvolvimento cadastrados em data/pacientes.csv. A fila de
+desenvolvimento (data/fila.csv) também contém esses 10 prontuários para
+facilitar a seleção e a abertura da Caderneta Digital.
 
-Gera, por paciente, pelo menos 6 meses de histórico (6 consultas ao longo de
-~7 meses) cobrindo todas as seções do formulário de consulta que já têm
+Gera, por paciente, um histórico coerente com a idade real da criança:
+neonatos têm consultas após o nascimento em dias/semanas de vida; lactentes
+têm pontos em meses de vida; crianças maiores mantêm uma série histórica
+recente. O histórico cobre as seções do formulário de consulta que já têm
 tabela no banco: antropometria, anamnese, triagem neonatal, diagnóstico,
 hipóteses/condutas, imunizações, escolaridade, procedimentos, dados externos,
 história familiar, dinâmica familiar, condições socioeconômicas,
@@ -23,7 +26,8 @@ paciente novo no CSV ganha histórico completo ao rodar o script de novo.
 
 Uso:
     uv run python scripts/seed_dev_data.py
-    uv run python scripts/seed_dev_data.py --reset   # recria os dados seedados
+    uv run python scripts/seed_dev_data.py --reset      # recria os dados dos 10 pacientes do CSV
+    uv run python scripts/seed_dev_data.py --reset-all  # limpa consultas/alertas e recria somente estes 10 pacientes
 
 Idempotente: para cada paciente, se já existir alguma Consulta ativa
 (deleted_at IS NULL), o paciente é pulado — seguro rodar mais de uma vez.
@@ -73,8 +77,10 @@ from src.models.consulta import (  # noqa: E402
 MEDICO_USERNAME = "admin"
 CSV_PATH = os.getenv("PACIENTE_CSV_PATH", "data/pacientes.csv")
 
-# 6 consultas ao longo de ~7,3 meses — garante pelo menos 6 meses de histórico.
-_DIAS_ATRAS_CONSULTAS = [220, 180, 140, 95, 50, 15]
+# Base para crianças maiores: 6 consultas ao longo de ~7,3 meses.
+# Para neonatos/lactentes pequenos, as datas são calculadas a partir da data
+# de nascimento para nunca gerar consulta antes de a criança nascer.
+_DIAS_ATRAS_CONSULTAS_CRIANCAS_MAIORES = [220, 180, 140, 95, 50, 15]
 
 # Tabela de referência aproximada peso/altura por idade em meses (não é
 # protocolo clínico — só para gerar uma tendência de crescimento plausível
@@ -123,12 +129,66 @@ _GRUPOS_MARCOS = [
 ]
 
 
+def _parse_data_nascimento(dt_nascimento: str) -> datetime:
+    """Aceita os formatos usados na base local de desenvolvimento.
+
+    O CSV atual usa dd/mm/aaaa para facilitar leitura e compatibilidade com a
+    Caderneta Digital. Mantemos suporte a aaaa-mm-dd para arquivos antigos.
+    """
+    valor = (dt_nascimento or "").strip()
+    for formato in ("%d/%m/%Y", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(valor, formato)
+        except ValueError:
+            continue
+    raise ValueError(f"Data de nascimento inválida: {dt_nascimento!r}. Use dd/mm/aaaa ou aaaa-mm-dd.")
+
+
 def _idade_em_meses(dt_nascimento: str, referencia: datetime) -> int:
-    nascimento = datetime.strptime(dt_nascimento, "%Y-%m-%d")
+    nascimento = _parse_data_nascimento(dt_nascimento)
     meses = (referencia.year - nascimento.year) * 12 + (referencia.month - nascimento.month)
     if referencia.day < nascimento.day:
         meses -= 1
     return max(meses, 0)
+
+
+def _gerar_datas_consultas(row: dict[str, str]) -> list[datetime]:
+    """Gera datas históricas sempre posteriores ao nascimento.
+
+    Para crianças com poucos dias/semanas de vida, o histórico fica concentrado
+    em nascimento, 3º/7º/14º/21º/28º dia e data atual, conforme a idade permitir.
+    Para lactentes, usa pontos por mês de vida. Para crianças maiores, usa a
+    janela histórica recente já esperada pela Caderneta.
+    """
+    hoje = datetime.now().replace(hour=9, minute=0, second=0, microsecond=0)
+    nascimento = _parse_data_nascimento(row["dt_nascimento"]).replace(hour=9, minute=0, second=0, microsecond=0)
+    if nascimento > hoje:
+        raise ValueError(f"Paciente {row.get('prontuario')} possui nascimento futuro: {row.get('dt_nascimento')}")
+
+    idade_dias = max((hoje.date() - nascimento.date()).days, 0)
+
+    if idade_dias <= 45:
+        offsets = [0, 3, 7, 14, 21, 28, 35, idade_dias]
+    elif idade_dias <= 210:
+        offsets = [0, 7, 30, 60, 90, 120, 180, idade_dias]
+    elif idade_dias <= 365:
+        offsets = [0, 30, 60, 90, 120, 180, 240, idade_dias]
+    else:
+        datas = [hoje - timedelta(days=dias) for dias in _DIAS_ATRAS_CONSULTAS_CRIANCAS_MAIORES]
+        datas = [data for data in datas if data >= nascimento]
+        if len(datas) >= 3:
+            return sorted(datas)
+        offsets = [0, 30, 60, 120, 180, 240, idade_dias]
+
+    datas_por_dia: dict[int, datetime] = {}
+    for offset in offsets:
+        if offset < 0 or offset > idade_dias:
+            continue
+        data = nascimento + timedelta(days=offset)
+        if data <= hoje:
+            datas_por_dia[offset] = data
+
+    return sorted(datas_por_dia.values())
 
 
 def _interpolar(tabela: list[tuple], idade_meses: int, indice_valor: int = 1) -> float:
@@ -179,9 +239,7 @@ async def _paciente_ja_seedado(session: AsyncSession, paciente_id: str) -> bool:
     return result.scalar_one_or_none() is not None
 
 
-def _gerar_dados_consulta(row: dict[str, str], dias_atras: int, rng: random.Random) -> dict:
-    hoje = datetime.now()
-    data_consulta = hoje - timedelta(days=dias_atras)
+def _gerar_dados_consulta(row: dict[str, str], data_consulta: datetime, rng: random.Random) -> dict:
     idade_meses = _idade_em_meses(row["dt_nascimento"], data_consulta)
 
     peso, altura = _peso_altura_esperados(idade_meses)
@@ -278,10 +336,12 @@ async def _seed_consulta(
         ))
 
     if eh_primeira and rng.random() < 0.4:
+        nascimento = _parse_data_nascimento(row["dt_nascimento"]).date()
+        data_externa = max(nascimento, (dados["data"] - timedelta(days=30)).date())
         session.add(ConsultaDadosExternos(
             consulta_id=consulta.id,
             ordem=0,
-            data_consulta_externa=(dados["data"] - timedelta(days=30)).date(),
+            data_consulta_externa=data_externa,
             servico_origem=f"UBS {rng.choice(['Alto do Céu', 'Ibura', 'Casa Amarela', 'Boa Viagem'])}",
             peso=round(dados["peso"] * 0.92, 1),
             altura=round(dados["altura"] * 0.97, 1),
@@ -395,23 +455,74 @@ def _gerar_alertas(row: dict[str, str], paciente_id: str, tendencia_peso_baixa: 
     return alertas
 
 
-async def _seed_paciente(session: AsyncSession, row: dict[str, str], reset: bool) -> bool:
+async def _reset_todos_dados_clinicos(session: AsyncSession) -> None:
+    for model in (
+        ConsultaAntropometria,
+        ConsultaAnamnese,
+        ConsultaTriagemNeonatal,
+        ConsultaDiagnostico,
+        ConsultaHipotesesCondutas,
+        ConsultaImunizacoes,
+        ConsultaEscolaridade,
+        ConsultaProcedimentos,
+        ConsultaDadosExternos,
+        ConsultaHistoriaFamiliar,
+        ConsultaDinamicaFamiliar,
+        ConsultaCondicoesSocioeconomicas,
+        ConsultaEncaminhamento,
+        ConsultaMarcoDesenvolvimento,
+    ):
+        await session.execute(delete(model))
+    await session.execute(delete(Consulta))
+    await session.execute(delete(Alerta))
+
+
+async def _reset_paciente(session: AsyncSession, paciente_id: str) -> None:
+    result = await session.execute(
+        select(Consulta.id).where(Consulta.paciente_id == paciente_id)
+    )
+    consulta_ids = list(result.scalars().all())
+
+    if consulta_ids:
+        for model in (
+            ConsultaAntropometria,
+            ConsultaAnamnese,
+            ConsultaTriagemNeonatal,
+            ConsultaDiagnostico,
+            ConsultaHipotesesCondutas,
+            ConsultaImunizacoes,
+            ConsultaEscolaridade,
+            ConsultaProcedimentos,
+            ConsultaDadosExternos,
+            ConsultaHistoriaFamiliar,
+            ConsultaDinamicaFamiliar,
+            ConsultaCondicoesSocioeconomicas,
+            ConsultaEncaminhamento,
+            ConsultaMarcoDesenvolvimento,
+        ):
+            await session.execute(delete(model).where(model.consulta_id.in_(consulta_ids)))
+        await session.execute(delete(Consulta).where(Consulta.id.in_(consulta_ids)))
+
+    await session.execute(delete(Alerta).where(Alerta.paciente_id == paciente_id))
+
+
+async def _seed_paciente(session: AsyncSession, row: dict[str, str], reset: bool) -> int:
     paciente_id = row["prontuario"]
     rng = random.Random(paciente_id)
 
     if reset:
-        await session.execute(delete(Consulta).where(Consulta.paciente_id == paciente_id))
-        await session.execute(delete(Alerta).where(Alerta.paciente_id == paciente_id))
+        await _reset_paciente(session, paciente_id)
     elif await _paciente_ja_seedado(session, paciente_id):
-        return False
+        return 0
 
-    n = len(_DIAS_ATRAS_CONSULTAS)
+    datas_consultas = _gerar_datas_consultas(row)
+    n = len(datas_consultas)
     tendencia_peso_baixa = rng.random() < 0.25
     algum_marco_nao_atingido = False
     pesos_gerados: list[float] = []
 
-    for i, dias_atras in enumerate(_DIAS_ATRAS_CONSULTAS):
-        dados = _gerar_dados_consulta(row, dias_atras, rng)
+    for i, data_consulta in enumerate(datas_consultas):
+        dados = _gerar_dados_consulta(row, data_consulta, rng)
         if tendencia_peso_baixa and i == n - 1 and pesos_gerados:
             dados["peso"] = round(pesos_gerados[-1] * rng.uniform(0.95, 0.99), 1)
             dados["imc"] = round(dados["peso"] / ((dados["altura"] / 100) ** 2), 1)
@@ -426,10 +537,10 @@ async def _seed_paciente(session: AsyncSession, row: dict[str, str], reset: bool
     for tipo, categoria, mensagem in _gerar_alertas(row, paciente_id, tendencia_peso_baixa, algum_marco_nao_atingido):
         session.add(Alerta(paciente_id=paciente_id, tipo=tipo, categoria=categoria, mensagem=mensagem))
 
-    return True
+    return n
 
 
-async def main(reset: bool) -> None:
+async def main(reset: bool, reset_all: bool) -> None:
     load_dotenv()
     dsn = os.getenv("SQLITE_DSN", "sqlite+aiosqlite:///app.db")
 
@@ -444,11 +555,16 @@ async def main(reset: bool) -> None:
     session_maker = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     seedados, pulados = 0, 0
     async with session_maker() as session:
+        if reset_all:
+            print("Limpando consultas e alertas existentes antes de recriar os 10 pacientes de desenvolvimento...")
+            await _reset_todos_dados_clinicos(session)
+            await session.flush()
+
         for row in pacientes:
-            criado = await _seed_paciente(session, row, reset)
-            if criado:
+            qtd_consultas = await _seed_paciente(session, row, reset and not reset_all)
+            if qtd_consultas:
                 seedados += 1
-                print(f"  [ok] {row['prontuario']} ({row['nome']}) — {len(_DIAS_ATRAS_CONSULTAS)} consultas")
+                print(f"  [ok] {row['prontuario']} ({row['nome']}) — {qtd_consultas} consultas")
             else:
                 pulados += 1
                 print(f"  [skip] {row['prontuario']} já tem consultas — use --reset para recriar")
@@ -462,7 +578,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--reset", action="store_true",
-        help="Remove os dados seedados de todos os pacientes do CSV antes de recriar."
+        help="Remove os dados seedados dos 10 pacientes do CSV antes de recriar."
+    )
+    parser.add_argument(
+        "--reset-all", action="store_true",
+        help="Remove todas as consultas e alertas do banco local antes de recriar somente os 10 pacientes do CSV."
     )
     args = parser.parse_args()
-    asyncio.run(main(reset=args.reset))
+    asyncio.run(main(reset=args.reset, reset_all=args.reset_all))

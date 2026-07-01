@@ -23,11 +23,66 @@ _TIPO_ENTRADA_MAP = {
 }
 
 
+def _parse_data_nascimento(dt_nascimento: str) -> datetime:
+    valor = (dt_nascimento or "").strip()
+    for formato in ("%d/%m/%Y", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(valor, formato)
+        except ValueError:
+            continue
+    raise ValueError(f"Data de nascimento inválida no CSV: {dt_nascimento!r}")
+
+
+def _pluralizar(valor: int, singular: str, plural: str) -> str:
+    return f"{valor} {singular if valor == 1 else plural}"
+
+
+def _calcular_idade_detalhada(dt_nascimento: str) -> dict[str, int | str]:
+    nascimento = _parse_data_nascimento(dt_nascimento).date()
+    hoje = datetime.now().date()
+
+    if nascimento > hoje:
+        return {
+            "anos": 0,
+            "meses": 0,
+            "dias": 0,
+            "texto": "0 dias",
+        }
+
+    meses = (hoje.year - nascimento.year) * 12 + (hoje.month - nascimento.month)
+    if hoje.day < nascimento.day:
+        meses -= 1
+    meses = max(meses, 0)
+
+    anos = meses // 12
+    meses_restantes = meses % 12
+    dias = max((hoje - nascimento).days, 0)
+
+    if anos > 0:
+        texto = _pluralizar(anos, "ano", "anos")
+        if meses_restantes > 0:
+            texto = f"{texto} e {_pluralizar(meses_restantes, 'mês', 'meses')}"
+    elif meses > 0:
+        texto = _pluralizar(meses, "mês", "meses")
+    elif dias >= 7:
+        semanas = dias // 7
+        dias_restantes = dias % 7
+        texto = _pluralizar(semanas, "semana", "semanas")
+        if dias_restantes > 0:
+            texto = f"{texto} e {_pluralizar(dias_restantes, 'dia', 'dias')}"
+    else:
+        texto = _pluralizar(dias, "dia", "dias")
+
+    return {
+        "anos": anos,
+        "meses": meses,
+        "dias": dias,
+        "texto": texto,
+    }
+
+
 def _calcular_idade_anos(dt_nascimento: str) -> int:
-    nascimento = datetime.strptime(dt_nascimento, "%Y-%m-%d")
-    hoje = datetime.now()
-    idade = hoje.year - nascimento.year - ((hoje.month, hoje.day) < (nascimento.month, nascimento.day))
-    return max(idade, 0)
+    return int(_calcular_idade_detalhada(dt_nascimento)["anos"])
 
 
 class FilaCsvProvider(FilaProviderInterface):
@@ -63,11 +118,18 @@ class FilaCsvProvider(FilaProviderInterface):
             paciente = pacientes_por_prontuario.get(prontuario)
             if paciente is None:
                 continue
+            idade = _calcular_idade_detalhada(paciente["dt_nascimento"])
             fila.append({
                 "id": idx,
                 "paciente_id": paciente["prontuario"],
                 "paciente_nome": paciente["nome"],
-                "paciente_idade": _calcular_idade_anos(paciente["dt_nascimento"]),
+                "paciente_data_nascimento": paciente.get("dt_nascimento", ""),
+                # Mantém o campo antigo para compatibilidade com telas já existentes.
+                "paciente_idade": idade["anos"],
+                # Novos campos usados pela fila para exibir neonatos/lactentes corretamente.
+                "paciente_idade_meses": idade["meses"],
+                "paciente_idade_dias": idade["dias"],
+                "paciente_idade_texto": idade["texto"],
                 "tipo_entrada": _TIPO_ENTRADA_MAP.get(paciente.get("ind_origem", ""), "Retorno"),
                 "status": _STATUS_MAP.get(paciente.get("status", ""), "Aguardando"),
                 "faltas": int(paciente.get("faltas") or 0),
