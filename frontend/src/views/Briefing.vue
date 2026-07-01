@@ -53,9 +53,8 @@
           </template>
 
           <button
-            disabled
-            class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-400 cursor-not-allowed"
-            title="Caderneta Digital (em breve)"
+            @click="router.push('/caderneta')"
+            class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
             <BookOpenIcon class="h-4 w-4" />
             Ver Caderneta Digital

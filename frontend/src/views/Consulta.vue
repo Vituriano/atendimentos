@@ -219,7 +219,7 @@ const secaoAtiva = computed(() => consulta.secoes.find(s => s.id === consulta.ac
 
 async function carregarContextoDaConsulta() {
   const pacienteId = pacienteAtivo.value?.id
-  if (!pacienteId) {
+  if (!pacienteId || pacienteStore.modoLeitura) {
     router.push('/fila')
     return
   }
