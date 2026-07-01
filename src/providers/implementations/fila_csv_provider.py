@@ -31,33 +31,46 @@ def _calcular_idade_anos(dt_nascimento: str) -> int:
 
 
 class FilaCsvProvider(FilaProviderInterface):
-    """Provedor da fila a partir do CSV de pacientes (ambiente de desenvolvimento).
+    """Provedor da fila de atendimento (ambiente de desenvolvimento).
 
-    tipo_entrada é derivado de ind_origem e status da fila é derivado do status
-    AGHU do paciente. A fila é construída em memória na inicialização do
-    provider; atualizações de status (PATCH /status) não persistem de volta
-    no CSV — mesma limitação do FilaMockProvider, aceitável para dev local.
+    data/fila.csv lista os prontuários dos pacientes agendados para hoje
+    (um dia típico tem ~10 atendimentos). data/pacientes.csv é a base
+    completa de pacientes — a fila é só um subconjunto dela, não todos os
+    pacientes cadastrados aparecem na fila do dia.
+
+    tipo_entrada é derivado de ind_origem e status da fila é derivado do
+    status AGHU do paciente. A fila é construída em memória na
+    inicialização do provider; atualizações de status (PATCH /status) não
+    persistem de volta nos CSVs — mesma limitação do FilaMockProvider,
+    aceitável para dev local.
     """
 
-    def __init__(self, csv_path: str = "data/pacientes.csv"):
-        self.csv_path = csv_path
+    def __init__(self, fila_csv_path: str = "data/fila.csv", pacientes_csv_path: str = "data/pacientes.csv"):
+        self.fila_csv_path = fila_csv_path
+        self.pacientes_csv_path = pacientes_csv_path
         self._fila = self._carregar_fila()
 
     def _carregar_fila(self) -> list[dict[str, Any]]:
-        with open(self.csv_path, mode="r", encoding="utf-8") as f:
-            rows = list(csv.DictReader(f))
+        with open(self.fila_csv_path, mode="r", encoding="utf-8") as f:
+            prontuarios_hoje = [row["prontuario"] for row in csv.DictReader(f)]
+
+        with open(self.pacientes_csv_path, mode="r", encoding="utf-8") as f:
+            pacientes_por_prontuario = {row["prontuario"]: row for row in csv.DictReader(f)}
 
         base_hora = datetime.now().replace(hour=7, minute=30, second=0, microsecond=0)
         fila: list[dict[str, Any]] = []
-        for idx, row in enumerate(rows, start=1):
+        for idx, prontuario in enumerate(prontuarios_hoje, start=1):
+            paciente = pacientes_por_prontuario.get(prontuario)
+            if paciente is None:
+                continue
             fila.append({
                 "id": idx,
-                "paciente_id": row["prontuario"],
-                "paciente_nome": row["nome"],
-                "paciente_idade": _calcular_idade_anos(row["dt_nascimento"]),
-                "tipo_entrada": _TIPO_ENTRADA_MAP.get(row.get("ind_origem", ""), "Retorno"),
-                "status": _STATUS_MAP.get(row.get("status", ""), "Aguardando"),
-                "faltas": int(row.get("faltas") or 0),
+                "paciente_id": paciente["prontuario"],
+                "paciente_nome": paciente["nome"],
+                "paciente_idade": _calcular_idade_anos(paciente["dt_nascimento"]),
+                "tipo_entrada": _TIPO_ENTRADA_MAP.get(paciente.get("ind_origem", ""), "Retorno"),
+                "status": _STATUS_MAP.get(paciente.get("status", ""), "Aguardando"),
+                "faltas": int(paciente.get("faltas") or 0),
                 "data_entrada": (base_hora + timedelta(minutes=15 * idx)).isoformat(),
             })
         return fila

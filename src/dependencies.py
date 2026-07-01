@@ -53,8 +53,9 @@ def _get_fila_sqlite_provider(
 
 
 def _get_fila_csv_provider() -> FilaProviderInterface:
-    csv_path = os.getenv("PACIENTE_CSV_PATH", "data/pacientes.csv")
-    return FilaCsvProvider(csv_path=csv_path)
+    fila_csv_path = os.getenv("FILA_CSV_PATH", "data/fila.csv")
+    pacientes_csv_path = os.getenv("PACIENTE_CSV_PATH", "data/pacientes.csv")
+    return FilaCsvProvider(fila_csv_path=fila_csv_path, pacientes_csv_path=pacientes_csv_path)
 
 
 def get_fila_provider(strategy: str) -> Callable[..., FilaProviderInterface]:
