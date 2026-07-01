@@ -3,7 +3,7 @@ from decimal import Decimal
 import json
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -1418,6 +1418,35 @@ async def _montar_response(db: AsyncSession, consulta: Consulta) -> ConsultaAtiv
             consulta.id,
         ),
     )
+
+
+class UltimaConsultaResponse(BaseModel):
+    paciente_id: str
+    ultima_consulta: datetime | None
+
+
+@router.get("/ultimas", response_model=list[UltimaConsultaResponse])
+async def obter_ultimas_consultas(
+    paciente_ids: str = Query(..., description="IDs de paciente separados por vírgula"),
+    db: AsyncSession = Depends(get_app_db_session),
+) -> list[UltimaConsultaResponse]:
+    """Retorna a data da última consulta (de qualquer médico) para cada paciente informado."""
+    ids = [pid.strip() for pid in paciente_ids.split(",") if pid.strip()]
+    if not ids:
+        return []
+
+    stmt = (
+        select(Consulta.paciente_id, func.max(Consulta.data).label("ultima_consulta"))
+        .where(Consulta.paciente_id.in_(ids), Consulta.deleted_at.is_(None))
+        .group_by(Consulta.paciente_id)
+    )
+    result = await db.execute(stmt)
+    encontrados = {row.paciente_id: row.ultima_consulta for row in result.all()}
+
+    return [
+        UltimaConsultaResponse(paciente_id=pid, ultima_consulta=encontrados.get(pid))
+        for pid in ids
+    ]
 
 
 @router.get("/ativas/{paciente_id}", response_model=ConsultaAtivaResponse | None)
