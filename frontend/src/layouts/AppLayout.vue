@@ -4,12 +4,10 @@
     <aside
       :class="[sidebarOpen ? 'w-64' : 'w-16', 'transition-all duration-300 bg-white border-r border-slate-200 flex flex-col shrink-0']"
     >
-      <!-- Header HC Pediatria -->
+      <!-- Header Evoluir -->
       <div class="h-16 flex items-center px-4 bg-gradient-to-b from-slate-50 to-white border-b border-slate-200 shrink-0 overflow-hidden">
-        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-teal-600 to-teal-800 text-white font-bold text-sm">
-          HC
-        </div>
-        <span v-if="sidebarOpen" class="ml-2 font-semibold text-lg text-slate-800 whitespace-nowrap">HC Pediatria</span>
+        <img src="/favicon.svg" alt="Evoluir" class="h-8 w-8 shrink-0" />
+        <span v-if="sidebarOpen" class="ml-2 font-semibold text-lg text-slate-800 whitespace-nowrap">Evoluir</span>
       </div>
 
       <!-- Nav content -->

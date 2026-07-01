@@ -51,8 +51,8 @@ async def lifespan(app: FastAPI):
         print("App SQLite connection pool closed.")
 
 app = FastAPI(
-    title="Esqueleto de Aplicação Web Full-Stack",
-    description="Aplicação Backend monolítica (API REST) em Python/FastAPI, com foco em acesso e agregação de dados heterogêneos.",
+    title="Evoluir",
+    description="Sistema de gestão clínica do HC/UFPE — API REST em FastAPI para digitalizar o fluxo de atendimento.",
     version="1.0.0",
     lifespan=lifespan,
 )
