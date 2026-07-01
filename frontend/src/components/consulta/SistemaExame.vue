@@ -56,7 +56,7 @@
 
 <script setup lang="ts">
 import type { SistemaStatus } from '../../types/clinica'
-import { X, Check, TriangleAlert } from 'lucide-vue-next'
+import { XMarkIcon as X, CheckIcon as Check, ExclamationTriangleIcon as TriangleAlert } from '@heroicons/vue/24/solid'
 
 // Definimos o type para aceitar vazio ('') caso não tenha sido avaliado ainda
 type SistemaStatusSelection = SistemaStatus | ''

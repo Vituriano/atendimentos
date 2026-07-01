@@ -66,9 +66,19 @@ import { useConsultaStore } from '../../stores/consulta'
 import SistemaExame from './SistemaExame.vue'
 import type { ExameFisico, SistemaStatus } from '../../types/clinica'
 import {
-  Stethoscope, Activity, Layers, Eye, Ear, Smile, Brain, 
-  Circle, MoveHorizontal, Heart, Wind, User
-} from 'lucide-vue-next'
+  HeartIcon as Stethoscope,
+  BoltIcon as Activity,
+  RectangleStackIcon as Layers,
+  EyeIcon as Eye,
+  SpeakerWaveIcon as Ear,
+  FaceSmileIcon as Smile,
+  CpuChipIcon as Brain,
+  EllipsisHorizontalCircleIcon as Circle,
+  ArrowsRightLeftIcon as MoveHorizontal,
+  HeartIcon as Heart,
+  CloudIcon as Wind,
+  UserIcon as User,
+} from '@heroicons/vue/24/outline'
 
 type SistemaStatusSelection = SistemaStatus | ''
 
