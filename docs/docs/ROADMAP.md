@@ -8,6 +8,29 @@ Os itens estão agrupados por categoria de prioridade: lacunas de schema (bloque
 
 ---
 
+## Cronograma até o Demo Day (07/08)
+
+![Roadmap com prazos até o Demo Day](assets/roadmap-gantt.png)
+
+Fonte do diagrama (Mermaid, regenerável com `npx @mermaid-js/mermaid-cli -i roadmap-gantt.mmd -o roadmap-gantt.png`): `assets/roadmap-gantt.mmd`.
+
+| Semana | Datas | Entrega |
+|---|---|---|
+| 1 | 01–06/07 | Finalização do schema de dados do formulário de consulta + reconciliação de migrations/rastreabilidade de origem |
+| — | 07/07 | Checkpoint 1 de validação com usuário final |
+| 2 | 08–14/07 | Validações obrigatórias (CID-10, confirmação de retorno) + geração automática de alertas |
+| — | 15/07 | Checkpoint 2 de validação com usuário final |
+| 3 | 16–22/07 | Dashboard Gerencial — backend de KPIs/alertas populacionais + tela Vue |
+| — | 23/07 | Checkpoint 3 de validação com usuário final |
+| 4 | 24–27/07 | Cobertura de testes automatizados (backend e frontend) |
+| — | 28/07 | Checkpoint 4 de validação com usuário final |
+| 5 | 29/07–02/08 | Documentação e ajustes finais + buffer de segurança |
+| 05–07/08 | — | Ensaio de apresentação / Demo Day |
+
+RBAC por papel não entrou no cronograma — a integração com AD já cobre esse controle em produção. Integração real com AGHU também fica fora: é um bloqueio externo (depende de mapeamento de endpoints do time do AGHU), não um item que dependa só do time do projeto.
+
+---
+
 ## Categoria 1 — Lacunas de schema: bloqueiam "formulário completo" de verdade
 
 ### 1. Exame Físico sem persistência
@@ -41,7 +64,7 @@ O mesmo PR também corrigiu duas falhas relacionadas de modo leitura: `Consulta.
 Os endpoints de alertas (`src/routers/alertas.py`, PR #22) só criam registros manualmente via `POST /api/alertas`. Não existe nenhuma lógica de negócio rodando sozinha que detecte peso abaixo da curva esperada, falta consecutiva, marco não confirmado etc. e gere o alerta automaticamente — hoje isso é 100% manual em produção (o script `scripts/seed_dev_data.py` só simula esse comportamento para dados de desenvolvimento).
 
 ### 8. RBAC incompleto
-Só o grupo `GLO-SEC-HCPE-SETISD` (admin) é checado em algum lugar (`src/routers/admin.py`). Os outros 3 papéis documentados em `docs/docs/06-arquitetura.md` §3.2 (médico_hc, médico_satélite, recepção, gestão) não têm nenhuma restrição de rota no frontend nem de endpoint no backend — qualquer usuário autenticado enxerga e faz tudo hoje.
+Só o grupo `GLO-SEC-HCPE-SETISD` (admin) é checado em algum lugar (`src/routers/admin.py`). Os outros 3 papéis documentados em `docs/docs/06-arquitetura.md` §3.2 (médico_hc, médico_satélite, recepção, gestão) não têm nenhuma restrição de rota no frontend nem de endpoint no backend — qualquer usuário autenticado enxerga e faz tudo hoje. **Fora do cronograma de curto prazo**: a integração com AD em produção já resolve o controle de acesso por grupo — não é prioridade implementar essa lógica adicional agora.
 
 ### 9. Integração real com AGHU (TASK-017/018)
 Segue 100% CSV (dev) / mock. Não existe `AGHUProvider` real. Isso é um bloqueio externo — depende do mapeamento de endpoints do time do AGHU (ADR-002) — mas vale manter explícito no roadmap como "aguardando input externo", não como item esquecido.

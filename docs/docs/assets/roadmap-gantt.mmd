@@ -1,0 +1,29 @@
+gantt
+    title Roadmap ate o Demo Day (07/08)
+    dateFormat YYYY-MM-DD
+    axisFormat %d/%m
+    todayMarker off
+
+    section Schema de dados da consulta
+    Finalizacao do schema de dados do formulario de consulta :s1, 2026-07-01, 4d
+    Reconciliacao de migrations e rastreabilidade de origem  :s2, after s1, 2d
+    Validacao com usuario final (checkpoint 1)               :crit, v1, after s2, 1d
+
+    section Regras de negocio
+    Validacoes obrigatorias (CID-10, confirmacao de retorno) :b1, after v1, 4d
+    Geracao automatica de alertas clinicos                   :b2, after b1, 3d
+    Validacao com usuario final (checkpoint 2)               :crit, v2, after b2, 1d
+
+    section Dashboard Gerencial
+    Backend de KPIs e alertas populacionais                  :d1, after v2, 4d
+    Tela de Dashboard (Vue)                                   :d2, after d1, 3d
+    Validacao com usuario final (checkpoint 3)               :crit, v3, after d2, 1d
+
+    section Qualidade
+    Cobertura de testes automatizados (backend e frontend)  :r1, after v3, 4d
+    Validacao com usuario final (checkpoint 4)               :crit, v4, after r1, 1d
+
+    section Fechamento
+    Documentacao e ajustes finais                             :f1, after v4, 3d
+    Buffer de seguranca                                       :active, f2, after f1, 2d
+    Ensaio de apresentacao                                    :crit, f3, 2026-08-05, 3d
