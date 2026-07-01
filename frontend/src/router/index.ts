@@ -62,7 +62,7 @@ const router = createRouter({
 });
 
 router.beforeEach((to, _from, next: NavigationGuardNext) => {
-  document.title = to.meta.title ? `${to.meta.title} — HC Pediatria` : 'HC Pediatria'
+  document.title = to.meta.title ? `${to.meta.title} — Evoluir` : 'Evoluir'
 
   // Pinia store must be used inside a function to ensure it's initialized
   const authStore = useAuthStore();
