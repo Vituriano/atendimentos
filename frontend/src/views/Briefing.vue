@@ -133,22 +133,6 @@
                       <component :is="trendIcon(consulta.tendenciaPeso)" :class="trendClass(consulta.tendenciaPeso)" class="inline h-3 w-3 ml-0.5" />
                     </span>
                   </div>
-                  <div v-if="!isReadOnly" class="flex items-center gap-1 shrink-0">
-                    <button
-                      class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
-                      @click="router.push(`/consulta/historico?date=${consulta.data}`)"
-                    >
-                      <DocumentTextIcon class="h-3 w-3" />
-                      Ver detalhes
-                    </button>
-                    <button
-                      class="inline-flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50"
-                      @click="router.push(`/consulta?reopen=true&date=${consulta.data}`)"
-                    >
-                      <ArrowPathIcon class="h-3 w-3" />
-                      Reabrir
-                    </button>
-                  </div>
                 </div>
                 <div class="flex items-center gap-3 text-xs text-slate-400">
                   <span>CID: {{ consulta.cid ?? '—' }}</span>
@@ -333,7 +317,6 @@ import {
   BookOpenIcon,
   DocumentTextIcon,
   ArrowDownTrayIcon,
-  ArrowPathIcon,
   ArrowUpIcon,
   ArrowDownIcon,
   MinusIcon,
