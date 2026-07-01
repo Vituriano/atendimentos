@@ -23,24 +23,24 @@
       <label class="space-y-1 text-sm font-medium text-slate-900">
         <span>Peso (kg)</span>
         <input
-          :value="rascunho.pesoKg ?? ''"
+          :value="rascunhoDecimal.pesoKg"
           type="text"
           inputmode="decimal"
           placeholder="Ex: 10,9"
           class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-          @input="rascunho.pesoKg = valorNumerico(($event.target as HTMLInputElement).value)"
+          @input="atualizarDecimalRascunho('pesoKg', ($event.target as HTMLInputElement).value)"
         />
       </label>
 
       <label class="space-y-1 text-sm font-medium text-slate-900">
         <span>Altura (cm)</span>
         <input
-          :value="rascunho.alturaCm ?? ''"
+          :value="rascunhoDecimal.alturaCm"
           type="text"
           inputmode="decimal"
           placeholder="Ex: 81"
           class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-          @input="rascunho.alturaCm = valorNumerico(($event.target as HTMLInputElement).value)"
+          @input="atualizarDecimalRascunho('alturaCm', ($event.target as HTMLInputElement).value)"
         />
       </label>
     </div>
@@ -95,8 +95,8 @@
             <p class="truncate font-medium text-slate-800">
               {{ item.servicoOrigem || 'Serviço não informado' }}
               <span v-if="item.dataConsultaExterna" class="font-normal text-slate-500">— {{ formatarData(item.dataConsultaExterna) }}</span>
-              <span v-if="item.pesoKg !== null" class="font-normal text-slate-600"> Peso: {{ item.pesoKg }}kg</span>
-              <span v-if="item.alturaCm !== null" class="font-normal text-slate-600"> Altura: {{ item.alturaCm }}cm</span>
+              <span v-if="item.pesoKg !== null" class="font-normal text-slate-600"> Peso: {{ formatarDecimal(item.pesoKg) }}kg</span>
+              <span v-if="item.alturaCm !== null" class="font-normal text-slate-600"> Altura: {{ formatarDecimal(item.alturaCm) }}cm</span>
             </p>
             <p class="truncate text-xs text-slate-500">{{ item.comoDadosObtidos }}</p>
           </div>
@@ -123,6 +123,7 @@
           </p>
         </div>
         <button
+          v-if="false"
           type="button"
           class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
           :disabled="consulta.salvandoDadosExternos"
@@ -158,12 +159,23 @@ function criarRascunho(): DadoExternoConsulta {
 }
 
 const rascunho = reactive<DadoExternoConsulta>(criarRascunho())
+const rascunhoDecimal = reactive({
+  pesoKg: '',
+  alturaCm: '',
+})
+
+type CampoDecimalRascunho = 'pesoKg' | 'alturaCm'
 
 function valorNumerico(valor: string): number | null {
   const normalizado = valor.trim().replace(',', '.')
   if (!normalizado) return null
   const numero = Number(normalizado)
   return Number.isFinite(numero) ? numero : null
+}
+
+function atualizarDecimalRascunho(campo: CampoDecimalRascunho, valor: string) {
+  rascunhoDecimal[campo] = valor
+  rascunho[campo] = valorNumerico(valor)
 }
 
 function rascunhoPossuiConteudo() {
@@ -179,6 +191,8 @@ function rascunhoPossuiConteudo() {
 
 function limparRascunho() {
   Object.assign(rascunho, criarRascunho())
+  rascunhoDecimal.pesoKg = ''
+  rascunhoDecimal.alturaCm = ''
 }
 
 function registrarDadoExterno() {
@@ -207,6 +221,14 @@ async function salvar() {
   }
 
   await consulta.salvarDadosExternos()
+}
+
+function formatarDecimal(valor: number | null) {
+  if (valor === null || valor === undefined) return ''
+  return valor.toLocaleString('pt-BR', {
+    minimumFractionDigits: valor % 1 === 0 ? 0 : 1,
+    maximumFractionDigits: 2,
+  })
 }
 
 function formatarData(valor: string) {

@@ -34,12 +34,17 @@
           <ConsultaTimer v-if="consulta.consultaIniciada" :start-time="consulta.consultaIniciada" />
         </div>
         <div class="flex items-center gap-2">
-          <button
-            class="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
-            @click="salvarRascunho"
-          >
-            Salvar Rascunho
-          </button>
+          <div class="flex flex-col items-end gap-1">
+            <button
+              class="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
+              :disabled="salvandoRascunho"
+              @click="salvarRascunho"
+            >
+              {{ salvandoRascunho ? 'Salvando...' : 'Salvar Rascunho' }}
+            </button>
+            <p v-if="mensagemRascunho" class="text-xs text-teal-700">{{ mensagemRascunho }}</p>
+            <p v-if="erroRascunho" class="text-xs text-red-600">{{ erroRascunho }}</p>
+          </div>
           <button
             class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
             :disabled="consulta.finalizandoConsulta"
@@ -206,6 +211,9 @@ const mostrarDialogFinalizacao = ref(false)
 const mostrarResumo = ref(false)
 const textoAGHU = ref('')
 const textosEncaminhamento = ref<string[]>([])
+const salvandoRascunho = ref(false)
+const mensagemRascunho = ref('')
+const erroRascunho = ref('')
 
 const secaoAtiva = computed(() => consulta.secoes.find(s => s.id === consulta.activeSection))
 
@@ -236,8 +244,22 @@ watch(
   }
 )
 
-function salvarRascunho() {
-  // placeholder — implementado na task "Salvar consulta"
+async function salvarRascunho() {
+  if (salvandoRascunho.value) return
+
+  salvandoRascunho.value = true
+  mensagemRascunho.value = ''
+  erroRascunho.value = ''
+
+  try {
+    await consulta.salvarRascunhoSecaoAtiva()
+    mensagemRascunho.value = `Rascunho de ${secaoAtiva.value?.label ?? 'consulta'} salvo.`
+  } catch (error) {
+    const mensagem = error instanceof Error ? error.message : 'Não foi possível salvar o rascunho.'
+    erroRascunho.value = mensagem
+  } finally {
+    salvandoRascunho.value = false
+  }
 }
 
 function calcularDuracaoMinutos(): number {

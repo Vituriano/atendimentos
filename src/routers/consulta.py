@@ -5,7 +5,7 @@ from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -21,6 +21,7 @@ from ..models.consulta import (
     ConsultaHipotesesCondutas,
     ConsultaProcedimentos,
     ConsultaDadosExternos,
+    ConsultaMarcoDesenvolvimento,
     ConsultaHistoriaFamiliar,
     ConsultaImunizacoes,
     ConsultaEscolaridade,
@@ -390,6 +391,55 @@ class DadoExternoResponse(BaseModel):
     atualizado_em: datetime | None
 
 
+class MarcoDesenvolvimentoPayload(BaseModel):
+    marco_id: str = Field(..., min_length=1)
+    idade_coluna_meses: int = Field(..., ge=0, le=240)
+    status: Literal["confirmed", "not-evaluated", "not-achieved"]
+    observacao: str = ""
+
+
+class MarcosDesenvolvimentoSalvarRequest(BaseModel):
+    paciente_id: str = Field(..., min_length=1)
+    registros: list[MarcoDesenvolvimentoPayload] = Field(default_factory=list)
+
+
+class MarcoDesenvolvimentoResponse(BaseModel):
+    id: int
+    consulta_id: int
+    marco_id: str
+    idade_coluna_meses: int
+    status: str
+    observacao: str
+    atualizado_em: datetime | None
+
+
+class CadernetaAntropometriaItem(BaseModel):
+    consulta_id: int
+    data_consulta: datetime
+    origem: str
+    peso_kg: float | None = None
+    altura_cm: float | None = None
+    perimetro_cefalico_cm: float | None = None
+    imc: float | None = None
+    observacao: str = ""
+
+
+class CadernetaMarcoHistoricoItem(BaseModel):
+    consulta_id: int
+    data_consulta: datetime
+    marco_id: str
+    idade_coluna_meses: int
+    status: str
+    observacao: str = ""
+
+
+class CadernetaDigitalResponse(BaseModel):
+    paciente_id: str
+    medico_username: str
+    antropometria: list[CadernetaAntropometriaItem] = Field(default_factory=list)
+    marcos: list[CadernetaMarcoHistoricoItem] = Field(default_factory=list)
+
+
 class ConsultaAtivaResponse(BaseModel):
     id: int
     paciente_id: str
@@ -411,6 +461,7 @@ class ConsultaAtivaResponse(BaseModel):
     hipoteses_condutas: HipotesesCondutasResponse | None = None
     procedimentos: ProcedimentosResponse | None = None
     dados_externos: list[DadoExternoResponse] = Field(default_factory=list)
+    marcos_desenvolvimento: list[MarcoDesenvolvimentoResponse] = Field(default_factory=list)
     imunizacoes_historico: list[ImunizacoesHistoricoResponse] = Field(default_factory=list)
 
 
@@ -1234,6 +1285,7 @@ async def _obter_consulta_ativa(
             selectinload(Consulta.hipoteses_condutas),
             selectinload(Consulta.procedimentos),
             selectinload(Consulta.dados_externos),
+            selectinload(Consulta.marcos_desenvolvimento),
         )
         .where(
             Consulta.paciente_id == paciente_id,
@@ -1310,6 +1362,32 @@ async def _obter_historico_imunizacoes(
     return historico
 
 
+def _marco_desenvolvimento_response(registro: ConsultaMarcoDesenvolvimento) -> MarcoDesenvolvimentoResponse:
+    return MarcoDesenvolvimentoResponse(
+        id=registro.id,
+        consulta_id=registro.consulta_id,
+        marco_id=_texto(registro.marco_id),
+        idade_coluna_meses=registro.idade_coluna_meses,
+        status=_texto(registro.status),
+        observacao=_texto(registro.observacao),
+        atualizado_em=registro.updated_at,
+    )
+
+
+def _marcos_desenvolvimento_ativos(consulta: Consulta) -> list[ConsultaMarcoDesenvolvimento]:
+    return sorted(
+        [registro for registro in (consulta.marcos_desenvolvimento or []) if registro.deleted_at is None],
+        key=lambda registro: (registro.idade_coluna_meses, registro.marco_id),
+    )
+
+
+def _calcular_imc(peso_kg: float | None, altura_cm: float | None) -> float | None:
+    if peso_kg is None or altura_cm is None or altura_cm <= 0:
+        return None
+    altura_m = altura_cm / 100
+    return round(peso_kg / (altura_m * altura_m), 2)
+
+
 async def _montar_response(db: AsyncSession, consulta: Consulta) -> ConsultaAtivaResponse:
     return ConsultaAtivaResponse(
         id=consulta.id,
@@ -1332,6 +1410,7 @@ async def _montar_response(db: AsyncSession, consulta: Consulta) -> ConsultaAtiv
         hipoteses_condutas=_hipoteses_condutas_response(consulta.hipoteses_condutas),
         procedimentos=_procedimentos_response(consulta.procedimentos),
         dados_externos=[_dado_externo_response(registro) for registro in _dados_externos_ativos(consulta)],
+        marcos_desenvolvimento=[_marco_desenvolvimento_response(registro) for registro in _marcos_desenvolvimento_ativos(consulta)],
         imunizacoes_historico=await _obter_historico_imunizacoes(
             db,
             consulta.paciente_id,
@@ -1352,6 +1431,158 @@ async def obter_consulta_ativa(
     consulta = await _obter_consulta_ativa(db, paciente_id, medico_username)
     if consulta is None:
         return None
+    return await _montar_response(db, consulta)
+
+
+@router.get("/caderneta/{paciente_id}", response_model=CadernetaDigitalResponse)
+async def obter_caderneta_digital(
+    paciente_id: str,
+    db: AsyncSession = Depends(get_app_db_session),
+    current_user: dict = Depends(auth_handler.decode_token),
+) -> CadernetaDigitalResponse:
+    """Retorna dados históricos do paciente para a Caderneta Digital."""
+    medico_username = current_user.get("username") or current_user.get("sub") or "usuario"
+
+    antropometria: list[CadernetaAntropometriaItem] = []
+
+    stmt_antropometria = (
+        select(Consulta, ConsultaAntropometria)
+        .join(ConsultaAntropometria, ConsultaAntropometria.consulta_id == Consulta.id)
+        .where(
+            Consulta.paciente_id == paciente_id,
+            Consulta.medico_username == medico_username,
+            Consulta.deleted_at.is_(None),
+            ConsultaAntropometria.deleted_at.is_(None),
+        )
+        .order_by(Consulta.data.asc(), Consulta.id.asc())
+    )
+    result_antropometria = await db.execute(stmt_antropometria)
+    for consulta, registro in result_antropometria.all():
+        peso = _to_float(registro.peso)
+        altura = _to_float(registro.altura)
+        perimetro = _to_float(registro.perimetro_cefalico)
+        imc = _to_float(registro.imc) or _calcular_imc(peso, altura)
+        if any(valor is not None for valor in [peso, altura, perimetro, imc]):
+            antropometria.append(
+                CadernetaAntropometriaItem(
+                    consulta_id=consulta.id,
+                    data_consulta=consulta.data,
+                    origem="Consulta HC",
+                    peso_kg=peso,
+                    altura_cm=altura,
+                    perimetro_cefalico_cm=perimetro,
+                    imc=imc,
+                    observacao="Dados aferidos na consulta.",
+                )
+            )
+
+    stmt_externos = (
+        select(Consulta, ConsultaDadosExternos)
+        .join(ConsultaDadosExternos, ConsultaDadosExternos.consulta_id == Consulta.id)
+        .where(
+            Consulta.paciente_id == paciente_id,
+            Consulta.medico_username == medico_username,
+            Consulta.deleted_at.is_(None),
+            ConsultaDadosExternos.deleted_at.is_(None),
+        )
+        .order_by(Consulta.data.asc(), Consulta.id.asc(), ConsultaDadosExternos.ordem.asc())
+    )
+    result_externos = await db.execute(stmt_externos)
+    for consulta, registro in result_externos.all():
+        peso = _to_float(registro.peso)
+        altura = _to_float(registro.altura)
+        imc = _calcular_imc(peso, altura)
+        if any(valor is not None for valor in [peso, altura, imc]):
+            data_referencia = datetime.combine(registro.data_consulta_externa, datetime.min.time()) if registro.data_consulta_externa else consulta.data
+            origem = _texto(registro.servico_origem).strip() or "Dado externo"
+            antropometria.append(
+                CadernetaAntropometriaItem(
+                    consulta_id=consulta.id,
+                    data_consulta=data_referencia,
+                    origem=origem,
+                    peso_kg=peso,
+                    altura_cm=altura,
+                    perimetro_cefalico_cm=None,
+                    imc=imc,
+                    observacao=_texto(registro.como_dados_obtidos) or _texto(registro.observacoes_clinicas),
+                )
+            )
+
+    stmt_marcos = (
+        select(Consulta, ConsultaMarcoDesenvolvimento)
+        .join(ConsultaMarcoDesenvolvimento, ConsultaMarcoDesenvolvimento.consulta_id == Consulta.id)
+        .where(
+            Consulta.paciente_id == paciente_id,
+            Consulta.medico_username == medico_username,
+            Consulta.deleted_at.is_(None),
+            ConsultaMarcoDesenvolvimento.deleted_at.is_(None),
+        )
+        .order_by(Consulta.data.asc(), Consulta.id.asc(), ConsultaMarcoDesenvolvimento.idade_coluna_meses.asc())
+    )
+    result_marcos = await db.execute(stmt_marcos)
+    marcos = [
+        CadernetaMarcoHistoricoItem(
+            consulta_id=consulta.id,
+            data_consulta=consulta.data,
+            marco_id=_texto(registro.marco_id),
+            idade_coluna_meses=registro.idade_coluna_meses,
+            status=_texto(registro.status),
+            observacao=_texto(registro.observacao),
+        )
+        for consulta, registro in result_marcos.all()
+    ]
+
+    antropometria.sort(key=lambda item: (item.data_consulta, item.consulta_id, item.origem))
+    return CadernetaDigitalResponse(
+        paciente_id=paciente_id,
+        medico_username=medico_username,
+        antropometria=antropometria,
+        marcos=marcos,
+    )
+
+
+@router.post("/marcos-desenvolvimento", response_model=ConsultaAtivaResponse, status_code=status.HTTP_200_OK)
+async def salvar_marcos_desenvolvimento(
+    body: MarcosDesenvolvimentoSalvarRequest,
+    db: AsyncSession = Depends(get_app_db_session),
+    current_user: dict = Depends(auth_handler.decode_token),
+) -> ConsultaAtivaResponse:
+    """Salva a avaliação de marcos do desenvolvimento na consulta em andamento."""
+    medico_username = current_user.get("username") or current_user.get("sub") or "usuario"
+    consulta = await _obter_ou_criar_consulta_ativa(db, body.paciente_id, medico_username)
+
+    # Os marcos funcionam como um snapshot da avaliação da consulta atual.
+    # A versão anterior apenas marcava os registros antigos com deleted_at e depois
+    # inseria novos registros com a mesma chave (consulta_id, marco_id, idade).
+    # Como existe uma constraint única nessa chave, o SQLite gerava IntegrityError
+    # em salvamentos subsequentes e a API retornava 500.
+    # Aqui removemos fisicamente o snapshot anterior desta consulta antes de gravar
+    # o novo conjunto de respostas. Isso evita conflito e mantém somente o estado
+    # mais recente da consulta.
+    await db.execute(
+        delete(ConsultaMarcoDesenvolvimento).where(
+            ConsultaMarcoDesenvolvimento.consulta_id == consulta.id
+        )
+    )
+    await db.flush()
+
+    for item in body.registros:
+        if item.status == "not-evaluated":
+            continue
+        db.add(
+            ConsultaMarcoDesenvolvimento(
+                consulta_id=consulta.id,
+                marco_id=item.marco_id,
+                idade_coluna_meses=item.idade_coluna_meses,
+                status=item.status,
+                observacao=item.observacao,
+            )
+        )
+
+    await db.commit()
+    consulta = await _obter_consulta_ativa(db, body.paciente_id, medico_username)
+    if consulta is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Consulta não encontrada após salvar marcos.")
     return await _montar_response(db, consulta)
 
 

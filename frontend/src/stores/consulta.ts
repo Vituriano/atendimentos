@@ -134,6 +134,7 @@ interface AnamneseApiResponse {
 
 export interface DadosImunizacoesConsulta {
   statusVacinal: string
+  statusVacinas: Record<string, 'aplicada' | 'em-atraso'>
   atualizadoEm: string | null
 }
 
@@ -156,6 +157,65 @@ interface HistoricoImunizacoesApiResponse {
   data_consulta: string
   status_vacinal: string
   atualizado_em: string | null
+}
+
+interface MarcoDesenvolvimentoApiResponse {
+  id: number
+  consulta_id: number
+  marco_id: string
+  idade_coluna_meses: number
+  status: StatusMarco
+  observacao: string
+  atualizado_em: string | null
+}
+
+export interface CadernetaAntropometriaItem {
+  consultaId: number
+  dataConsulta: string
+  origem: string
+  pesoKg: number | null
+  alturaCm: number | null
+  perimetroCefalicoCm: number | null
+  imc: number | null
+  observacao: string
+}
+
+export interface CadernetaMarcoHistoricoItem {
+  consultaId: number
+  dataConsulta: string
+  marcoId: string
+  idadeColunaMeses: number
+  status: StatusMarco
+  observacao: string
+}
+
+interface CadernetaDigitalApiResponse {
+  paciente_id: string
+  medico_username: string
+  antropometria: Array<{
+    consulta_id: number
+    data_consulta: string
+    origem: string
+    peso_kg: number | null
+    altura_cm: number | null
+    perimetro_cefalico_cm: number | null
+    imc: number | null
+    observacao: string
+  }>
+  marcos: Array<{
+    consulta_id: number
+    data_consulta: string
+    marco_id: string
+    idade_coluna_meses: number
+    status: StatusMarco
+    observacao: string
+  }>
+}
+
+export interface CadernetaDigitalConsulta {
+  pacienteId: string
+  antropometria: CadernetaAntropometriaItem[]
+  marcos: CadernetaMarcoHistoricoItem[]
 }
 
 export interface DadosEscolaridadeConsulta {
@@ -907,6 +967,7 @@ function clonarEscolaridade(dados: DadosEscolaridadeConsulta): DadosEscolaridade
 function criarImunizacoesVazia(): DadosImunizacoesConsulta {
   return {
     statusVacinal: '',
+    statusVacinas: {},
     atualizadoEm: null,
   }
 }
@@ -914,6 +975,7 @@ function criarImunizacoesVazia(): DadosImunizacoesConsulta {
 function imunizacoesApiParaStore(apiData: ImunizacoesApiResponse): DadosImunizacoesConsulta {
   return {
     statusVacinal: apiData.status_vacinal ?? '',
+    statusVacinas: {},
     atualizadoEm: apiData.atualizado_em,
   }
 }
@@ -1038,6 +1100,7 @@ interface ConsultaAtivaApiResponse {
   hipoteses_condutas?: HipotesesCondutasApiResponse | null
   procedimentos?: ProcedimentosApiResponse | null
   dados_externos?: DadoExternoApiResponse[]
+  marcos_desenvolvimento?: MarcoDesenvolvimentoApiResponse[]
   imunizacoes_historico?: HistoricoImunizacoesApiResponse[]
 }
 
@@ -1078,6 +1141,30 @@ function criarAntropometriaVazia(): DadosAntropometricosConsulta {
 
 function dataBackendParaDate(data: string): Date {
   return new Date(data.endsWith('Z') || data.includes('+') ? data : `${data}Z`)
+}
+
+function cadernetaApiParaStore(apiData: CadernetaDigitalApiResponse): CadernetaDigitalConsulta {
+  return {
+    pacienteId: apiData.paciente_id,
+    antropometria: (apiData.antropometria ?? []).map(item => ({
+      consultaId: item.consulta_id,
+      dataConsulta: item.data_consulta,
+      origem: item.origem ?? '',
+      pesoKg: item.peso_kg,
+      alturaCm: item.altura_cm,
+      perimetroCefalicoCm: item.perimetro_cefalico_cm,
+      imc: item.imc,
+      observacao: item.observacao ?? '',
+    })),
+    marcos: (apiData.marcos ?? []).map(item => ({
+      consultaId: item.consulta_id,
+      dataConsulta: item.data_consulta,
+      marcoId: item.marco_id,
+      idadeColunaMeses: item.idade_coluna_meses,
+      status: item.status,
+      observacao: item.observacao ?? '',
+    })),
+  }
 }
 
 function anamneseApiParaStore(apiData: AnamneseApiResponse): DadosAnamneseConsulta {
@@ -1212,6 +1299,11 @@ export const useConsultaStore = defineStore('consulta', () => {
   const erroSalvamentoProcedimentos = ref<string | null>(null)
   const salvandoDadosExternos = ref(false)
   const erroSalvamentoDadosExternos = ref<string | null>(null)
+  const salvandoMarcos = ref(false)
+  const erroSalvamentoMarcos = ref<string | null>(null)
+  const carregandoCaderneta = ref(false)
+  const erroCaderneta = ref<string | null>(null)
+  const cadernetaDigital = ref<CadernetaDigitalConsulta | null>(null)
   const finalizandoConsulta = ref(false)
   const erroFinalizarConsulta = ref<string | null>(null)
   const antropometria = ref<DadosAntropometricosConsulta>(criarAntropometriaVazia())
@@ -1317,18 +1409,18 @@ export const useConsultaStore = defineStore('consulta', () => {
   const exameFisico = ref<ExameFisicoForm>({
     geral: criarSistemaVazio(),
     pele: criarSistemaVazio(),
-    cabecaPescoco: criarSistemaVazio(),
     olhos: criarSistemaVazio(),
     ouvidos: criarSistemaVazio(),
-    nariz: criarSistemaVazio(),
-    bocaGarganta: criarSistemaVazio(),
+    bocaDentes: criarSistemaVazio(), // <-- Atualizado
+    cabeca: criarSistemaVazio(),     // <-- Atualizado
+    ganglios: criarSistemaVazio(),   // <-- Novo
+    pescoco: criarSistemaVazio(),    // <-- Atualizado
     cardiovascular: criarSistemaVazio(),
     respiratorio: criarSistemaVazio(),
-    abdome: criarSistemaVazio(),
+    gastrointestinal: criarSistemaVazio(), // <-- Atualizado
     genitourinario: criarSistemaVazio(),
-    extremidades: criarSistemaVazio(),
-    neurologico: criarSistemaVazio(),
     musculoesqueletico: criarSistemaVazio(),
+    nervoso: criarSistemaVazio(),          // <-- Atualizado
   })
   const avaliadosCount = computed(
     () => Object.values(exameFisico.value).filter(s => s.status !== '').length
@@ -1406,6 +1498,11 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoProcedimentos.value = null
     salvandoDadosExternos.value = false
     erroSalvamentoDadosExternos.value = null
+    salvandoMarcos.value = false
+    erroSalvamentoMarcos.value = null
+    carregandoCaderneta.value = false
+    erroCaderneta.value = null
+    cadernetaDigital.value = null
     finalizandoConsulta.value = false
     erroFinalizarConsulta.value = null
     statusMarcos.value = {}
@@ -1530,6 +1627,18 @@ export const useConsultaStore = defineStore('consulta', () => {
     procedimentos.value = response.procedimentos ? procedimentosApiParaStore(response.procedimentos) : criarProcedimentosVazio()
     dadosExternos.value = (response.dados_externos ?? []).map(dadoExternoApiParaStore)
     historicoImunizacoes.value = (response.imunizacoes_historico ?? []).map(historicoImunizacoesApiParaStore)
+    statusMarcos.value = {}
+    observacoesMarcos.value = {}
+    for (const registro of response.marcos_desenvolvimento ?? []) {
+      const key = `${registro.marco_id}-${registro.idade_coluna_meses}`
+      statusMarcos.value[key] = registro.status
+      if (registro.observacao?.trim()) {
+        observacoesMarcos.value[registro.marco_id] = registro.observacao
+      }
+    }
+    if (Object.values(statusMarcos.value).some(v => v !== null)) {
+      markSectionStarted('milestones')
+    }
     atualizarStatusAnamnese()
     atualizarStatusImunizacoes()
     atualizarStatusEscolaridade()
@@ -1576,6 +1685,72 @@ export const useConsultaStore = defineStore('consulta', () => {
     } catch (error) {
       console.error('Erro ao carregar consulta ativa:', error)
       return null
+    }
+  }
+
+  async function carregarCadernetaDigital() {
+    const pacienteId = pacienteStore.pacienteAtivo?.id
+    if (!pacienteId) {
+      cadernetaDigital.value = null
+      return null
+    }
+
+    carregandoCaderneta.value = true
+    erroCaderneta.value = null
+
+    try {
+      const { data } = await api.get<CadernetaDigitalApiResponse>(`/api/consultas/caderneta/${pacienteId}`)
+      cadernetaDigital.value = cadernetaApiParaStore(data)
+      return cadernetaDigital.value
+    } catch (error) {
+      console.error('Erro ao carregar caderneta digital:', error)
+      erroCaderneta.value = 'Não foi possível carregar a caderneta digital.'
+      cadernetaDigital.value = null
+      return null
+    } finally {
+      carregandoCaderneta.value = false
+    }
+  }
+
+  async function salvarMarcosDesenvolvimento() {
+    const pacienteId = pacienteStore.pacienteAtivo?.id
+    if (!pacienteId) {
+      throw new Error('Nenhum paciente ativo para salvar os marcos do desenvolvimento.')
+    }
+
+    const registros = Object.entries(statusMarcos.value)
+      .filter(([, status]) => status && status !== 'not-evaluated')
+      .map(([key, status]) => {
+        const lastDash = key.lastIndexOf('-')
+        const marcoId = key.slice(0, lastDash)
+        const idadeColunaMeses = Number(key.slice(lastDash + 1))
+        return {
+          marco_id: marcoId,
+          idade_coluna_meses: idadeColunaMeses,
+          status: status as StatusMarco,
+          observacao: observacoesMarcos.value[marcoId] ?? '',
+        }
+      })
+      .filter(item => item.marco_id && Number.isFinite(item.idade_coluna_meses))
+
+    salvandoMarcos.value = true
+    erroSalvamentoMarcos.value = null
+
+    try {
+      const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/marcos-desenvolvimento', {
+        paciente_id: pacienteId,
+        registros,
+      })
+
+      aplicarConsultaAtiva(data, pacienteId)
+      await carregarCadernetaDigital()
+      return data
+    } catch (error) {
+      erroSalvamentoMarcos.value = 'Não foi possível salvar os marcos do desenvolvimento no banco.'
+      console.error('Erro ao salvar marcos do desenvolvimento:', error)
+      throw error
+    } finally {
+      salvandoMarcos.value = false
     }
   }
 
@@ -1670,6 +1845,7 @@ export const useConsultaStore = defineStore('consulta', () => {
 
       if (!data.imunizacoes) {
         imunizacoes.value = {
+          ...imunizacoes.value,
           statusVacinal: statusVacinalAntesDoEnvio,
           atualizadoEm: new Date().toISOString(),
         }
@@ -2055,6 +2231,60 @@ export const useConsultaStore = defineStore('consulta', () => {
   }
 
 
+  async function salvarRascunhoSecaoAtiva() {
+    switch (activeSection.value) {
+      case 'anthropometric':
+        if (antropometria.value.pesoKg === null || antropometria.value.alturaCm === null) {
+          throw new Error('Informe peso e altura antes de salvar a Antropometria.')
+        }
+        return salvarAntropometria({
+          pesoKg: antropometria.value.pesoKg,
+          alturaCm: antropometria.value.alturaCm,
+          perimetroCefalicoCm: antropometria.value.perimetroCefalicoCm,
+          pressaoSistolicaMmHg: antropometria.value.pressaoSistolicaMmHg,
+          pressaoDiastolicaMmHg: antropometria.value.pressaoDiastolicaMmHg,
+          imc: antropometria.value.imc,
+          classificacaoImc: antropometria.value.classificacaoImc,
+        })
+      case 'anamnesis':
+        return salvarAnamnese()
+      case 'imunizacoes':
+        return salvarImunizacoes()
+      case 'escolaridade':
+        return salvarEscolaridade()
+      case 'triagemNeonatal':
+        return salvarTriagemNeonatal()
+      case 'clinical':
+        markSectionStarted('clinical')
+        setSectionComplete('clinical', allStatusesSelected.value)
+        return null
+      case 'milestones':
+        return salvarMarcosDesenvolvimento()
+      case 'mchat':
+        markSectionStarted('mchat')
+        return null
+      case 'historiaFamiliar':
+        return salvarHistoriaFamiliar()
+      case 'dinamicaFamiliar':
+        return salvarDinamicaFamiliar()
+      case 'socioeconomico':
+        return salvarCondicoesSocioeconomicas()
+      case 'referral':
+        return salvarEncaminhamentos()
+      case 'diagnostico':
+        return salvarDiagnostico()
+      case 'condutasHipoteses':
+        return salvarHipotesesCondutas()
+      case 'procedimentos':
+        return salvarProcedimentos()
+      case 'externo':
+        return salvarDadosExternos()
+      default:
+        return null
+    }
+  }
+
+
   async function finalizarConsulta() {
     const pacienteId = pacienteStore.pacienteAtivo?.id
     if (!pacienteId) {
@@ -2082,18 +2312,38 @@ export const useConsultaStore = defineStore('consulta', () => {
 
   function atualizarStatusImunizacoes() {
     const possuiStatusVacinal = imunizacoes.value.statusVacinal.trim().length > 0
-    if (possuiStatusVacinal) {
+    const possuiVacinaMarcada = Object.keys(imunizacoes.value.statusVacinas).length > 0
+    const possuiConteudo = possuiStatusVacinal || possuiVacinaMarcada
+    if (possuiConteudo) {
       markSectionStarted('imunizacoes')
     }
-    setSectionComplete('imunizacoes', possuiStatusVacinal)
+    setSectionComplete('imunizacoes', possuiConteudo)
   }
 
   function atualizarStatusVacinal(valor: string) {
     imunizacoes.value = {
+      ...imunizacoes.value,
       statusVacinal: valor,
       atualizadoEm: new Date().toISOString(),
     }
     atualizarStatusImunizacoes()
+  }
+
+  function toggleStatusVacina(vacinaId: string, doseId: string, status: 'aplicada' | 'em-atraso') {
+    const chave = `${vacinaId}--${doseId}`
+    const atual = imunizacoes.value.statusVacinas[chave]
+    const novo = { ...imunizacoes.value.statusVacinas }
+    if (atual === status) {
+      delete novo[chave]
+    } else {
+      novo[chave] = status
+    }
+    imunizacoes.value = { ...imunizacoes.value, statusVacinas: novo }
+    atualizarStatusImunizacoes()
+  }
+
+  function getStatusVacina(vacinaId: string, doseId: string): 'aplicada' | 'em-atraso' | null {
+    return imunizacoes.value.statusVacinas[`${vacinaId}--${doseId}`] ?? null
   }
 
   function atualizarStatusAnamnese() {
@@ -2727,6 +2977,11 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoProcedimentos.value = null
     salvandoDadosExternos.value = false
     erroSalvamentoDadosExternos.value = null
+    salvandoMarcos.value = false
+    erroSalvamentoMarcos.value = null
+    carregandoCaderneta.value = false
+    erroCaderneta.value = null
+    cadernetaDigital.value = null
     finalizandoConsulta.value = false
     erroFinalizarConsulta.value = null
     activeSection.value = 'anthropometric'
@@ -2799,6 +3054,11 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoProcedimentos,
     salvandoDadosExternos,
     erroSalvamentoDadosExternos,
+    salvandoMarcos,
+    erroSalvamentoMarcos,
+    carregandoCaderneta,
+    erroCaderneta,
+    cadernetaDigital,
     finalizandoConsulta,
     erroFinalizarConsulta,
     secoes,
@@ -2817,6 +3077,9 @@ export const useConsultaStore = defineStore('consulta', () => {
     setSectionComplete,
     carregarConsultaAtiva,
     carregarHistoricoImunizacoes,
+    carregarCadernetaDigital,
+    salvarMarcosDesenvolvimento,
+    salvarRascunhoSecaoAtiva,
     salvarAntropometria,
     salvarAnamnese,
     salvarImunizacoes,
@@ -2834,6 +3097,8 @@ export const useConsultaStore = defineStore('consulta', () => {
     atualizarAnamnese,
     atualizarCampoAnamnese,
     atualizarStatusVacinal,
+    toggleStatusVacina,
+    getStatusVacina,
     atualizarEscolaridade,
     atualizarCampoEscolaridade,
     atualizarTriagemNeonatal,

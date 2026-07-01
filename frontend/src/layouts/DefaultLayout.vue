@@ -30,10 +30,6 @@
               <BeakerIcon class="h-6 w-6" />
               <span>Exemplos</span>
             </router-link>
-            <router-link v-if="authStore.isAuthenticated" to="/consulta" class="flex items-center space-x-2 py-2.5 px-4 rounded transition duration-200 hover:bg-paper-active-link hover:text-white">
-              <UsersIcon class="h-6 w-6" />
-              <span>Consulta</span>
-            </router-link>
             <router-link v-if="authStore.isAuthenticated" to="/pacientes" class="flex items-center space-x-2 py-2.5 px-4 rounded transition duration-200 hover:bg-paper-active-link hover:text-white">
               <UsersIcon class="h-6 w-6" />
               <span>Pacientes</span>
