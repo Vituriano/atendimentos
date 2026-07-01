@@ -24,6 +24,7 @@ const pacienteStore = usePacienteStore()
 const consultaStore = useConsultaStore()
 
 const abaAtiva = ref<MetricaCrescimento | 'marcos'>('estatura')
+const zoomAutomatico = ref(true)
 const gruposAbertos = ref<Set<string>>(new Set(['3-5a']))
 
 const paciente = computed(() => pacienteStore.pacienteAtivo)
@@ -37,12 +38,29 @@ const metricas: Array<{ id: MetricaCrescimento | 'marcos'; label: string }> = [
   { id: 'marcos', label: 'Marcos do Desenvolvimento' },
 ]
 
-function parseDataBr(data: string): Date | null {
-  const partes = data.split('/')
-  if (partes.length !== 3) return null
-  const [dia, mes, ano] = partes.map(Number)
-  if (!dia || !mes || !ano) return null
-  return new Date(ano, mes - 1, dia)
+function parseDataPaciente(data: string | null | undefined): Date | null {
+  const valor = (data ?? '').trim()
+  if (!valor) return null
+
+  // Pacientes vindos do CSV/AGHU chegam no formato ISO: yyyy-mm-dd.
+  // Algumas telas antigas/mockavam no formato brasileiro: dd/mm/yyyy.
+  // A Caderneta depende da data de nascimento para calcular a idade em meses;
+  // se não aceitarmos os dois formatos, os pontos históricos existem na API,
+  // mas não aparecem no gráfico.
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(valor)
+  if (iso) {
+    const [, ano, mes, dia] = iso.map(Number)
+    return new Date(ano, mes - 1, dia)
+  }
+
+  const br = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(valor)
+  if (br) {
+    const [, dia, mes, ano] = br.map(Number)
+    return new Date(ano, mes - 1, dia)
+  }
+
+  const dataParseada = new Date(valor)
+  return Number.isNaN(dataParseada.getTime()) ? null : dataParseada
 }
 
 function parseBackendDate(data: string): Date {
@@ -50,10 +68,12 @@ function parseBackendDate(data: string): Date {
 }
 
 function diffMeses(inicio: Date, fim: Date): number {
-  const anos = fim.getFullYear() - inicio.getFullYear()
-  const meses = fim.getMonth() - inicio.getMonth()
-  const ajusteDia = fim.getDate() < inicio.getDate() ? -1 : 0
-  return Math.max(0, anos * 12 + meses + ajusteDia)
+  const msPorDia = 1000 * 60 * 60 * 24
+  const dias = Math.max(0, (fim.getTime() - inicio.getTime()) / msPorDia)
+
+  // A caderneta precisa representar recém-nascidos por dias/semanas.
+  // Se usarmos apenas mês inteiro, todas as consultas neonatais caem no eixo 0.
+  return Number((dias / 30.4375).toFixed(2))
 }
 
 function formatarData(data: Date): string {
@@ -117,7 +137,7 @@ const curvasTooltip: Array<{ label: string; chave: ChaveCurvaZ }> = [
   { label: 'Z -3', chave: 'zNeg3' },
 ]
 
-const nascimento = computed(() => paciente.value ? parseDataBr(paciente.value.dataNascimento) : null)
+const nascimento = computed(() => paciente.value ? parseDataPaciente(paciente.value.dataNascimento) : null)
 
 function pontosBanco(metric: MetricaCrescimento): PontoCaderneta[] {
   if (!nascimento.value) return []
@@ -151,6 +171,16 @@ const pontosPaciente = computed(() => {
   return pontosBanco(abaAtiva.value).sort((a, b) => a.idadeMeses - b.idadeMeses)
 })
 
+const mensagemSemPontos = computed(() => {
+  if (!nascimento.value) {
+    return 'Não foi possível calcular a idade do paciente porque a data de nascimento não foi reconhecida.'
+  }
+  if ((consultaStore.cadernetaDigital?.antropometria ?? []).length === 0) {
+    return 'A API da caderneta não retornou medidas históricas para este paciente.'
+  }
+  return 'Ainda não há medidas históricas registradas para esta curva.'
+})
+
 const referenciaAtual = computed(() => abaAtiva.value === 'marcos' ? null : obterReferenciaCrescimento(abaAtiva.value, sexoReferencia.value))
 const linhasReferencia = computed(() => abaAtiva.value === 'marcos' ? [] : obterSerieReferenciaPorSexo(abaAtiva.value, sexoReferencia.value))
 
@@ -158,6 +188,109 @@ const ultimoPonto = computed(() => pontosPaciente.value[pontosPaciente.value.len
 const classificacaoAtual = computed(() => {
   if (abaAtiva.value === 'marcos' || !ultimoPonto.value) return ''
   return classificarValorPorZ(abaAtiva.value, sexoReferencia.value, ultimoPonto.value.idadeMeses, ultimoPonto.value.valor)
+})
+
+function arredondarParaCima(valor: number, passo: number): number {
+  return Number((Math.ceil(valor / passo) * passo).toFixed(2))
+}
+
+function arredondarParaBaixo(valor: number, passo: number): number {
+  return Number((Math.floor(valor / passo) * passo).toFixed(2))
+}
+
+function calcularDominioX(): [number, number] {
+  const limiteCompleto = Math.max(60, paciente.value?.idadeEmMeses ?? 60)
+
+  if (!zoomAutomatico.value || pontosPaciente.value.length === 0) return [0, limiteCompleto]
+
+  const idades = pontosPaciente.value.map(ponto => ponto.idadeMeses)
+  const menor = Math.min(...idades)
+  const maior = Math.max(...idades)
+  const amplitude = Math.max(0.1, maior - menor)
+
+  let margem = amplitude * 0.25
+  let intervaloMinimo = 6
+  let passoArredondamento = 1
+
+  if (maior <= 1.5) {
+    margem = 0.15
+    intervaloMinimo = 1
+    passoArredondamento = 0.25
+  } else if (maior <= 6) {
+    margem = 0.5
+    intervaloMinimo = 2
+    passoArredondamento = 0.5
+  } else if (maior <= 24) {
+    margem = 1.5
+    intervaloMinimo = 6
+    passoArredondamento = 1
+  } else {
+    margem = Math.max(3, margem)
+    intervaloMinimo = 12
+    passoArredondamento = 3
+  }
+
+  let inicio = Math.max(0, arredondarParaBaixo(menor - margem, passoArredondamento))
+  let fim = Math.min(limiteCompleto, arredondarParaCima(maior + margem, passoArredondamento))
+
+  if (fim - inicio < intervaloMinimo) {
+    const centro = (menor + maior) / 2
+    inicio = Math.max(0, arredondarParaBaixo(centro - intervaloMinimo / 2, passoArredondamento))
+    fim = Math.min(limiteCompleto, arredondarParaCima(inicio + intervaloMinimo, passoArredondamento))
+    if (fim - inicio < intervaloMinimo) inicio = Math.max(0, arredondarParaBaixo(fim - intervaloMinimo, passoArredondamento))
+  }
+
+  return [inicio, Math.max(fim, inicio + 0.25)]
+}
+
+function passoTicksX(inicio: number, fim: number): number {
+  const amplitude = fim - inicio
+  if (amplitude <= 1.25) return 0.25
+  if (amplitude <= 3) return 0.5
+  if (amplitude <= 6) return 1
+  if (amplitude <= 12) return 2
+  if (amplitude <= 24) return 3
+  return 12
+}
+
+function gerarTicksX(inicio: number, fim: number): number[] {
+  const passo = passoTicksX(inicio, fim)
+  const ticks = new Set<number>([Number(inicio.toFixed(2)), Number(fim.toFixed(2))])
+  const primeiro = arredondarParaCima(inicio, passo)
+
+  for (let valor = primeiro; valor <= fim + 0.0001; valor = Number((valor + passo).toFixed(2))) {
+    ticks.add(Number(valor.toFixed(2)))
+  }
+
+  return [...ticks].sort((a, b) => a - b)
+}
+
+function montarSerieReferenciaVisivel(inicio: number, fim: number) {
+  const idades = new Set<number>([Number(inicio.toFixed(2)), Number(fim.toFixed(2))])
+
+  for (const ponto of linhasReferencia.value) {
+    if (ponto.idadeMeses > inicio && ponto.idadeMeses < fim) idades.add(ponto.idadeMeses)
+  }
+
+  return [...idades]
+    .sort((a, b) => a - b)
+    .map(idadeMeses => ({
+      idadeMeses,
+      zNeg3: interpolarReferencia('zNeg3', idadeMeses) ?? 0,
+      zNeg2: interpolarReferencia('zNeg2', idadeMeses) ?? 0,
+      zNeg1: interpolarReferencia('zNeg1', idadeMeses) ?? 0,
+      z0: interpolarReferencia('z0', idadeMeses) ?? 0,
+      z1: interpolarReferencia('z1', idadeMeses) ?? 0,
+      z2: interpolarReferencia('z2', idadeMeses) ?? 0,
+      z3: interpolarReferencia('z3', idadeMeses) ?? 0,
+    }))
+}
+
+const periodoVisualizado = computed(() => {
+  if (abaAtiva.value === 'marcos') return ''
+  const [inicio, fim] = calcularDominioX()
+  const label = `${formatarIdadeDetalhada(inicio)} a ${formatarIdadeDetalhada(fim)}`
+  return zoomAutomatico.value ? `Zoom no histórico: ${label}` : `Curva completa: ${label}`
 })
 
 const chart = computed(() => {
@@ -168,8 +301,8 @@ const chart = computed(() => {
   const plotWidth = width - padding.left - padding.right
   const plotHeight = height - padding.top - padding.bottom
   const yDomain = referencia?.eixoY ?? [0, 100]
-  const xMin = 0
-  const xMax = Math.max(60, paciente.value?.idadeEmMeses ?? 60)
+  const [xMin, xMax] = calcularDominioX()
+  const serieReferenciaVisivel = montarSerieReferenciaVisivel(xMin, xMax)
 
   function x(idadeMeses: number): number {
     return padding.left + ((idadeMeses - xMin) / (xMax - xMin)) * plotWidth
@@ -180,7 +313,7 @@ const chart = computed(() => {
   }
 
   function path(chave: 'zNeg3' | 'zNeg2' | 'zNeg1' | 'z0' | 'z1' | 'z2' | 'z3'): string {
-    return linhasReferencia.value
+    return serieReferenciaVisivel
       .map((ponto, index) => `${index === 0 ? 'M' : 'L'} ${x(ponto.idadeMeses).toFixed(1)} ${y(ponto[chave]).toFixed(1)}`)
       .join(' ')
   }
@@ -192,7 +325,7 @@ const chart = computed(() => {
   }
 
   const yTicks = Array.from({ length: 6 }, (_, i) => Number((yDomain[0] + ((yDomain[1] - yDomain[0]) / 5) * i).toFixed(1)))
-  const xTicks = [0, 12, 24, 36, 48, 60].filter(v => v <= xMax)
+  const xTicks = gerarTicksX(xMin, xMax)
 
   return { width, height, padding, plotWidth, plotHeight, xMin, xMax, x, y, path, patientPath, yTicks, xTicks, yDomain }
 })
@@ -209,20 +342,31 @@ function formatarNumero(valor: number, casas = 1): string {
 }
 
 function formatarIdadeDetalhada(meses: number): string {
-  const mesesArredondados = Math.max(0, Number(meses.toFixed(1)))
+  const mesesPositivos = Math.max(0, meses)
+
+  if (mesesPositivos < 1) {
+    const dias = Math.max(0, Math.round(mesesPositivos * 30.4375))
+    if (dias < 7) return `${dias} ${dias === 1 ? 'dia' : 'dias'}`
+
+    const semanas = Math.floor(dias / 7)
+    const restoDias = dias % 7
+    if (restoDias === 0) return `${semanas} ${semanas === 1 ? 'semana' : 'semanas'}`
+    return `${semanas} ${semanas === 1 ? 'semana' : 'semanas'} e ${restoDias} ${restoDias === 1 ? 'dia' : 'dias'}`
+  }
+
+  const mesesArredondados = Number(mesesPositivos.toFixed(1))
   const anos = Math.floor(mesesArredondados / 12)
   const restoMeses = Number((mesesArredondados - anos * 12).toFixed(1))
 
-  if (anos <= 0) return `${formatarNumero(mesesArredondados, mesesArredondados % 1 === 0 ? 0 : 1)} meses`
+  if (anos <= 0) return `${formatarNumero(mesesArredondados, mesesArredondados % 1 === 0 ? 0 : 1)} ${mesesArredondados === 1 ? 'mês' : 'meses'}`
   if (restoMeses <= 0) return `${anos} ${anos === 1 ? 'ano' : 'anos'}`
   return `${anos} ${anos === 1 ? 'ano' : 'anos'} e ${formatarNumero(restoMeses, restoMeses % 1 === 0 ? 0 : 1)} meses`
 }
 
 function formatarDeltaMeses(delta: number): string {
   const absoluto = Math.abs(delta)
-  if (absoluto < 0.1) return 'mesma idade do eixo'
-  const valor = formatarNumero(absoluto, absoluto % 1 === 0 ? 0 : 1)
-  return `${valor} ${absoluto === 1 ? 'mês' : 'meses'} ${delta > 0 ? 'depois' : 'antes'} do ponto do eixo`
+  if (absoluto < 0.05) return 'mesma idade do eixo'
+  return `${formatarIdadeDetalhada(absoluto)} ${delta > 0 ? 'depois' : 'antes'} do ponto do eixo`
 }
 
 function interpolarReferencia(chave: ChaveCurvaZ, idadeMeses: number): number | null {
@@ -328,12 +472,14 @@ function limparTooltipCaderneta() {
 
 function xLabel(meses: number): string {
   if (meses === 0) return '0'
-  if (meses === 12) return '1 ano'
-  if (meses === 24) return '2 anos'
-  if (meses === 36) return '3 anos'
-  if (meses === 48) return '4 anos'
-  if (meses === 60) return '5 anos'
-  return `${meses}m`
+  if (meses < 1) {
+    const semanas = Math.round(meses * 4.345)
+    return semanas <= 0 ? '0' : `${semanas} sem`
+  }
+  if (meses < 12) return `${formatarNumero(meses, meses % 1 === 0 ? 0 : 1)}m`
+  const anos = meses / 12
+  if (meses % 12 === 0) return `${formatarNumero(anos, anos % 1 === 0 ? 0 : 1)} ${anos === 1 ? 'ano' : 'anos'}`
+  return `${formatarNumero(meses, meses % 1 === 0 ? 0 : 1)}m`
 }
 
 function statusIcone(status: StatusMarco): string {
@@ -385,6 +531,7 @@ async function carregar() {
 }
 
 watch(() => paciente.value?.id, () => carregar(), { immediate: true })
+watch(() => abaAtiva.value, () => limparTooltipCaderneta())
 onMounted(() => carregar())
 </script>
 
@@ -433,13 +580,22 @@ onMounted(() => carregar())
             <p class="text-sm text-slate-500">{{ referenciaAtual?.observacao }}</p>
             <p class="mt-1 text-xs text-slate-400">{{ referenciaAtual?.fonte }}</p>
           </div>
-          <button
-            type="button"
-            @click="carregar"
-            class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
-          >
-            Atualizar histórico
-          </button>
+          <div class="flex flex-wrap gap-2">
+            <button
+              type="button"
+              @click="zoomAutomatico = !zoomAutomatico; limparTooltipCaderneta()"
+              class="rounded-lg border border-teal-200 px-3 py-2 text-xs font-medium text-teal-700 hover:bg-teal-50"
+            >
+              {{ zoomAutomatico ? 'Ver curva completa' : 'Aplicar zoom no histórico' }}
+            </button>
+            <button
+              type="button"
+              @click="carregar"
+              class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            >
+              Atualizar histórico
+            </button>
+          </div>
         </div>
 
         <div v-if="consultaStore.carregandoCaderneta" class="mt-8 rounded-lg border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500">
@@ -447,10 +603,18 @@ onMounted(() => carregar())
         </div>
 
         <div v-else-if="pontosPaciente.length === 0" class="mt-8 rounded-lg border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500">
-          Ainda não há medidas históricas registradas para esta curva.
+          {{ mensagemSemPontos }}
         </div>
 
         <div v-else class="mt-6 overflow-x-auto">
+          <div class="mb-3 flex flex-col gap-2 rounded-lg border border-teal-100 bg-teal-50 px-3 py-2 text-xs text-teal-800 md:flex-row md:items-center md:justify-between">
+            <span class="font-medium">{{ periodoVisualizado }}</span>
+            <span>
+              {{ zoomAutomatico
+                ? 'A visualização abre focada nas idades em que há medidas do paciente.'
+                : 'A visualização mostra a curva completa de referência.' }}
+            </span>
+          </div>
           <svg :viewBox="`0 0 ${chart.width} ${chart.height}`" class="min-w-[900px] w-full rounded-lg bg-white">
             <g>
               <line
@@ -588,7 +752,7 @@ onMounted(() => carregar())
           </svg>
 
           <p class="mt-2 text-xs text-slate-500">
-            Passe o mouse sobre a área do gráfico para ver a idade no eixo X, o ponto do paciente e os valores das sete curvas de referência naquele ponto.
+            Passe o mouse sobre a área do gráfico para ver a idade no eixo X, o ponto do paciente e os valores das sete curvas de referência naquele ponto. Use “Ver curva completa” para retirar o zoom temporal.
           </p>
 
           <div class="mt-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -601,7 +765,7 @@ onMounted(() => carregar())
             </div>
             <div class="text-xs text-slate-500 md:text-right">
               <p v-if="ultimoPonto" class="font-medium text-slate-700">
-                Último ponto: {{ ultimoPonto.valor }} {{ referenciaAtual?.unidade }} aos {{ ultimoPonto.idadeMeses }} meses.
+                Último ponto: {{ ultimoPonto.valor }} {{ referenciaAtual?.unidade }} aos {{ formatarIdadeDetalhada(ultimoPonto.idadeMeses) }}.
               </p>
               <p>{{ classificacaoAtual }}</p>
             </div>

@@ -18,12 +18,23 @@ function mapEntrada(item: Record<string, unknown>): EntradaFila {
     ? dataEntrada.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
     : '--:--'
 
+  const idadeTexto = typeof item.paciente_idade_texto === 'string'
+    ? item.paciente_idade_texto.trim()
+    : ''
+  const idadeEmMeses = typeof item.paciente_idade_meses === 'number'
+    ? item.paciente_idade_meses
+    : typeof item.paciente_idade === 'number'
+      ? item.paciente_idade * 12
+      : 0
+
   const paciente: Paciente = {
     id: String(item.paciente_id ?? ''),
     nome: String(item.paciente_nome ?? ''),
-    dataNascimento: '',
-    idade: item.paciente_idade ? `${item.paciente_idade} anos` : '',
-    idadeEmMeses: typeof item.paciente_idade === 'number' ? item.paciente_idade * 12 : 0,
+    dataNascimento: item.paciente_data_nascimento ? String(item.paciente_data_nascimento) : '',
+    idade: idadeTexto || (typeof item.paciente_idade === 'number'
+      ? `${item.paciente_idade} ${item.paciente_idade === 1 ? 'ano' : 'anos'}`
+      : ''),
+    idadeEmMeses,
     prontuario: String(item.paciente_id ?? ''),
   }
 
