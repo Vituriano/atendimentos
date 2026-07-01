@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import { mchatPerguntas } from '../data/mchat-perguntas'
 import { usePacienteStore } from './paciente'
 import api from '../services/api'
 import type { StatusMarco, ExameFisico, SistemaStatus } from '../types/clinica'
@@ -1274,6 +1275,29 @@ export const useConsultaStore = defineStore('consulta', () => {
     return base
   })
 
+  // --- M-CHAT-R ---
+  const mchatAnswers = ref<Record<number, 'yes' | 'no'>>({})
+
+  const mchatAnsweredCount = computed(() => Object.keys(mchatAnswers.value).length)
+
+  const mchatScore = computed(() => {
+    let score = 0
+    mchatPerguntas.forEach(q => {
+      if (mchatAnswers.value[q.id] === q.riskAnswer) {
+        score++
+      }
+    })
+    return score
+  })
+
+  const mchatRiskLevel = computed(() => {
+    if (mchatAnsweredCount.value < mchatPerguntas.length) return 'pending'
+    const s = mchatScore.value
+    if (s >= 0 && s <= 2) return 'low'
+    if (s >= 3 && s <= 7) return 'medium'
+    return 'high'
+  })
+
   const currentIndex = computed(() => secoes.value.findIndex(s => s.id === activeSection.value))
   const canGoPrev = computed(() => currentIndex.value > 0)
   const canGoNext = computed(() => currentIndex.value < secoes.value.length - 1)
@@ -1330,6 +1354,10 @@ export const useConsultaStore = defineStore('consulta', () => {
       ...statusMarcos.value,
       [key]: atual === status ? null : status,
     }
+  }
+
+  function updateMchatAnswer(questionId: number, answer: 'yes' | 'no') {
+    mchatAnswers.value[questionId] = answer
   }
 
   function getStatusMarco(marcoId: string, idadeColuna: number): StatusMarco | null {
@@ -2721,6 +2749,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     procedimentos.value = criarProcedimentosVazio()
     dadosExternos.value = []
     historicoImunizacoes.value = []
+    mchatAnswers.value = []
   }
 
   return {
@@ -2845,5 +2874,10 @@ export const useConsultaStore = defineStore('consulta', () => {
     allStatusesSelected,
     updateSistemaStatus,
     updateSistemaDescricao,
+    mchatAnswers,
+    mchatAnsweredCount,
+    mchatScore,
+    mchatRiskLevel,
+    updateMchatAnswer
   }
 })

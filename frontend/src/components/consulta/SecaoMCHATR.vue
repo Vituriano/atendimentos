@@ -1,14 +1,5 @@
 <template>
   <section class="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div>
-        <h2 class="text-xl font-semibold text-slate-900">M-CHAT-R</h2>
-        <p class="mt-1 text-sm text-paper-text">Triagem de risco para Transtorno do Espectro Autista para pacientes entre 16 e 30 meses.</p>
-      </div>
-      <div class="rounded-full bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700">
-        {{ answeredCount }} de {{ totalQuestions }} perguntas respondidas
-      </div>
-    </div>
 
     <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
       <p class="font-semibold">Protocolo M-CHAT-R</p>
