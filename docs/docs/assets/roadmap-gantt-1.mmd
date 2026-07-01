@@ -1,0 +1,40 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "primaryColor": "#e5e7eb",
+    "primaryTextColor": "#1f2937",
+    "primaryBorderColor": "#9ca3af",
+    "secondaryColor": "#d1d5db",
+    "tertiaryColor": "#f3f4f6",
+    "critBorderColor": "#6b7280",
+    "critBkgColor": "#9ca3af",
+    "doneBkgColor": "#9ca3af",
+    "doneBorderColor": "#6b7280",
+    "activeBkgColor": "#d1d5db",
+    "activeBorderColor": "#6b7280",
+    "taskBkgColor": "#e5e7eb",
+    "taskBorderColor": "#9ca3af",
+    "taskTextColor": "#1f2937",
+    "taskTextOutsideColor": "#1f2937",
+    "sectionBkgColor": "#f9fafb",
+    "sectionBkgColor2": "#f3f4f6",
+    "gridColor": "#d1d5db",
+    "todayLineColor": "#9ca3af",
+    "fontFamily": "Helvetica, Arial, sans-serif"
+  }
+}}%%
+gantt
+    title Roadmap (1/2)
+    dateFormat YYYY-MM-DD
+    axisFormat %d/%m
+    todayMarker off
+
+    section Schema de dados da consulta
+    Finalizacao do schema de dados do formulario de consulta :s1, 2026-07-01, 4d
+    Reconciliacao de migrations                               :s2, after s1, 2d
+    Validacao com usuario final (checkpoint 1)               :crit, v1, after s2, 1d
+
+    section Regras de negocio
+    Validacoes obrigatorias (CID-10, confirmacao de retorno) :b1, after v1, 4d
+    Geracao automatica de alertas clinicos                   :b2, after b1, 3d
+    Validacao com usuario final (checkpoint 2)               :crit, v2, after b2, 1d
