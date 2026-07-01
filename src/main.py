@@ -8,7 +8,7 @@ from starlette.responses import FileResponse
 
 from .resources.database import DatabaseManager, Base
 from .resources.schema import ensure_local_dev_schema
-from .routers import paciente, auth, admin, aih, bpa, material, fila, consulta, briefing
+from .routers import paciente, auth, admin, fila, consulta, briefing, alertas
 
 # Carrega as variáveis de ambiente do arquivo .env
 load_dotenv()
@@ -64,12 +64,10 @@ app.mount("/static/dist", StaticFiles(directory="src/static/dist"), name="static
 app.include_router(paciente.router)
 app.include_router(auth.router)
 app.include_router(admin.router)
-app.include_router(aih.router)
-app.include_router(bpa.router)
-app.include_router(material.router)
 app.include_router(fila.router)
 app.include_router(consulta.router)
 app.include_router(briefing.router)
+app.include_router(alertas.router)
 
 @app.get("/{full_path:path}")
 async def serve_frontend(full_path: str):
@@ -85,12 +83,6 @@ async def serve_frontend(full_path: str):
     if os.path.exists(index_path):
         return FileResponse(index_path)
     return {"error": "Frontend build not found"}
-
-# Exemplo:
-# from .routers import aih, bpa, material
-# app.include_router(aih.router)
-# app.include_router(bpa.router)
-# app.include_router(material.router)
 
 if __name__ == "__main__":
     import uvicorn
