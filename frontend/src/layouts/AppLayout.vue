@@ -86,6 +86,7 @@
           </RouterLink>
 
           <RouterLink
+            v-if="!modoLeitura"
             to="/consulta"
             class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors"
             active-class="bg-slate-100 text-slate-900 font-medium"
@@ -192,6 +193,7 @@ const pacienteStore = usePacienteStore()
 
 const pacienteAtivo = computed(() => pacienteStore.pacienteAtivo)
 const tipoEntradaPaciente = computed(() => pacienteAtivo.value?.tipoEntrada ?? null)
+const modoLeitura = computed(() => pacienteStore.modoLeitura)
 
 const patientNavItems = [
   { label: 'Briefing Clínico', icon: ClipboardDocumentListIcon },
