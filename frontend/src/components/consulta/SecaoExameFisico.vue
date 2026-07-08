@@ -61,7 +61,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useConsultaStore } from '../../stores/consulta'
 import SistemaExame from './SistemaExame.vue'
 import type { ExameFisico, SistemaStatus } from '../../types/clinica'
@@ -102,6 +102,26 @@ const sistemas = [
 ] as const
 
 const sistemasSelecionados = ref<Array<keyof ExameFisico>>([])
+
+watch(
+  () => consultaStore.exameFisico,
+  (exameFisico) => {
+    const sistemasComRegistro = sistemas
+      .map(sistema => sistema.id as keyof ExameFisico)
+      .filter(id => {
+        const registro = exameFisico[id]
+        return Boolean(registro?.status || registro?.descricao?.trim())
+      })
+
+    if (sistemasComRegistro.length > 0) {
+      sistemasSelecionados.value = Array.from(new Set([
+        ...sistemasSelecionados.value,
+        ...sistemasComRegistro,
+      ]))
+    }
+  },
+  { deep: true, immediate: true },
+)
 
 function toggleSistema(id: string) {
   const validId = id as keyof ExameFisico

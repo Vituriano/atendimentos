@@ -101,6 +101,18 @@ class Consulta(Base):
         cascade="all, delete-orphan",
         order_by="ConsultaMarcoDesenvolvimento.idade_coluna_meses",
     )
+    exame_fisico = relationship(
+        "ConsultaExameFisico",
+        back_populates="consulta",
+        cascade="all, delete-orphan",
+        order_by="ConsultaExameFisico.sistema",
+    )
+    mchat = relationship(
+        "ConsultaMchat",
+        back_populates="consulta",
+        cascade="all, delete-orphan",
+        order_by="ConsultaMchat.pergunta_id",
+    )
 
 
 class ConsultaAntropometria(Base):
@@ -423,6 +435,36 @@ class ConsultaDadosExternos(Base):
     deleted_at = Column(DateTime, nullable=True)
 
     consulta = relationship("Consulta", back_populates="dados_externos")
+
+
+class ConsultaExameFisico(Base):
+    __tablename__ = "consulta_exame_fisico"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    consulta_id = Column(Integer, ForeignKey("consultas.id"), nullable=False, index=True)
+    sistema = Column(Text, nullable=False, index=True)
+    status = Column(Text, nullable=False, default="nao-avaliado")
+    descricao = Column(Text, nullable=True)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+    deleted_at = Column(DateTime, nullable=True)
+
+    consulta = relationship("Consulta", back_populates="exame_fisico")
+
+
+class ConsultaMchat(Base):
+    __tablename__ = "consulta_mchat"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    consulta_id = Column(Integer, ForeignKey("consultas.id"), nullable=False, index=True)
+    pergunta_id = Column(Text, nullable=False, index=True)
+    resposta = Column(Boolean, nullable=True)
+    score_total = Column(Integer, nullable=True)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+    deleted_at = Column(DateTime, nullable=True)
+
+    consulta = relationship("Consulta", back_populates="mchat")
 
 
 class Alerta(Base):
