@@ -22,6 +22,8 @@ from ..models.consulta import (
     ConsultaProcedimentos,
     ConsultaDadosExternos,
     ConsultaMarcoDesenvolvimento,
+    ConsultaExameFisico,
+    ConsultaMchat,
     ConsultaHistoriaFamiliar,
     ConsultaImunizacoes,
     ConsultaEscolaridade,
@@ -37,6 +39,50 @@ router = APIRouter(
 
 
 ClassificacaoImc = Literal["abaixo", "normal", "sobrepeso"]
+StatusExameFisico = Literal["normal", "alterado", "nao-avaliado", ""]
+RespostaMchat = Literal["yes", "no"]
+
+EXAME_FISICO_SISTEMAS = [
+    "geral",
+    "pele",
+    "olhos",
+    "ouvidos",
+    "bocaDentes",
+    "cabeca",
+    "ganglios",
+    "pescoco",
+    "cardiovascular",
+    "respiratorio",
+    "gastrointestinal",
+    "genitourinario",
+    "musculoesqueletico",
+    "nervoso",
+]
+
+MCHAT_RISK_ANSWERS: dict[int, RespostaMchat] = {
+    1: "no",
+    2: "yes",
+    3: "no",
+    4: "no",
+    5: "yes",
+    6: "no",
+    7: "no",
+    8: "no",
+    9: "no",
+    10: "no",
+    11: "no",
+    12: "yes",
+    13: "no",
+    14: "no",
+    15: "no",
+    16: "no",
+    17: "no",
+    18: "no",
+    19: "no",
+    20: "no",
+}
+
+MCHAT_ENCAMINHAMENTO_MARKER = "[M-CHAT-R]"
 
 
 class AntropometriaSalvarRequest(BaseModel):
@@ -413,6 +459,36 @@ class MarcoDesenvolvimentoResponse(BaseModel):
     atualizado_em: datetime | None
 
 
+class ExameFisicoSistemaPayload(BaseModel):
+    status: StatusExameFisico = ""
+    descricao: str = ""
+
+
+class ExameFisicoSalvarRequest(BaseModel):
+    paciente_id: str = Field(..., min_length=1)
+    sistemas: dict[str, ExameFisicoSistemaPayload] = Field(default_factory=dict)
+
+
+class ExameFisicoResponse(BaseModel):
+    consulta_id: int
+    sistemas: dict[str, ExameFisicoSistemaPayload]
+    atualizado_em: datetime | None
+
+
+class MchatSalvarRequest(BaseModel):
+    paciente_id: str = Field(..., min_length=1)
+    respostas: dict[int, RespostaMchat] = Field(default_factory=dict)
+
+
+class MchatResponse(BaseModel):
+    consulta_id: int
+    respostas: dict[int, RespostaMchat]
+    score_total: int
+    nivel_risco: Literal["pending", "low", "medium", "high"]
+    encaminhamento_gerado: bool
+    atualizado_em: datetime | None
+
+
 class CadernetaAntropometriaItem(BaseModel):
     consulta_id: int
     data_consulta: datetime
@@ -462,6 +538,8 @@ class ConsultaAtivaResponse(BaseModel):
     procedimentos: ProcedimentosResponse | None = None
     dados_externos: list[DadoExternoResponse] = Field(default_factory=list)
     marcos_desenvolvimento: list[MarcoDesenvolvimentoResponse] = Field(default_factory=list)
+    exame_fisico: ExameFisicoResponse | None = None
+    mchat: MchatResponse | None = None
     imunizacoes_historico: list[ImunizacoesHistoricoResponse] = Field(default_factory=list)
 
 
@@ -1190,6 +1268,149 @@ def _diagnostico_completo(registro: ConsultaDiagnostico | None) -> bool:
     return bool(_texto(registro.cid10_principal).strip())
 
 
+def _exame_fisico_ativos(consulta: Consulta) -> list[ConsultaExameFisico]:
+    return [
+        registro
+        for registro in (consulta.exame_fisico or [])
+        if registro.deleted_at is None
+    ]
+
+
+def _exame_fisico_response(registros: list[ConsultaExameFisico]) -> ExameFisicoResponse | None:
+    if not registros:
+        return None
+
+    sistemas: dict[str, ExameFisicoSistemaPayload] = {}
+    atualizado_em: datetime | None = None
+
+    for registro in registros:
+        status_value = _texto(registro.status)
+        if status_value not in {"normal", "alterado", "nao-avaliado", ""}:
+            status_value = ""
+        sistemas[_texto(registro.sistema)] = ExameFisicoSistemaPayload(
+            status=status_value,
+            descricao=_texto(registro.descricao),
+        )
+        if atualizado_em is None or (registro.updated_at and registro.updated_at > atualizado_em):
+            atualizado_em = registro.updated_at
+
+    consulta_id = registros[0].consulta_id
+    return ExameFisicoResponse(consulta_id=consulta_id, sistemas=sistemas, atualizado_em=atualizado_em)
+
+
+def _exame_fisico_possui_conteudo(consulta: Consulta) -> bool:
+    return any(
+        _texto(registro.status).strip() in {"normal", "alterado", "nao-avaliado"}
+        or _texto(registro.descricao).strip()
+        for registro in _exame_fisico_ativos(consulta)
+    )
+
+
+def _exame_fisico_completo(consulta: Consulta) -> bool:
+    registros_por_sistema = {
+        _texto(registro.sistema): _texto(registro.status)
+        for registro in _exame_fisico_ativos(consulta)
+    }
+    return all(registros_por_sistema.get(sistema) in {"normal", "alterado"} for sistema in EXAME_FISICO_SISTEMAS)
+
+
+def _mchat_ativos(consulta: Consulta) -> list[ConsultaMchat]:
+    return [
+        registro
+        for registro in (consulta.mchat or [])
+        if registro.deleted_at is None
+    ]
+
+
+def _mchat_respostas(registros: list[ConsultaMchat]) -> dict[int, RespostaMchat]:
+    respostas: dict[int, RespostaMchat] = {}
+    for registro in registros:
+        try:
+            pergunta_id = int(registro.pergunta_id)
+        except (TypeError, ValueError):
+            continue
+        if pergunta_id not in MCHAT_RISK_ANSWERS or registro.resposta is None:
+            continue
+        respostas[pergunta_id] = "yes" if bool(registro.resposta) else "no"
+    return respostas
+
+
+def _mchat_score(respostas: dict[int, RespostaMchat]) -> int:
+    return sum(1 for pergunta_id, resposta in respostas.items() if MCHAT_RISK_ANSWERS.get(pergunta_id) == resposta)
+
+
+def _mchat_nivel_risco(respostas: dict[int, RespostaMchat]) -> Literal["pending", "low", "medium", "high"]:
+    if len(respostas) < len(MCHAT_RISK_ANSWERS):
+        return "pending"
+    score = _mchat_score(respostas)
+    if score <= 2:
+        return "low"
+    if score <= 7:
+        return "medium"
+    return "high"
+
+
+def _mchat_response(registros: list[ConsultaMchat], encaminhamento_gerado: bool = False) -> MchatResponse | None:
+    if not registros:
+        return None
+
+    respostas = _mchat_respostas(registros)
+    atualizado_em: datetime | None = None
+    for registro in registros:
+        if atualizado_em is None or (registro.updated_at and registro.updated_at > atualizado_em):
+            atualizado_em = registro.updated_at
+
+    return MchatResponse(
+        consulta_id=registros[0].consulta_id,
+        respostas=respostas,
+        score_total=_mchat_score(respostas),
+        nivel_risco=_mchat_nivel_risco(respostas),
+        encaminhamento_gerado=encaminhamento_gerado,
+        atualizado_em=atualizado_em,
+    )
+
+
+def _mchat_possui_conteudo(consulta: Consulta) -> bool:
+    return bool(_mchat_respostas(_mchat_ativos(consulta)))
+
+
+def _mchat_completo(consulta: Consulta) -> bool:
+    return len(_mchat_respostas(_mchat_ativos(consulta))) == len(MCHAT_RISK_ANSWERS)
+
+
+def _mchat_deve_gerar_encaminhamento(respostas: dict[int, RespostaMchat]) -> bool:
+    return _mchat_nivel_risco(respostas) in {"medium", "high"}
+
+
+def _sincronizar_encaminhamento_mchat(consulta: Consulta, respostas: dict[int, RespostaMchat]) -> bool:
+    encaminhamento_gerado = False
+    score = _mchat_score(respostas)
+    nivel_risco = _mchat_nivel_risco(respostas)
+
+    for registro in _encaminhamentos_ativos(consulta):
+        if MCHAT_ENCAMINHAMENTO_MARKER in _texto(registro.justificativa_clinica):
+            registro.deleted_at = datetime.utcnow()
+
+    if _mchat_deve_gerar_encaminhamento(respostas):
+        prioridade = "Urgente" if nivel_risco == "high" else "Prioritário"
+        ordem = len(_encaminhamentos_ativos(consulta)) + 1
+        consulta.encaminhamentos.append(
+            ConsultaEncaminhamento(
+                ordem=ordem,
+                especialidade="Neurologia pediátrica",
+                prioridade=prioridade,
+                procedimento_motivo="Avaliação complementar para TEA",
+                justificativa_clinica=(
+                    f"{MCHAT_ENCAMINHAMENTO_MARKER} Encaminhamento automático gerado pelo M-CHAT-R: "
+                    f"score {score}, risco {'alto' if nivel_risco == 'high' else 'médio'}."
+                ),
+            )
+        )
+        encaminhamento_gerado = True
+
+    return encaminhamento_gerado
+
+
 def _completed_sections(consulta: Consulta) -> list[str]:
     secoes: list[str] = []
     antropometria = consulta.antropometria
@@ -1219,6 +1440,10 @@ def _completed_sections(consulta: Consulta) -> list[str]:
         secoes.append("procedimentos")
     if _dados_externos_completos(consulta):
         secoes.append("externo")
+    if _exame_fisico_completo(consulta):
+        secoes.append("clinical")
+    if _mchat_completo(consulta):
+        secoes.append("mchat")
     return secoes
 
 
@@ -1261,6 +1486,10 @@ def _started_sections(consulta: Consulta) -> list[str]:
         secoes.append("procedimentos")
     if _dados_externos_possuem_conteudo(consulta):
         secoes.append("externo")
+    if _exame_fisico_possui_conteudo(consulta):
+        secoes.append("clinical")
+    if _mchat_possui_conteudo(consulta):
+        secoes.append("mchat")
     return sorted(set([*secoes, *_completed_sections(consulta)]))
 
 
@@ -1286,6 +1515,8 @@ async def _obter_consulta_ativa(
             selectinload(Consulta.procedimentos),
             selectinload(Consulta.dados_externos),
             selectinload(Consulta.marcos_desenvolvimento),
+            selectinload(Consulta.exame_fisico),
+            selectinload(Consulta.mchat),
         )
         .where(
             Consulta.paciente_id == paciente_id,
@@ -1411,6 +1642,14 @@ async def _montar_response(db: AsyncSession, consulta: Consulta) -> ConsultaAtiv
         procedimentos=_procedimentos_response(consulta.procedimentos),
         dados_externos=[_dado_externo_response(registro) for registro in _dados_externos_ativos(consulta)],
         marcos_desenvolvimento=[_marco_desenvolvimento_response(registro) for registro in _marcos_desenvolvimento_ativos(consulta)],
+        exame_fisico=_exame_fisico_response(_exame_fisico_ativos(consulta)),
+        mchat=_mchat_response(
+            _mchat_ativos(consulta),
+            any(
+                MCHAT_ENCAMINHAMENTO_MARKER in _texto(registro.justificativa_clinica)
+                for registro in _encaminhamentos_ativos(consulta)
+            ),
+        ),
         imunizacoes_historico=await _obter_historico_imunizacoes(
             db,
             consulta.paciente_id,
@@ -1597,6 +1836,93 @@ async def obter_historico_imunizacoes(
     consulta_atual = await _obter_consulta_ativa(db, paciente_id, medico_username)
     consulta_atual_id = consulta_atual.id if consulta_atual is not None else None
     return await _obter_historico_imunizacoes(db, paciente_id, medico_username, consulta_atual_id)
+
+
+@router.post("/exame-fisico", response_model=ConsultaAtivaResponse, status_code=status.HTTP_200_OK)
+async def salvar_exame_fisico(
+    body: ExameFisicoSalvarRequest,
+    db: AsyncSession = Depends(get_app_db_session),
+    current_user: dict = Depends(auth_handler.decode_token),
+) -> ConsultaAtivaResponse:
+    """Salva o exame físico por sistemas na consulta em andamento."""
+    medico_username = current_user.get("username") or current_user.get("sub") or "usuario"
+    consulta = await _obter_ou_criar_consulta_ativa(db, body.paciente_id, medico_username)
+
+    await db.execute(
+        delete(ConsultaExameFisico).where(
+            ConsultaExameFisico.consulta_id == consulta.id
+        )
+    )
+    await db.flush()
+
+    for sistema in EXAME_FISICO_SISTEMAS:
+        payload = body.sistemas.get(sistema)
+        if payload is None:
+            continue
+
+        status_exame = payload.status or ""
+        descricao = payload.descricao.strip()
+
+        if status_exame not in {"normal", "alterado", "nao-avaliado"} and not descricao:
+            continue
+
+        db.add(
+            ConsultaExameFisico(
+                consulta_id=consulta.id,
+                sistema=sistema,
+                status=status_exame or "nao-avaliado",
+                descricao=descricao,
+            )
+        )
+
+    await db.commit()
+    consulta = await _obter_consulta_ativa(db, body.paciente_id, medico_username)
+    if consulta is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Consulta não encontrada após salvar exame físico.")
+    return await _montar_response(db, consulta)
+
+
+@router.post("/mchat", response_model=ConsultaAtivaResponse, status_code=status.HTTP_200_OK)
+async def salvar_mchat(
+    body: MchatSalvarRequest,
+    db: AsyncSession = Depends(get_app_db_session),
+    current_user: dict = Depends(auth_handler.decode_token),
+) -> ConsultaAtivaResponse:
+    """Salva as respostas do M-CHAT-R na consulta em andamento."""
+    medico_username = current_user.get("username") or current_user.get("sub") or "usuario"
+    consulta = await _obter_ou_criar_consulta_ativa(db, body.paciente_id, medico_username)
+
+    respostas = {
+        int(pergunta_id): resposta
+        for pergunta_id, resposta in body.respostas.items()
+        if int(pergunta_id) in MCHAT_RISK_ANSWERS and resposta in {"yes", "no"}
+    }
+    score_total = _mchat_score(respostas)
+
+    await db.execute(
+        delete(ConsultaMchat).where(
+            ConsultaMchat.consulta_id == consulta.id
+        )
+    )
+    await db.flush()
+
+    for pergunta_id in sorted(respostas):
+        db.add(
+            ConsultaMchat(
+                consulta_id=consulta.id,
+                pergunta_id=str(pergunta_id),
+                resposta=respostas[pergunta_id] == "yes",
+                score_total=score_total,
+            )
+        )
+
+    _sincronizar_encaminhamento_mchat(consulta, respostas)
+
+    await db.commit()
+    consulta = await _obter_consulta_ativa(db, body.paciente_id, medico_username)
+    if consulta is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Consulta não encontrada após salvar M-CHAT-R.")
+    return await _montar_response(db, consulta)
 
 
 @router.post("/finalizar", response_model=ConsultaFinalizarResponse, status_code=status.HTTP_200_OK)

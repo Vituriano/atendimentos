@@ -253,7 +253,7 @@ async function salvarRascunho() {
 
   try {
     await consulta.salvarRascunhoSecaoAtiva()
-    mensagemRascunho.value = `Rascunho de ${secaoAtiva.value?.label ?? 'consulta'} salvo.`
+    mensagemRascunho.value = 'Rascunho do atendimento salvo.'
   } catch (error) {
     const mensagem = error instanceof Error ? error.message : 'Não foi possível salvar o rascunho.'
     erroRascunho.value = mensagem

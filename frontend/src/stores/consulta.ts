@@ -7,6 +7,25 @@ import type { StatusMarco, ExameFisico, SistemaStatus } from '../types/clinica'
 import type { ClassificacaoImc } from '../data/antropometria-ranges'
 
 export type ClassificacaoDesenvolvimento = 'adequado' | 'alerta' | 'provavel-atraso'
+export type SistemaStatusSelection = SistemaStatus | ''
+export type MchatRiskLevel = 'pending' | 'low' | 'medium' | 'high'
+
+const EXAME_FISICO_SISTEMAS: Array<keyof ExameFisico> = [
+  'geral',
+  'pele',
+  'olhos',
+  'ouvidos',
+  'bocaDentes',
+  'cabeca',
+  'ganglios',
+  'pescoco',
+  'cardiovascular',
+  'respiratorio',
+  'gastrointestinal',
+  'genitourinario',
+  'musculoesqueletico',
+  'nervoso',
+]
 
 export type SecaoId =
   | 'anthropometric' | 'anamnesis' | 'imunizacoes' | 'triagemNeonatal'
@@ -1079,6 +1098,26 @@ interface AntropometriaApiResponse {
   atualizado_em: string | null
 }
 
+interface SistemaExameApiPayload {
+  status: SistemaStatusSelection | 'nao-avaliado'
+  descricao: string
+}
+
+interface ExameFisicoApiResponse {
+  consulta_id: number
+  sistemas: Record<string, SistemaExameApiPayload>
+  atualizado_em: string | null
+}
+
+interface MchatApiResponse {
+  consulta_id: number
+  respostas: Record<number, 'yes' | 'no'>
+  score_total: number
+  nivel_risco: MchatRiskLevel
+  encaminhamento_gerado: boolean
+  atualizado_em: string | null
+}
+
 interface ConsultaAtivaApiResponse {
   id: number
   paciente_id: string
@@ -1101,6 +1140,8 @@ interface ConsultaAtivaApiResponse {
   procedimentos?: ProcedimentosApiResponse | null
   dados_externos?: DadoExternoApiResponse[]
   marcos_desenvolvimento?: MarcoDesenvolvimentoApiResponse[]
+  exame_fisico?: ExameFisicoApiResponse | null
+  mchat?: MchatApiResponse | null
   imunizacoes_historico?: HistoricoImunizacoesApiResponse[]
 }
 
@@ -1301,6 +1342,10 @@ export const useConsultaStore = defineStore('consulta', () => {
   const erroSalvamentoDadosExternos = ref<string | null>(null)
   const salvandoMarcos = ref(false)
   const erroSalvamentoMarcos = ref<string | null>(null)
+  const salvandoExameFisico = ref(false)
+  const erroSalvamentoExameFisico = ref<string | null>(null)
+  const salvandoMchat = ref(false)
+  const erroSalvamentoMchat = ref<string | null>(null)
   const carregandoCaderneta = ref(false)
   const erroCaderneta = ref<string | null>(null)
   const cadernetaDigital = ref<CadernetaDigitalConsulta | null>(null)
@@ -1399,40 +1444,95 @@ export const useConsultaStore = defineStore('consulta', () => {
   const observacoesMarcos = ref<Record<string, string>>({})
   const classificacaoDesenvolvimento = ref<ClassificacaoDesenvolvimento | null>(null)
 
-  type SistemaStatusSelection = SistemaStatus | ''
   type ExameFisicoForm = {
     [K in keyof ExameFisico]: { status: SistemaStatusSelection; descricao: string }
   }
   function criarSistemaVazio(): { status: SistemaStatusSelection; descricao: string } {
     return { status: '', descricao: '' }
   }
-  const exameFisico = ref<ExameFisicoForm>({
-    geral: criarSistemaVazio(),
-    pele: criarSistemaVazio(),
-    olhos: criarSistemaVazio(),
-    ouvidos: criarSistemaVazio(),
-    bocaDentes: criarSistemaVazio(), // <-- Atualizado
-    cabeca: criarSistemaVazio(),     // <-- Atualizado
-    ganglios: criarSistemaVazio(),   // <-- Novo
-    pescoco: criarSistemaVazio(),    // <-- Atualizado
-    cardiovascular: criarSistemaVazio(),
-    respiratorio: criarSistemaVazio(),
-    gastrointestinal: criarSistemaVazio(), // <-- Atualizado
-    genitourinario: criarSistemaVazio(),
-    musculoesqueletico: criarSistemaVazio(),
-    nervoso: criarSistemaVazio(),          // <-- Atualizado
-  })
+  function criarExameFisicoVazio(): ExameFisicoForm {
+    return {
+      geral: criarSistemaVazio(),
+      pele: criarSistemaVazio(),
+      olhos: criarSistemaVazio(),
+      ouvidos: criarSistemaVazio(),
+      bocaDentes: criarSistemaVazio(),
+      cabeca: criarSistemaVazio(),
+      ganglios: criarSistemaVazio(),
+      pescoco: criarSistemaVazio(),
+      cardiovascular: criarSistemaVazio(),
+      respiratorio: criarSistemaVazio(),
+      gastrointestinal: criarSistemaVazio(),
+      genitourinario: criarSistemaVazio(),
+      musculoesqueletico: criarSistemaVazio(),
+      nervoso: criarSistemaVazio(),
+    }
+  }
+  function clonarExameFisico(dados: ExameFisicoForm): ExameFisicoForm {
+    const clone = criarExameFisicoVazio()
+    for (const sistema of EXAME_FISICO_SISTEMAS) {
+      clone[sistema] = { ...dados[sistema] }
+    }
+    return clone
+  }
+  function exameFisicoApiParaStore(apiData: ExameFisicoApiResponse): ExameFisicoForm {
+    const dados = criarExameFisicoVazio()
+    for (const sistema of EXAME_FISICO_SISTEMAS) {
+      const item = apiData.sistemas?.[sistema]
+      if (!item) continue
+      dados[sistema] = {
+        status: item.status === 'nao-avaliado' ? '' : item.status,
+        descricao: item.descricao ?? '',
+      }
+    }
+    return dados
+  }
+  function exameFisicoStoreParaApi(dados: ExameFisicoForm) {
+    const sistemas: Record<string, { status: SistemaStatusSelection; descricao: string }> = {}
+    for (const sistema of EXAME_FISICO_SISTEMAS) {
+      sistemas[sistema] = {
+        status: dados[sistema].status,
+        descricao: dados[sistema].descricao,
+      }
+    }
+    return { sistemas }
+  }
+  const exameFisico = ref<ExameFisicoForm>(criarExameFisicoVazio())
   const avaliadosCount = computed(
     () => Object.values(exameFisico.value).filter(s => s.status !== '').length
   )
   const allStatusesSelected = computed(
     () => Object.values(exameFisico.value).every(s => s.status !== '')
   )
+  function exameFisicoPossuiConteudo(dados: ExameFisicoForm): boolean {
+    return Object.values(dados).some(sistema => Boolean(sistema.status || sistema.descricao.trim()))
+  }
+
+  function atualizarStatusExameFisico() {
+    if (exameFisicoPossuiConteudo(exameFisico.value)) {
+      markSectionStarted('clinical')
+    }
+    setSectionComplete('clinical', allStatusesSelected.value)
+  }
+
+  function mchatPossuiConteudo(): boolean {
+    return mchatAnsweredCount.value > 0
+  }
+
+  function atualizarStatusMchat() {
+    if (mchatPossuiConteudo()) {
+      markSectionStarted('mchat')
+    }
+    setSectionComplete('mchat', mchatAnsweredCount.value === mchatPerguntas.length)
+  }
+
   function updateSistemaStatus(id: keyof ExameFisico, status: SistemaStatusSelection) {
     exameFisico.value[id].status = status
+    atualizarStatusExameFisico()
   }
   function updateSistemaDescricao(id: keyof ExameFisico, descricao: string) {
     exameFisico.value[id].descricao = descricao
+    atualizarStatusExameFisico()
   }
 
   const totalMarcosRegistrados = computed(
@@ -1449,7 +1549,11 @@ export const useConsultaStore = defineStore('consulta', () => {
   }
 
   function updateMchatAnswer(questionId: number, answer: 'yes' | 'no') {
-    mchatAnswers.value[questionId] = answer
+    mchatAnswers.value = {
+      ...mchatAnswers.value,
+      [questionId]: answer,
+    }
+    atualizarStatusMchat()
   }
 
   function getStatusMarco(marcoId: string, idadeColuna: number): StatusMarco | null {
@@ -1500,6 +1604,10 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoDadosExternos.value = null
     salvandoMarcos.value = false
     erroSalvamentoMarcos.value = null
+    salvandoExameFisico.value = false
+    erroSalvamentoExameFisico.value = null
+    salvandoMchat.value = false
+    erroSalvamentoMchat.value = null
     carregandoCaderneta.value = false
     erroCaderneta.value = null
     cadernetaDigital.value = null
@@ -1522,6 +1630,8 @@ export const useConsultaStore = defineStore('consulta', () => {
     procedimentos.value = criarProcedimentosVazio()
     dadosExternos.value = []
     historicoImunizacoes.value = []
+    exameFisico.value = criarExameFisicoVazio()
+    mchatAnswers.value = {}
   }
 
   // Funções de navegação
@@ -1589,6 +1699,8 @@ export const useConsultaStore = defineStore('consulta', () => {
       procedimentos.value = criarProcedimentosVazio()
       dadosExternos.value = []
       historicoImunizacoes.value = []
+      exameFisico.value = criarExameFisicoVazio()
+      mchatAnswers.value = {}
       if (pacienteIdFallback) currentPacienteId.value = pacienteIdFallback
       return
     }
@@ -1627,6 +1739,8 @@ export const useConsultaStore = defineStore('consulta', () => {
     procedimentos.value = response.procedimentos ? procedimentosApiParaStore(response.procedimentos) : criarProcedimentosVazio()
     dadosExternos.value = (response.dados_externos ?? []).map(dadoExternoApiParaStore)
     historicoImunizacoes.value = (response.imunizacoes_historico ?? []).map(historicoImunizacoesApiParaStore)
+    exameFisico.value = response.exame_fisico ? exameFisicoApiParaStore(response.exame_fisico) : criarExameFisicoVazio()
+    mchatAnswers.value = response.mchat?.respostas ? { ...response.mchat.respostas } : {}
     statusMarcos.value = {}
     observacoesMarcos.value = {}
     for (const registro of response.marcos_desenvolvimento ?? []) {
@@ -1651,6 +1765,8 @@ export const useConsultaStore = defineStore('consulta', () => {
     atualizarStatusHipotesesCondutas()
     atualizarStatusProcedimentos()
     atualizarStatusDadosExternos()
+    atualizarStatusExameFisico()
+    atualizarStatusMchat()
   }
 
   async function carregarHistoricoImunizacoes(pacienteIdInformado?: string) {
@@ -2231,57 +2347,329 @@ export const useConsultaStore = defineStore('consulta', () => {
   }
 
 
-  async function salvarRascunhoSecaoAtiva() {
-    switch (activeSection.value) {
-      case 'anthropometric':
-        if (antropometria.value.pesoKg === null || antropometria.value.alturaCm === null) {
-          throw new Error('Informe peso e altura antes de salvar a Antropometria.')
-        }
-        return salvarAntropometria({
-          pesoKg: antropometria.value.pesoKg,
-          alturaCm: antropometria.value.alturaCm,
-          perimetroCefalicoCm: antropometria.value.perimetroCefalicoCm,
-          pressaoSistolicaMmHg: antropometria.value.pressaoSistolicaMmHg,
-          pressaoDiastolicaMmHg: antropometria.value.pressaoDiastolicaMmHg,
-          imc: antropometria.value.imc,
-          classificacaoImc: antropometria.value.classificacaoImc,
-        })
-      case 'anamnesis':
-        return salvarAnamnese()
-      case 'imunizacoes':
-        return salvarImunizacoes()
-      case 'escolaridade':
-        return salvarEscolaridade()
-      case 'triagemNeonatal':
-        return salvarTriagemNeonatal()
-      case 'clinical':
-        markSectionStarted('clinical')
-        setSectionComplete('clinical', allStatusesSelected.value)
-        return null
-      case 'milestones':
-        return salvarMarcosDesenvolvimento()
-      case 'mchat':
-        markSectionStarted('mchat')
-        return null
-      case 'historiaFamiliar':
-        return salvarHistoriaFamiliar()
-      case 'dinamicaFamiliar':
-        return salvarDinamicaFamiliar()
-      case 'socioeconomico':
-        return salvarCondicoesSocioeconomicas()
-      case 'referral':
-        return salvarEncaminhamentos()
-      case 'diagnostico':
-        return salvarDiagnostico()
-      case 'condutasHipoteses':
-        return salvarHipotesesCondutas()
-      case 'procedimentos':
-        return salvarProcedimentos()
-      case 'externo':
-        return salvarDadosExternos()
-      default:
-        return null
+  async function salvarExameFisico() {
+    const pacienteId = pacienteStore.pacienteAtivo?.id
+    if (!pacienteId) {
+      throw new Error('Nenhum paciente ativo para salvar o exame físico.')
     }
+
+    const exameAntesDoEnvio = clonarExameFisico(exameFisico.value)
+    salvandoExameFisico.value = true
+    erroSalvamentoExameFisico.value = null
+
+    try {
+      const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/exame-fisico', {
+        paciente_id: pacienteId,
+        ...exameFisicoStoreParaApi(exameAntesDoEnvio),
+      })
+
+      aplicarConsultaAtiva(data, pacienteId)
+
+      if (!data.exame_fisico) {
+        exameFisico.value = exameAntesDoEnvio
+        atualizarStatusExameFisico()
+      }
+
+      return data
+    } catch (error) {
+      erroSalvamentoExameFisico.value = 'Não foi possível salvar o exame físico no banco.'
+      console.error('Erro ao salvar exame físico:', error)
+      throw error
+    } finally {
+      salvandoExameFisico.value = false
+    }
+  }
+
+
+  async function salvarMchat() {
+    const pacienteId = pacienteStore.pacienteAtivo?.id
+    if (!pacienteId) {
+      throw new Error('Nenhum paciente ativo para salvar o M-CHAT-R.')
+    }
+
+    const respostasAntesDoEnvio = { ...mchatAnswers.value }
+    salvandoMchat.value = true
+    erroSalvamentoMchat.value = null
+
+    try {
+      const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/mchat', {
+        paciente_id: pacienteId,
+        respostas: respostasAntesDoEnvio,
+      })
+
+      aplicarConsultaAtiva(data, pacienteId)
+
+      if (!data.mchat) {
+        mchatAnswers.value = respostasAntesDoEnvio
+        atualizarStatusMchat()
+      }
+
+      return data
+    } catch (error) {
+      erroSalvamentoMchat.value = 'Não foi possível salvar o M-CHAT-R no banco.'
+      console.error('Erro ao salvar M-CHAT-R:', error)
+      throw error
+    } finally {
+      salvandoMchat.value = false
+    }
+  }
+
+
+  function antropometriaPossuiConteudo(dados: DadosAntropometricosConsulta): boolean {
+    return Boolean(
+      dados.pesoKg !== null ||
+      dados.alturaCm !== null ||
+      dados.perimetroCefalicoCm !== null ||
+      dados.pressaoSistolicaMmHg !== null ||
+      dados.pressaoDiastolicaMmHg !== null ||
+      dados.imc !== null ||
+      dados.classificacaoImc !== null
+    )
+  }
+
+  function antropometriaCompleta(dados: DadosAntropometricosConsulta): boolean {
+    return dados.pesoKg !== null && dados.alturaCm !== null
+  }
+
+  function limparErrosSalvamentoAtendimento() {
+    erroSalvamentoAntropometria.value = null
+    erroSalvamentoAnamnese.value = null
+    erroSalvamentoImunizacoes.value = null
+    erroSalvamentoEscolaridade.value = null
+    erroSalvamentoTriagemNeonatal.value = null
+    erroSalvamentoEncaminhamentos.value = null
+    erroSalvamentoHistoriaFamiliar.value = null
+    erroSalvamentoDinamicaFamiliar.value = null
+    erroSalvamentoCondicoesSocioeconomicas.value = null
+    erroSalvamentoDiagnostico.value = null
+    erroSalvamentoHipotesesCondutas.value = null
+    erroSalvamentoProcedimentos.value = null
+    erroSalvamentoDadosExternos.value = null
+    erroSalvamentoMarcos.value = null
+    erroSalvamentoExameFisico.value = null
+    erroSalvamentoMchat.value = null
+  }
+
+  function setSalvandoAtendimento(valor: boolean) {
+    salvandoAntropometria.value = valor
+    salvandoAnamnese.value = valor
+    salvandoImunizacoes.value = valor
+    salvandoEscolaridade.value = valor
+    salvandoTriagemNeonatal.value = valor
+    salvandoEncaminhamentos.value = valor
+    salvandoHistoriaFamiliar.value = valor
+    salvandoDinamicaFamiliar.value = valor
+    salvandoCondicoesSocioeconomicas.value = valor
+    salvandoDiagnostico.value = valor
+    salvandoHipotesesCondutas.value = valor
+    salvandoProcedimentos.value = valor
+    salvandoDadosExternos.value = valor
+    salvandoMarcos.value = valor
+    salvandoExameFisico.value = valor
+    salvandoMchat.value = valor
+  }
+
+  async function salvarAtendimentoCompleto() {
+    const pacienteId = pacienteStore.pacienteAtivo?.id
+    if (!pacienteId) {
+      throw new Error('Nenhum paciente ativo para salvar o atendimento.')
+    }
+
+    const secoesVisiveis = new Set(secoes.value.map(secao => secao.id))
+    const antropometriaSnapshot = { ...antropometria.value }
+    const anamneseSnapshot = clonarAnamnese(anamnese.value)
+    const imunizacoesSnapshot = {
+      statusVacinal: imunizacoes.value.statusVacinal,
+      statusVacinas: { ...imunizacoes.value.statusVacinas },
+      atualizadoEm: imunizacoes.value.atualizadoEm,
+    }
+    const escolaridadeSnapshot = clonarEscolaridade(escolaridade.value)
+    const triagemNeonatalSnapshot = clonarTriagemNeonatal(triagemNeonatal.value)
+    const encaminhamentosSnapshot = clonarEncaminhamentos(encaminhamentos.value)
+    const historiaFamiliarSnapshot = clonarHistoriaFamiliar(historiaFamiliar.value)
+    const dinamicaFamiliarSnapshot = clonarDinamicaFamiliar(dinamicaFamiliar.value)
+    const condicoesSocioeconomicasSnapshot = clonarCondicoesSocioeconomicas(condicoesSocioeconomicas.value)
+    const diagnosticoSnapshot = clonarDiagnostico(diagnostico.value)
+    const hipotesesCondutasSnapshot = clonarHipotesesCondutas(hipotesesCondutas.value)
+    const procedimentosSnapshot = clonarProcedimentos(procedimentos.value)
+    const dadosExternosSnapshot = clonarDadosExternos(dadosExternos.value)
+    const exameFisicoSnapshot = clonarExameFisico(exameFisico.value)
+    const mchatSnapshot = { ...mchatAnswers.value }
+    const statusMarcosSnapshot = { ...statusMarcos.value }
+    const observacoesMarcosSnapshot = { ...observacoesMarcos.value }
+
+    if (
+      secoesVisiveis.has('anthropometric') &&
+      antropometriaPossuiConteudo(antropometriaSnapshot) &&
+      !antropometriaCompleta(antropometriaSnapshot)
+    ) {
+      throw new Error('Informe peso e altura antes de salvar a Antropometria.')
+    }
+
+    let ultimaResposta: ConsultaAtivaApiResponse | null = null
+    const postar = async (url: string, payload: Record<string, unknown>) => {
+      const { data } = await api.post<ConsultaAtivaApiResponse>(url, payload)
+      ultimaResposta = data
+      return data
+    }
+
+    limparErrosSalvamentoAtendimento()
+    setSalvandoAtendimento(true)
+
+    try {
+      if (secoesVisiveis.has('anthropometric') && antropometriaCompleta(antropometriaSnapshot)) {
+        await postar('/api/consultas/antropometria', {
+          paciente_id: pacienteId,
+          peso_kg: antropometriaSnapshot.pesoKg,
+          altura_cm: antropometriaSnapshot.alturaCm,
+          perimetro_cefalico_cm: antropometriaSnapshot.perimetroCefalicoCm,
+          pressao_sistolica_mmhg: antropometriaSnapshot.pressaoSistolicaMmHg,
+          pressao_diastolica_mmhg: antropometriaSnapshot.pressaoDiastolicaMmHg,
+          imc: antropometriaSnapshot.imc,
+          classificacao_imc: antropometriaSnapshot.classificacaoImc,
+        })
+      }
+
+      if (secoesVisiveis.has('anamnesis')) {
+        await postar('/api/consultas/anamnese', {
+          paciente_id: pacienteId,
+          ...anamneseStoreParaApi(anamneseSnapshot),
+        })
+      }
+
+      if (secoesVisiveis.has('imunizacoes')) {
+        await postar('/api/consultas/imunizacoes', {
+          paciente_id: pacienteId,
+          status_vacinal: imunizacoesSnapshot.statusVacinal,
+        })
+      }
+
+      if (secoesVisiveis.has('escolaridade')) {
+        await postar('/api/consultas/escolaridade', {
+          paciente_id: pacienteId,
+          ...escolaridadeStoreParaApi(escolaridadeSnapshot),
+        })
+      }
+
+      if (secoesVisiveis.has('triagemNeonatal')) {
+        await postar('/api/consultas/triagem-neonatal', {
+          paciente_id: pacienteId,
+          ...triagemNeonatalStoreParaApi(triagemNeonatalSnapshot),
+        })
+      }
+
+      if (secoesVisiveis.has('clinical')) {
+        await postar('/api/consultas/exame-fisico', {
+          paciente_id: pacienteId,
+          ...exameFisicoStoreParaApi(exameFisicoSnapshot),
+        })
+      }
+
+      if (secoesVisiveis.has('milestones')) {
+        const registros = Object.entries(statusMarcosSnapshot)
+          .filter(([, status]) => status && status !== 'not-evaluated')
+          .map(([key, status]) => {
+            const lastDash = key.lastIndexOf('-')
+            const marcoId = key.slice(0, lastDash)
+            const idadeColunaMeses = Number(key.slice(lastDash + 1))
+            return {
+              marco_id: marcoId,
+              idade_coluna_meses: idadeColunaMeses,
+              status: status as StatusMarco,
+              observacao: observacoesMarcosSnapshot[marcoId] ?? '',
+            }
+          })
+          .filter(item => item.marco_id && Number.isFinite(item.idade_coluna_meses))
+
+        await postar('/api/consultas/marcos-desenvolvimento', {
+          paciente_id: pacienteId,
+          registros,
+        })
+      }
+
+      if (secoesVisiveis.has('historiaFamiliar')) {
+        await postar('/api/consultas/historia-familiar', {
+          paciente_id: pacienteId,
+          ...historiaFamiliarStoreParaApi(historiaFamiliarSnapshot),
+        })
+      }
+
+      if (secoesVisiveis.has('dinamicaFamiliar')) {
+        await postar('/api/consultas/dinamica-familiar', {
+          paciente_id: pacienteId,
+          ...dinamicaFamiliarStoreParaApi(dinamicaFamiliarSnapshot),
+        })
+      }
+
+      if (secoesVisiveis.has('socioeconomico')) {
+        await postar('/api/consultas/condicoes-socioeconomicas', {
+          paciente_id: pacienteId,
+          ...condicoesSocioeconomicasStoreParaApi(condicoesSocioeconomicasSnapshot),
+        })
+      }
+
+      if (secoesVisiveis.has('referral')) {
+        await postar('/api/consultas/encaminhamentos', {
+          paciente_id: pacienteId,
+          encaminhamentos: encaminhamentosSnapshot.map(encaminhamentoStoreParaApi),
+        })
+      }
+
+      if (secoesVisiveis.has('mchat')) {
+        await postar('/api/consultas/mchat', {
+          paciente_id: pacienteId,
+          respostas: mchatSnapshot,
+        })
+      }
+
+      if (secoesVisiveis.has('diagnostico')) {
+        await postar('/api/consultas/diagnostico', {
+          paciente_id: pacienteId,
+          ...diagnosticoStoreParaApi(diagnosticoSnapshot),
+        })
+      }
+
+      if (secoesVisiveis.has('condutasHipoteses')) {
+        await postar('/api/consultas/hipoteses-condutas', {
+          paciente_id: pacienteId,
+          ...hipotesesCondutasStoreParaApi(hipotesesCondutasSnapshot),
+        })
+      }
+
+      if (secoesVisiveis.has('procedimentos')) {
+        await postar('/api/consultas/procedimentos', {
+          paciente_id: pacienteId,
+          ...procedimentosStoreParaApi(procedimentosSnapshot),
+        })
+      }
+
+      if (secoesVisiveis.has('externo')) {
+        await postar('/api/consultas/dados-externos', {
+          paciente_id: pacienteId,
+          registros: dadosExternosSnapshot.map(dadoExternoStoreParaApi),
+        })
+      }
+
+      if (ultimaResposta) {
+        aplicarConsultaAtiva(ultimaResposta, pacienteId)
+      } else {
+        await carregarConsultaAtiva()
+      }
+
+      await carregarHistoricoImunizacoes(pacienteId)
+      await carregarCadernetaDigital()
+
+      return ultimaResposta
+    } catch (error) {
+      console.error('Erro ao salvar atendimento completo:', error)
+      throw error
+    } finally {
+      setSalvandoAtendimento(false)
+    }
+  }
+
+  async function salvarRascunhoSecaoAtiva() {
+    return salvarAtendimentoCompleto()
   }
 
 
@@ -2979,6 +3367,10 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoDadosExternos.value = null
     salvandoMarcos.value = false
     erroSalvamentoMarcos.value = null
+    salvandoExameFisico.value = false
+    erroSalvamentoExameFisico.value = null
+    salvandoMchat.value = false
+    erroSalvamentoMchat.value = null
     carregandoCaderneta.value = false
     erroCaderneta.value = null
     cadernetaDigital.value = null
@@ -3004,7 +3396,8 @@ export const useConsultaStore = defineStore('consulta', () => {
     procedimentos.value = criarProcedimentosVazio()
     dadosExternos.value = []
     historicoImunizacoes.value = []
-    mchatAnswers.value = []
+    exameFisico.value = criarExameFisicoVazio()
+    mchatAnswers.value = {}
   }
 
   return {
@@ -3056,6 +3449,10 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoDadosExternos,
     salvandoMarcos,
     erroSalvamentoMarcos,
+    salvandoExameFisico,
+    erroSalvamentoExameFisico,
+    salvandoMchat,
+    erroSalvamentoMchat,
     carregandoCaderneta,
     erroCaderneta,
     cadernetaDigital,
@@ -3093,6 +3490,8 @@ export const useConsultaStore = defineStore('consulta', () => {
     salvarHipotesesCondutas,
     salvarProcedimentos,
     salvarDadosExternos,
+    salvarExameFisico,
+    salvarMchat,
     finalizarConsulta,
     atualizarAnamnese,
     atualizarCampoAnamnese,
