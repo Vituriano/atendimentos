@@ -1,0 +1,24 @@
+# Build / deps
+frontend/node_modules
+node_modules
+src/static/dist
+**/__pycache__
+*.pyc
+.venv
+.ruff_cache
+.pytest_cache
+
+# Banco local e logs (não vão pra imagem)
+app.db
+*.db
+server.log
+logs/
+
+# Protótipo e docs — não precisam no runtime
+mockup/
+docs/
+
+# Segredos e VCS
+.env
+.git
+.github
