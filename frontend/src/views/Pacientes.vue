@@ -148,8 +148,7 @@ function getInitials(nome: string): string {
 }
 
 function getLastConsultation(paciente: Paciente): string {
-  const primary = paciente.prontuarios?.find(p => p.numero === paciente.prontuarioPrimario) ?? paciente.prontuarios?.[0]
-  return primary?.consultas?.[0]?.data ?? '—'
+  return pacienteStore.ultimasConsultas[paciente.id] ?? '—'
 }
 
 function handleRowClick(paciente: Paciente) {

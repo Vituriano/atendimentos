@@ -91,6 +91,7 @@ export const usePacienteStore = defineStore('paciente', () => {
   const modoLeitura = ref(false)
   const pacientes = ref<Paciente[]>([])
   const totalPacientes = ref(0)
+  const ultimasConsultas = ref<Record<string, string>>({})
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
@@ -197,11 +198,30 @@ export const usePacienteStore = defineStore('paciente', () => {
       const items: Record<string, unknown>[] = Array.isArray(data) ? data : (data.items ?? [])
       pacientes.value = items.map(mapPacienteApi)
       totalPacientes.value = Array.isArray(data) ? items.length : (data.total ?? items.length)
+      await carregarUltimasConsultas(pacientes.value.map(p => p.id))
     } catch {
       error.value = 'Erro ao carregar lista de pacientes.'
       toast.error(error.value)
     } finally {
       isLoading.value = false
+    }
+  }
+
+  async function carregarUltimasConsultas(ids: string[]) {
+    if (ids.length === 0) {
+      ultimasConsultas.value = {}
+      return
+    }
+    try {
+      const { data } = await api.get<{ paciente_id: string; ultima_consulta: string | null }[]>(
+        '/api/consultas/ultimas',
+        { params: { paciente_ids: ids.join(',') } }
+      )
+      ultimasConsultas.value = Object.fromEntries(
+        data.map(item => [item.paciente_id, item.ultima_consulta ? formatarDataConsulta(item.ultima_consulta) : '—'])
+      )
+    } catch {
+      ultimasConsultas.value = {}
     }
   }
 
@@ -224,6 +244,7 @@ export const usePacienteStore = defineStore('paciente', () => {
     idadeEmMeses,
     pacientes,
     totalPacientes,
+    ultimasConsultas,
     isLoading,
     error,
     selecionarPaciente,
