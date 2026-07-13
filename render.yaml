@@ -1,0 +1,29 @@
+# Blueprint do Render — deploy de serviço único (frontend + backend juntos).
+# No Render: New > Blueprint > aponte para este repo. Ele lê este arquivo.
+services:
+  - type: web
+    name: evoluir
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /
+    envVars:
+      # Modo demo: sem AGHU/Postgres, dados de paciente vêm dos CSVs do repo
+      - key: PACIENTE_PROVIDER_TYPE
+        value: CSV
+      # Banco de aplicação (refresh tokens etc.). No free tier o disco é
+      # efêmero: os dados do SQLite reiniciam a cada deploy. OK para demo.
+      - key: SQLITE_DSN
+        value: sqlite+aiosqlite:///app.db
+      # Segredo JWT gerado automaticamente pelo Render
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXP_HOURS
+        value: "24"
+      - key: REFRESH_TOKEN_EXP_DAYS
+        value: "30"
+      - key: ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      # AD_URL propositalmente ausente -> usa MockAuthProvider (login: admin / admin)
