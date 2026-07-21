@@ -66,7 +66,7 @@
         </div>
       </div>
 
-      <div v-if="system.status === 'alterado'" class="mt-1">
+      <div class="mt-1">
         <textarea
           :value="system.descricao"
           @input="$emit('update-descricao', { id, descricao: ($event.target as HTMLTextAreaElement).value })"
