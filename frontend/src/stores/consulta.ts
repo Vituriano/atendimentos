@@ -1314,6 +1314,10 @@ export const useConsultaStore = defineStore('consulta', () => {
   const consultaIniciada = ref<Date | null>(null)
   const consultaAtivaId = ref<number | null>(null)
   const currentPacienteId = ref<string | null>(null)
+  // Marca que a consulta ativa do paciente atual já foi carregada em memória nesta
+  // sessão. Impede que um retorno à tela de consulta (ex.: voltar do briefing)
+  // recarregue o snapshot persistido por cima de edições ainda não salvas.
+  const consultaCarregada = ref(false)
   const salvandoAntropometria = ref(false)
   const erroSalvamentoAntropometria = ref<string | null>(null)
   const salvandoAnamnese = ref(false)
@@ -1574,6 +1578,7 @@ export const useConsultaStore = defineStore('consulta', () => {
 
   function limparDadosDaConsultaAtual() {
     consultaAtivaId.value = null
+    consultaCarregada.value = false
     completedSections.value = new Set()
     startedSections.value = new Set()
     salvandoAntropometria.value = false
@@ -1793,10 +1798,17 @@ export const useConsultaStore = defineStore('consulta', () => {
 
     prepararConsultaPaciente(pacienteId)
 
+    // A consulta deste paciente já foi carregada em memória nesta sessão: não
+    // recarregar, para preservar edições ainda não salvas (ex.: voltar do briefing).
+    if (consultaCarregada.value) {
+      return null
+    }
+
     try {
       const { data } = await api.get<ConsultaAtivaApiResponse | null>(`/api/consultas/ativas/${pacienteId}`)
       aplicarConsultaAtiva(data, pacienteId)
       await carregarHistoricoImunizacoes(pacienteId)
+      consultaCarregada.value = true
       return data
     } catch (error) {
       console.error('Erro ao carregar consulta ativa:', error)
@@ -3338,6 +3350,7 @@ export const useConsultaStore = defineStore('consulta', () => {
   function resetConsulta() {
     consultaIniciada.value = null
     consultaAtivaId.value = null
+    consultaCarregada.value = false
     currentPacienteId.value = null
     salvandoAntropometria.value = false
     erroSalvamentoAntropometria.value = null
