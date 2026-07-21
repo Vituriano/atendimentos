@@ -175,12 +175,14 @@ class AnamneseResponse(BaseModel):
 class ImunizacoesSalvarRequest(BaseModel):
     paciente_id: str = Field(..., min_length=1)
     status_vacinal: str = ""
+    status_vacinas: dict[str, str] = Field(default_factory=dict)
 
 
 class ImunizacoesResponse(BaseModel):
     id: int
     consulta_id: int
     status_vacinal: str
+    status_vacinas: dict[str, str]
     atualizado_em: datetime | None
 
 
@@ -586,6 +588,24 @@ def _salvar_lista_json(value: list[str]) -> str:
     return json.dumps(value, ensure_ascii=False)
 
 
+def _carregar_dict_json(value: Any) -> dict[str, str]:
+    if value is None or value == "":
+        return {}
+    if isinstance(value, dict):
+        return {str(chave): str(item) for chave, item in value.items()}
+    try:
+        loaded = json.loads(str(value))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return {}
+    if not isinstance(loaded, dict):
+        return {}
+    return {str(chave): str(item) for chave, item in loaded.items()}
+
+
+def _salvar_dict_json(value: dict[str, str]) -> str:
+    return json.dumps(value, ensure_ascii=False)
+
+
 def _possui_conteudo(valor: Any) -> bool:
     if isinstance(valor, str):
         return len(valor.strip()) > 0
@@ -693,6 +713,7 @@ def _imunizacoes_response(registro: ConsultaImunizacoes | None) -> ImunizacoesRe
         id=registro.id,
         consulta_id=registro.consulta_id,
         status_vacinal=_texto(registro.status_vacinal),
+        status_vacinas=_carregar_dict_json(registro.status_vacinas),
         atualizado_em=registro.updated_at,
     )
 
@@ -2583,6 +2604,7 @@ async def salvar_imunizacoes(
         db.add(registro)
 
     registro.status_vacinal = body.status_vacinal.strip()
+    registro.status_vacinas = _salvar_dict_json(body.status_vacinas)
     registro.updated_at = datetime.utcnow()
 
     await db.flush()

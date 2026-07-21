@@ -375,6 +375,7 @@ class ConsultaImunizacoes(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     consulta_id = Column(Integer, ForeignKey("consultas.id"), nullable=False, index=True)
     status_vacinal = Column(Text, nullable=True)
+    status_vacinas = Column(Text, nullable=False, default="{}")
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
     deleted_at = Column(DateTime, nullable=True)
