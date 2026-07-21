@@ -25,12 +25,6 @@
       >
         Selecionar todos
       </button>
-      <button
-        @click="limparSelecao"
-        class="text-sm font-medium text-slate-700 transition-colors hover:text-slate-900"
-      >
-        Limpar seleção
-      </button>
     </div>
 
     <div
@@ -157,10 +151,6 @@ function toggleSistema(id: string) {
 
 function selecionarTodos() {
   sistemasSelecionados.value = sistemas.map(s => s.id as keyof ExameFisico)
-}
-
-function limparSelecao() {
-  sistemasSelecionados.value = []
 }
 
 function getSistemaLabel(id: string): string {
