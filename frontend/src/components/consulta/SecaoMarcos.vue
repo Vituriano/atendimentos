@@ -228,6 +228,21 @@ async function salvarSecao() {
       </table>
     </div>
 
+    <!-- Observação final geral da seção -->
+    <div class="space-y-1.5">
+      <label class="text-sm font-medium text-slate-700">Observação final geral</label>
+      <p class="text-xs text-slate-500">
+        Registro geral sobre a avaliação dos marcos desta consulta (usado para apoiar alertas).
+      </p>
+      <textarea
+        :value="consultaStore.observacaoGeralMarcos"
+        @input="(e) => consultaStore.setObservacaoGeralMarcos((e.target as HTMLTextAreaElement).value)"
+        rows="3"
+        placeholder="Observação geral sobre os marcos do desenvolvimento (opcional)"
+        class="w-full text-sm text-slate-700 placeholder-slate-300 border border-slate-200 rounded-lg px-3 py-2 resize-y focus:outline-none focus:ring-1 focus:ring-teal-400 focus:border-teal-400"
+      />
+    </div>
+
     <!-- Classificação do Desenvolvimento -->
     <hr class="border-slate-200" />
     <div class="space-y-3">

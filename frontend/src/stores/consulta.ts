@@ -186,6 +186,7 @@ interface MarcoDesenvolvimentoApiResponse {
   idade_coluna_meses: number
   status: StatusMarco
   observacao: string
+  observacao_geral: string
   atualizado_em: string | null
 }
 
@@ -1356,6 +1357,7 @@ export const useConsultaStore = defineStore('consulta', () => {
   // Marcos do desenvolvimento — chave composta: `${marcoId}-${idadeColuna}`
   const statusMarcos = ref<Record<string, StatusMarco | null>>({})
   const observacoesMarcos = ref<Record<string, string>>({})
+  const observacaoGeralMarcos = ref<string>('')
   const classificacaoDesenvolvimento = ref<ClassificacaoDesenvolvimento | null>(null)
 
   type ExameFisicoForm = {
@@ -1491,6 +1493,10 @@ export const useConsultaStore = defineStore('consulta', () => {
     return observacoesMarcos.value[marcoId] ?? ''
   }
 
+  function setObservacaoGeralMarcos(obs: string) {
+    observacaoGeralMarcos.value = obs
+  }
+
   function setClassificacao(classificacao: ClassificacaoDesenvolvimento | null) {
     classificacaoDesenvolvimento.value = classificacao
   }
@@ -1539,6 +1545,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroFinalizarConsulta.value = null
     statusMarcos.value = {}
     observacoesMarcos.value = {}
+    observacaoGeralMarcos.value = ''
     classificacaoDesenvolvimento.value = null
     antropometria.value = criarAntropometriaVazia()
     anamnese.value = criarAnamneseVazia()
@@ -1664,11 +1671,15 @@ export const useConsultaStore = defineStore('consulta', () => {
     mchatAnswers.value = response.mchat?.respostas ? { ...response.mchat.respostas } : {}
     statusMarcos.value = {}
     observacoesMarcos.value = {}
+    observacaoGeralMarcos.value = ''
     for (const registro of response.marcos_desenvolvimento ?? []) {
       const key = `${registro.marco_id}-${registro.idade_coluna_meses}`
       statusMarcos.value[key] = registro.status
       if (registro.observacao?.trim()) {
         observacoesMarcos.value[registro.marco_id] = registro.observacao
+      }
+      if (registro.observacao_geral?.trim()) {
+        observacaoGeralMarcos.value = registro.observacao_geral
       }
     }
     if (Object.values(statusMarcos.value).some(v => v !== null)) {
@@ -1783,6 +1794,7 @@ export const useConsultaStore = defineStore('consulta', () => {
       const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/marcos-desenvolvimento', {
         paciente_id: pacienteId,
         registros,
+        observacao_geral: observacaoGeralMarcos.value,
       })
 
       aplicarConsultaAtiva(data, pacienteId)
@@ -2385,6 +2397,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     const mchatSnapshot = { ...mchatAnswers.value }
     const statusMarcosSnapshot = { ...statusMarcos.value }
     const observacoesMarcosSnapshot = { ...observacoesMarcos.value }
+    const observacaoGeralMarcosSnapshot = observacaoGeralMarcos.value
 
     if (
       secoesVisiveis.has('anthropometric') &&
@@ -2474,6 +2487,7 @@ export const useConsultaStore = defineStore('consulta', () => {
         await postar('/api/consultas/marcos-desenvolvimento', {
           paciente_id: pacienteId,
           registros,
+          observacao_geral: observacaoGeralMarcosSnapshot,
         })
       }
 
@@ -3181,6 +3195,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     startedSections.value = new Set()
     statusMarcos.value = {}
     observacoesMarcos.value = {}
+    observacaoGeralMarcos.value = ''
     classificacaoDesenvolvimento.value = null
     antropometria.value = criarAntropometriaVazia()
     anamnese.value = criarAnamneseVazia()
@@ -3262,6 +3277,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     canGoNext,
     statusMarcos,
     observacoesMarcos,
+    observacaoGeralMarcos,
     classificacaoDesenvolvimento,
     totalMarcosRegistrados,
     iniciarConsulta,
@@ -3323,6 +3339,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     getStatusMarco,
     setObservacaoMarco,
     getObservacaoMarco,
+    setObservacaoGeralMarcos,
     setClassificacao,
     exameFisico,
     avaliadosCount,
