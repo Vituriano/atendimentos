@@ -206,10 +206,17 @@ class ConsultaTriagemNeonatal(Base):
     peso_nascimento_gramas = Column(Integer, nullable=True)
     hipoteses_diagnosticas_anteriores = Column(Text, nullable=True)
 
+    # Teste do pezinho e da orelhinha aceitam múltiplas coletas. Cada coleta é
+    # persistida como um objeto {resultado, data, descricao} dentro de um array
+    # JSON (mesmo padrão de cids_secundarios), evitando uma tabela filha.
+    # As colunas *_resultado/_data/_descricao legadas são mantidas apenas para
+    # leitura retrocompatível de registros anteriores a esta estrutura.
+    teste_pezinho_coletas = Column(Text, nullable=False, default="[]")
     teste_pezinho_resultado = Column(String(32), nullable=True)
     teste_pezinho_data = Column(Date, nullable=True)
     teste_pezinho_descricao = Column(Text, nullable=True)
 
+    teste_orelhinha_coletas = Column(Text, nullable=False, default="[]")
     teste_orelhinha_resultado = Column(String(32), nullable=True)
     teste_orelhinha_data = Column(Date, nullable=True)
     teste_orelhinha_descricao = Column(Text, nullable=True)
@@ -217,6 +224,10 @@ class ConsultaTriagemNeonatal(Base):
     teste_olhinho_resultado = Column(String(32), nullable=True)
     teste_olhinho_data = Column(Date, nullable=True)
     teste_olhinho_descricao = Column(Text, nullable=True)
+
+    teste_fundo_olho_resultado = Column(String(32), nullable=True)
+    teste_fundo_olho_data = Column(Date, nullable=True)
+    teste_fundo_olho_descricao = Column(Text, nullable=True)
 
     teste_coracaozinho_resultado = Column(String(32), nullable=True)
     teste_coracaozinho_data = Column(Date, nullable=True)

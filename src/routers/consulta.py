@@ -222,9 +222,10 @@ class TriagemNeonatalSalvarRequest(BaseModel):
     idade_gestacional_semanas: int | None = Field(default=None, ge=20, le=45)
     peso_nascimento_gramas: int | None = Field(default=None, ge=300, le=7000)
     hipoteses_diagnosticas_anteriores: str = ""
-    teste_pezinho: TesteTriagemNeonatalPayload = Field(default_factory=TesteTriagemNeonatalPayload)
-    teste_orelhinha: TesteTriagemNeonatalPayload = Field(default_factory=TesteTriagemNeonatalPayload)
+    teste_pezinho_coletas: list[TesteTriagemNeonatalPayload] = Field(default_factory=list, max_length=4)
+    teste_orelhinha_coletas: list[TesteTriagemNeonatalPayload] = Field(default_factory=list)
     teste_olhinho: TesteTriagemNeonatalPayload = Field(default_factory=TesteTriagemNeonatalPayload)
+    teste_fundo_olho: TesteTriagemNeonatalPayload = Field(default_factory=TesteTriagemNeonatalPayload)
     teste_coracaozinho: TesteTriagemNeonatalPayload = Field(default_factory=TesteTriagemNeonatalPayload)
 
 
@@ -234,9 +235,10 @@ class TriagemNeonatalResponse(BaseModel):
     idade_gestacional_semanas: int | None
     peso_nascimento_gramas: int | None
     hipoteses_diagnosticas_anteriores: str
-    teste_pezinho: TesteTriagemNeonatalPayload
-    teste_orelhinha: TesteTriagemNeonatalPayload
+    teste_pezinho_coletas: list[TesteTriagemNeonatalPayload]
+    teste_orelhinha_coletas: list[TesteTriagemNeonatalPayload]
     teste_olhinho: TesteTriagemNeonatalPayload
+    teste_fundo_olho: TesteTriagemNeonatalPayload
     teste_coracaozinho: TesteTriagemNeonatalPayload
     atualizado_em: datetime | None
 
@@ -764,6 +766,50 @@ def _teste_triagem_payload(resultado: Any, data: Any, descricao: Any) -> TesteTr
     )
 
 
+def _coletas_triagem_para_json(coletas: list[TesteTriagemNeonatalPayload]) -> str:
+    itens = [
+        {
+            "resultado": _texto(coleta.resultado).strip(),
+            "data": coleta.data.isoformat() if coleta.data else None,
+            "descricao": _texto(coleta.descricao).strip(),
+        }
+        for coleta in coletas
+    ]
+    return json.dumps(itens, ensure_ascii=False)
+
+
+def _carregar_coletas_triagem(
+    coletas_json: Any,
+    resultado_legado: Any,
+    data_legada: Any,
+    descricao_legada: Any,
+) -> list[TesteTriagemNeonatalPayload]:
+    coletas: list[TesteTriagemNeonatalPayload] = []
+    if coletas_json:
+        try:
+            carregado = json.loads(str(coletas_json))
+        except (TypeError, ValueError, json.JSONDecodeError):
+            carregado = []
+        if isinstance(carregado, list):
+            for item in carregado:
+                if not isinstance(item, dict):
+                    continue
+                coletas.append(
+                    _teste_triagem_payload(
+                        item.get("resultado"),
+                        item.get("data") or None,
+                        item.get("descricao"),
+                    )
+                )
+
+    # Retrocompatibilidade: registros anteriores à estrutura de coletas guardam
+    # o resultado numa única coluna escalar; expõe como coleta única.
+    if not coletas and any(_possui_conteudo(v) for v in [resultado_legado, data_legada, descricao_legada]):
+        coletas.append(_teste_triagem_payload(resultado_legado, data_legada, descricao_legada))
+
+    return coletas
+
+
 def _triagem_neonatal_response(registro: ConsultaTriagemNeonatal | None) -> TriagemNeonatalResponse | None:
     if registro is None:
         return None
@@ -774,12 +820,14 @@ def _triagem_neonatal_response(registro: ConsultaTriagemNeonatal | None) -> Tria
         idade_gestacional_semanas=registro.idade_gestacional_semanas,
         peso_nascimento_gramas=registro.peso_nascimento_gramas,
         hipoteses_diagnosticas_anteriores=_texto(registro.hipoteses_diagnosticas_anteriores),
-        teste_pezinho=_teste_triagem_payload(
+        teste_pezinho_coletas=_carregar_coletas_triagem(
+            registro.teste_pezinho_coletas,
             registro.teste_pezinho_resultado,
             registro.teste_pezinho_data,
             registro.teste_pezinho_descricao,
         ),
-        teste_orelhinha=_teste_triagem_payload(
+        teste_orelhinha_coletas=_carregar_coletas_triagem(
+            registro.teste_orelhinha_coletas,
             registro.teste_orelhinha_resultado,
             registro.teste_orelhinha_data,
             registro.teste_orelhinha_descricao,
@@ -788,6 +836,11 @@ def _triagem_neonatal_response(registro: ConsultaTriagemNeonatal | None) -> Tria
             registro.teste_olhinho_resultado,
             registro.teste_olhinho_data,
             registro.teste_olhinho_descricao,
+        ),
+        teste_fundo_olho=_teste_triagem_payload(
+            registro.teste_fundo_olho_resultado,
+            registro.teste_fundo_olho_data,
+            registro.teste_fundo_olho_descricao,
         ),
         teste_coracaozinho=_teste_triagem_payload(
             registro.teste_coracaozinho_resultado,
@@ -801,24 +854,20 @@ def _triagem_neonatal_response(registro: ConsultaTriagemNeonatal | None) -> Tria
 def _triagem_neonatal_possui_conteudo(registro: ConsultaTriagemNeonatal | None) -> bool:
     if registro is None:
         return False
+    response = _triagem_neonatal_response(registro)
+    if response is None:
+        return False
     return any(
         _possui_conteudo(valor)
         for valor in [
-            registro.idade_gestacional_semanas,
-            registro.peso_nascimento_gramas,
-            registro.hipoteses_diagnosticas_anteriores,
-            registro.teste_pezinho_resultado,
-            registro.teste_pezinho_data,
-            registro.teste_pezinho_descricao,
-            registro.teste_orelhinha_resultado,
-            registro.teste_orelhinha_data,
-            registro.teste_orelhinha_descricao,
-            registro.teste_olhinho_resultado,
-            registro.teste_olhinho_data,
-            registro.teste_olhinho_descricao,
-            registro.teste_coracaozinho_resultado,
-            registro.teste_coracaozinho_data,
-            registro.teste_coracaozinho_descricao,
+            response.idade_gestacional_semanas,
+            response.peso_nascimento_gramas,
+            response.hipoteses_diagnosticas_anteriores,
+            response.teste_pezinho_coletas,
+            response.teste_orelhinha_coletas,
+            response.teste_olhinho,
+            response.teste_fundo_olho,
+            response.teste_coracaozinho,
         ]
     )
 
@@ -826,15 +875,19 @@ def _triagem_neonatal_possui_conteudo(registro: ConsultaTriagemNeonatal | None) 
 def _triagem_neonatal_completa(registro: ConsultaTriagemNeonatal | None) -> bool:
     if registro is None:
         return False
-    return all(
-        bool(_texto(resultado).strip())
-        for resultado in [
-            registro.teste_pezinho_resultado,
-            registro.teste_orelhinha_resultado,
-            registro.teste_olhinho_resultado,
-            registro.teste_coracaozinho_resultado,
-        ]
-    )
+    response = _triagem_neonatal_response(registro)
+    if response is None:
+        return False
+    coletas_com_resultado = [
+        any(_texto(coleta.resultado).strip() for coleta in response.teste_pezinho_coletas),
+        any(_texto(coleta.resultado).strip() for coleta in response.teste_orelhinha_coletas),
+    ]
+    unicos_com_resultado = [
+        bool(_texto(response.teste_olhinho.resultado).strip()),
+        bool(_texto(response.teste_fundo_olho.resultado).strip()),
+        bool(_texto(response.teste_coracaozinho.resultado).strip()),
+    ]
+    return all(coletas_com_resultado + unicos_com_resultado)
 
 
 def _encaminhamento_response(registro: ConsultaEncaminhamento) -> EncaminhamentoResponse:
@@ -2200,17 +2253,25 @@ async def salvar_triagem_neonatal(
     registro.peso_nascimento_gramas = body.peso_nascimento_gramas
     registro.hipoteses_diagnosticas_anteriores = body.hipoteses_diagnosticas_anteriores.strip()
 
-    registro.teste_pezinho_resultado = body.teste_pezinho.resultado.strip()
-    registro.teste_pezinho_data = body.teste_pezinho.data
-    registro.teste_pezinho_descricao = body.teste_pezinho.descricao.strip()
-
-    registro.teste_orelhinha_resultado = body.teste_orelhinha.resultado.strip()
-    registro.teste_orelhinha_data = body.teste_orelhinha.data
-    registro.teste_orelhinha_descricao = body.teste_orelhinha.descricao.strip()
+    pezinho_coletas = [c for c in body.teste_pezinho_coletas if _possui_conteudo(c)][:4]
+    orelhinha_coletas = [c for c in body.teste_orelhinha_coletas if _possui_conteudo(c)]
+    registro.teste_pezinho_coletas = _coletas_triagem_para_json(pezinho_coletas)
+    registro.teste_orelhinha_coletas = _coletas_triagem_para_json(orelhinha_coletas)
+    # Zera as colunas escalares legadas: a fonte de verdade agora é o array JSON.
+    registro.teste_pezinho_resultado = None
+    registro.teste_pezinho_data = None
+    registro.teste_pezinho_descricao = None
+    registro.teste_orelhinha_resultado = None
+    registro.teste_orelhinha_data = None
+    registro.teste_orelhinha_descricao = None
 
     registro.teste_olhinho_resultado = body.teste_olhinho.resultado.strip()
     registro.teste_olhinho_data = body.teste_olhinho.data
     registro.teste_olhinho_descricao = body.teste_olhinho.descricao.strip()
+
+    registro.teste_fundo_olho_resultado = body.teste_fundo_olho.resultado.strip()
+    registro.teste_fundo_olho_data = body.teste_fundo_olho.data
+    registro.teste_fundo_olho_descricao = body.teste_fundo_olho.descricao.strip()
 
     registro.teste_coracaozinho_resultado = body.teste_coracaozinho.resultado.strip()
     registro.teste_coracaozinho_data = body.teste_coracaozinho.data
