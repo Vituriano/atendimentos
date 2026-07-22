@@ -268,9 +268,10 @@ export interface DadosTriagemNeonatalConsulta {
   idadeGestacionalSemanas: number | null
   pesoNascimentoGramas: number | null
   hipotesesDiagnosticasAnteriores: string
-  testePezinho: TesteTriagemNeonatal
-  testeOrelhinha: TesteTriagemNeonatal
+  testePezinho: TesteTriagemNeonatal[]
+  testeOrelhinha: TesteTriagemNeonatal[]
   testeOlhinho: TesteTriagemNeonatal
+  testeFundoDeOlho: TesteTriagemNeonatal
   testeCoracaozinho: TesteTriagemNeonatal
   atualizadoEm: string | null
 }
@@ -287,9 +288,10 @@ interface TriagemNeonatalApiResponse {
   idade_gestacional_semanas: number | null
   peso_nascimento_gramas: number | null
   hipoteses_diagnosticas_anteriores: string
-  teste_pezinho: TesteTriagemNeonatalApiPayload
-  teste_orelhinha: TesteTriagemNeonatalApiPayload
+  teste_pezinho_coletas: TesteTriagemNeonatalApiPayload[]
+  teste_orelhinha_coletas: TesteTriagemNeonatalApiPayload[]
   teste_olhinho: TesteTriagemNeonatalApiPayload
+  teste_fundo_olho: TesteTriagemNeonatalApiPayload
   teste_coracaozinho: TesteTriagemNeonatalApiPayload
   atualizado_em: string | null
 }
@@ -477,9 +479,10 @@ function criarTriagemNeonatalVazia(): DadosTriagemNeonatalConsulta {
     idadeGestacionalSemanas: null,
     pesoNascimentoGramas: null,
     hipotesesDiagnosticasAnteriores: '',
-    testePezinho: criarTesteTriagemNeonatalVazio(),
-    testeOrelhinha: criarTesteTriagemNeonatalVazio(),
+    testePezinho: [criarTesteTriagemNeonatalVazio()],
+    testeOrelhinha: [criarTesteTriagemNeonatalVazio()],
     testeOlhinho: criarTesteTriagemNeonatalVazio(),
+    testeFundoDeOlho: criarTesteTriagemNeonatalVazio(),
     testeCoracaozinho: criarTesteTriagemNeonatalVazio(),
     atualizadoEm: null,
   }
@@ -493,17 +496,28 @@ function testeTriagemApiParaStore(apiData: TesteTriagemNeonatalApiPayload): Test
   }
 }
 
+function coletasApiParaStore(coletas: TesteTriagemNeonatalApiPayload[] | undefined): TesteTriagemNeonatal[] {
+  const lista = (coletas ?? []).map(testeTriagemApiParaStore)
+  // Garante ao menos uma coleta editável na tela.
+  return lista.length > 0 ? lista : [criarTesteTriagemNeonatalVazio()]
+}
+
 function triagemNeonatalApiParaStore(apiData: TriagemNeonatalApiResponse): DadosTriagemNeonatalConsulta {
   return {
     idadeGestacionalSemanas: apiData.idade_gestacional_semanas,
     pesoNascimentoGramas: apiData.peso_nascimento_gramas,
     hipotesesDiagnosticasAnteriores: apiData.hipoteses_diagnosticas_anteriores ?? '',
-    testePezinho: testeTriagemApiParaStore(apiData.teste_pezinho),
-    testeOrelhinha: testeTriagemApiParaStore(apiData.teste_orelhinha),
+    testePezinho: coletasApiParaStore(apiData.teste_pezinho_coletas),
+    testeOrelhinha: coletasApiParaStore(apiData.teste_orelhinha_coletas),
     testeOlhinho: testeTriagemApiParaStore(apiData.teste_olhinho),
+    testeFundoDeOlho: testeTriagemApiParaStore(apiData.teste_fundo_olho),
     testeCoracaozinho: testeTriagemApiParaStore(apiData.teste_coracaozinho),
     atualizadoEm: apiData.atualizado_em,
   }
+}
+
+function coletaStoreParaApi(coleta: TesteTriagemNeonatal) {
+  return { ...coleta, data: coleta.data || null }
 }
 
 function triagemNeonatalStoreParaApi(dados: DadosTriagemNeonatalConsulta) {
@@ -511,10 +525,11 @@ function triagemNeonatalStoreParaApi(dados: DadosTriagemNeonatalConsulta) {
     idade_gestacional_semanas: dados.idadeGestacionalSemanas,
     peso_nascimento_gramas: dados.pesoNascimentoGramas,
     hipoteses_diagnosticas_anteriores: dados.hipotesesDiagnosticasAnteriores,
-    teste_pezinho: { ...dados.testePezinho, data: dados.testePezinho.data || null },
-    teste_orelhinha: { ...dados.testeOrelhinha, data: dados.testeOrelhinha.data || null },
-    teste_olhinho: { ...dados.testeOlhinho, data: dados.testeOlhinho.data || null },
-    teste_coracaozinho: { ...dados.testeCoracaozinho, data: dados.testeCoracaozinho.data || null },
+    teste_pezinho_coletas: dados.testePezinho.map(coletaStoreParaApi),
+    teste_orelhinha_coletas: dados.testeOrelhinha.map(coletaStoreParaApi),
+    teste_olhinho: coletaStoreParaApi(dados.testeOlhinho),
+    teste_fundo_olho: coletaStoreParaApi(dados.testeFundoDeOlho),
+    teste_coracaozinho: coletaStoreParaApi(dados.testeCoracaozinho),
   }
 }
 
@@ -523,9 +538,10 @@ function clonarTriagemNeonatal(dados: DadosTriagemNeonatalConsulta): DadosTriage
     idadeGestacionalSemanas: dados.idadeGestacionalSemanas,
     pesoNascimentoGramas: dados.pesoNascimentoGramas,
     hipotesesDiagnosticasAnteriores: dados.hipotesesDiagnosticasAnteriores,
-    testePezinho: { ...dados.testePezinho },
-    testeOrelhinha: { ...dados.testeOrelhinha },
+    testePezinho: dados.testePezinho.map(coleta => ({ ...coleta })),
+    testeOrelhinha: dados.testeOrelhinha.map(coleta => ({ ...coleta })),
     testeOlhinho: { ...dados.testeOlhinho },
+    testeFundoDeOlho: { ...dados.testeFundoDeOlho },
     testeCoracaozinho: { ...dados.testeCoracaozinho },
     atualizadoEm: dados.atualizadoEm,
   }
@@ -2644,31 +2660,29 @@ export const useConsultaStore = defineStore('consulta', () => {
   }
 
 
+  function testeTriagemPossuiConteudo(teste: TesteTriagemNeonatal): boolean {
+    return Boolean(teste.resultado || teste.data || teste.descricao.trim())
+  }
+
   function triagemNeonatalPossuiConteudo(dados: DadosTriagemNeonatalConsulta): boolean {
     return Boolean(
       dados.idadeGestacionalSemanas !== null ||
       dados.pesoNascimentoGramas !== null ||
       dados.hipotesesDiagnosticasAnteriores.trim() ||
-      dados.testePezinho.resultado ||
-      dados.testePezinho.data ||
-      dados.testePezinho.descricao.trim() ||
-      dados.testeOrelhinha.resultado ||
-      dados.testeOrelhinha.data ||
-      dados.testeOrelhinha.descricao.trim() ||
-      dados.testeOlhinho.resultado ||
-      dados.testeOlhinho.data ||
-      dados.testeOlhinho.descricao.trim() ||
-      dados.testeCoracaozinho.resultado ||
-      dados.testeCoracaozinho.data ||
-      dados.testeCoracaozinho.descricao.trim()
+      dados.testePezinho.some(testeTriagemPossuiConteudo) ||
+      dados.testeOrelhinha.some(testeTriagemPossuiConteudo) ||
+      testeTriagemPossuiConteudo(dados.testeOlhinho) ||
+      testeTriagemPossuiConteudo(dados.testeFundoDeOlho) ||
+      testeTriagemPossuiConteudo(dados.testeCoracaozinho)
     )
   }
 
   function triagemNeonatalCompleta(dados: DadosTriagemNeonatalConsulta): boolean {
     return Boolean(
-      dados.testePezinho.resultado &&
-      dados.testeOrelhinha.resultado &&
+      dados.testePezinho.some(coleta => coleta.resultado) &&
+      dados.testeOrelhinha.some(coleta => coleta.resultado) &&
       dados.testeOlhinho.resultado &&
+      dados.testeFundoDeOlho.resultado &&
       dados.testeCoracaozinho.resultado
     )
   }

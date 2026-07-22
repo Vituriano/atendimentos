@@ -13,6 +13,7 @@ import type {
   DadosHipotesesCondutasConsulta,
   DadosProcedimentosConsulta,
   ClassificacaoDesenvolvimento,
+  TesteTriagemNeonatal,
 } from '../stores/consulta'
 import type { StatusMarco, ExameFisico } from '../types/clinica'
 
@@ -43,6 +44,17 @@ function pad(label: string): string {
 
 function v(val: string | null | undefined, fallback = '—'): string {
   return val && val.trim() ? val.trim() : fallback
+}
+
+function coletasTexto(label: string, coletas: TesteTriagemNeonatal[]): string {
+  const preenchidas = coletas.filter(c => c.resultado || c.data || c.descricao.trim())
+  const lista = preenchidas.length > 0 ? preenchidas : coletas.slice(0, 1)
+  return lista
+    .map((coleta, index) => {
+      const nome = lista.length > 1 ? `${label} (${index + 1})` : label
+      return `${nome.padEnd(21)}: ${v(coleta.resultado)} ${coleta.data ? `(${coleta.data})` : ''} ${v(coleta.descricao, '')}\n`
+    })
+    .join('')
 }
 
 function bool(val: boolean | null | undefined): string {
@@ -155,9 +167,8 @@ ${v(p.imunizacoes.statusVacinal, 'Nao informado')}
 --- TRIAGEM NEONATAL --------------------------------
 ${pad('IG ao nascer')}  : ${tn.idadeGestacionalSemanas ? `${tn.idadeGestacionalSemanas} semanas` : '—'}
 ${pad('Peso nasc.')}  : ${tn.pesoNascimentoGramas ? `${tn.pesoNascimentoGramas} g` : '—'}
-${tn.hipotesesDiagnosticasAnteriores ? `Hipoteses diagnosticas anteriores: ${tn.hipotesesDiagnosticasAnteriores}\n` : ''}Teste do Pezinho     : ${v(tn.testePezinho.resultado)} ${tn.testePezinho.data ? `(${tn.testePezinho.data})` : ''} ${v(tn.testePezinho.descricao, '')}
-Teste da Orelhinha   : ${v(tn.testeOrelhinha.resultado)} ${tn.testeOrelhinha.data ? `(${tn.testeOrelhinha.data})` : ''} ${v(tn.testeOrelhinha.descricao, '')}
-Teste do Olhinho     : ${v(tn.testeOlhinho.resultado)} ${tn.testeOlhinho.data ? `(${tn.testeOlhinho.data})` : ''} ${v(tn.testeOlhinho.descricao, '')}
+${tn.hipotesesDiagnosticasAnteriores ? `Hipoteses diagnosticas anteriores: ${tn.hipotesesDiagnosticasAnteriores}\n` : ''}${coletasTexto('Teste do Pezinho', tn.testePezinho)}${coletasTexto('Teste da Orelhinha', tn.testeOrelhinha)}Teste do Olhinho     : ${v(tn.testeOlhinho.resultado)} ${tn.testeOlhinho.data ? `(${tn.testeOlhinho.data})` : ''} ${v(tn.testeOlhinho.descricao, '')}
+Fundo de olho        : ${v(tn.testeFundoDeOlho.resultado)} ${tn.testeFundoDeOlho.data ? `(${tn.testeFundoDeOlho.data})` : ''} ${v(tn.testeFundoDeOlho.descricao, '')}
 Teste do Coracaozinho: ${v(tn.testeCoracaozinho.resultado)} ${tn.testeCoracaozinho.data ? `(${tn.testeCoracaozinho.data})` : ''} ${v(tn.testeCoracaozinho.descricao, '')}
 `
   }
