@@ -359,6 +359,7 @@ export interface DadosDinamicaFamiliarConsulta {
   familiarPreso: boolean | null
   preocupacaoComportamento: boolean | null
   disciplinaOpcoes: string[]
+  disciplinaOutros: string
   atualizadoEm: string | null
 }
 
@@ -374,6 +375,7 @@ interface DinamicaFamiliarApiResponse {
   familiar_preso: boolean | null
   preocupacao_comportamento: boolean | null
   disciplina_opcoes: string[]
+  disciplina_outros: string
   atualizado_em: string | null
 }
 
@@ -650,6 +652,7 @@ function criarDinamicaFamiliarVazia(): DadosDinamicaFamiliarConsulta {
     familiarPreso: null,
     preocupacaoComportamento: null,
     disciplinaOpcoes: [],
+    disciplinaOutros: '',
     atualizadoEm: null,
   }
 }
@@ -665,6 +668,7 @@ function dinamicaFamiliarApiParaStore(apiData: DinamicaFamiliarApiResponse): Dad
     familiarPreso: apiData.familiar_preso,
     preocupacaoComportamento: apiData.preocupacao_comportamento,
     disciplinaOpcoes: [...(apiData.disciplina_opcoes ?? [])],
+    disciplinaOutros: apiData.disciplina_outros ?? '',
     atualizadoEm: apiData.atualizado_em,
   }
 }
@@ -680,6 +684,7 @@ function dinamicaFamiliarStoreParaApi(dados: DadosDinamicaFamiliarConsulta) {
     familiar_preso: dados.familiarPreso,
     preocupacao_comportamento: dados.preocupacaoComportamento,
     disciplina_opcoes: [...dados.disciplinaOpcoes],
+    disciplina_outros: dados.disciplinaOutros,
   }
 }
 
@@ -2819,7 +2824,8 @@ export const useConsultaStore = defineStore('consulta', () => {
       dados.insegurancaAlimentar !== null ||
       dados.familiarPreso !== null ||
       dados.preocupacaoComportamento !== null ||
-      dados.disciplinaOpcoes.length > 0
+      dados.disciplinaOpcoes.length > 0 ||
+      dados.disciplinaOutros.trim()
     )
   }
 

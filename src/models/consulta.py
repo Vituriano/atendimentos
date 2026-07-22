@@ -301,6 +301,7 @@ class ConsultaDinamicaFamiliar(Base):
     familiar_preso = Column(Boolean, nullable=True)
     preocupacao_comportamento = Column(Boolean, nullable=True)
     disciplina_opcoes = Column(Text, nullable=False, default="[]")
+    disciplina_outros = Column(Text, nullable=True)
 
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())

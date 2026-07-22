@@ -114,6 +114,17 @@
             {{ opcao }}
           </label>
         </div>
+
+        <label v-if="dinamica.disciplinaOpcoes.includes('Outros')" class="mt-4 block space-y-2">
+          <span class="text-sm font-medium text-slate-900">Descreva "Outros"</span>
+          <input
+            type="text"
+            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+            placeholder="Descreva a forma de disciplina"
+            :value="dinamica.disciplinaOutros"
+            @input="atualizarCampo('disciplinaOutros', ($event.target as HTMLInputElement).value)"
+          />
+        </label>
       </section>
     </template>
 
