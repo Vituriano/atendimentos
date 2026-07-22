@@ -205,6 +205,16 @@ async function salvarSecao() {
                 >
                   <XMarkIcon class="h-3 w-3" />
                 </button>
+                <button
+                  @click="toggleStatus(marco.id, col, 'not-verified')"
+                  title="Não verificado"
+                  class="w-6 h-6 rounded border flex items-center justify-center transition-colors"
+                  :class="getStatus(marco.id, col) === 'not-verified'
+                    ? 'bg-slate-200 border-slate-500 text-slate-700'
+                    : 'border-teal-200 hover:bg-slate-100'"
+                >
+                  <span class="text-[10px] font-bold leading-none">NV</span>
+                </button>
               </div>
 
               <!-- Célula futura -->

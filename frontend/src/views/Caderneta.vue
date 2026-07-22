@@ -485,12 +485,14 @@ function xLabel(meses: number): string {
 function statusIcone(status: StatusMarco): string {
   if (status === 'confirmed') return '✓'
   if (status === 'not-achieved') return '×'
+  if (status === 'not-verified') return 'NV'
   return '—'
 }
 
 function statusClasse(status: StatusMarco): string {
   if (status === 'confirmed') return 'text-green-600'
   if (status === 'not-achieved') return 'text-red-600'
+  if (status === 'not-verified') return 'text-slate-600'
   return 'text-slate-400'
 }
 

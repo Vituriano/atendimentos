@@ -442,7 +442,7 @@ class DadoExternoResponse(BaseModel):
 class MarcoDesenvolvimentoPayload(BaseModel):
     marco_id: str = Field(..., min_length=1)
     idade_coluna_meses: int = Field(..., ge=0, le=240)
-    status: Literal["confirmed", "not-evaluated", "not-achieved"]
+    status: Literal["confirmed", "not-evaluated", "not-achieved", "not-verified"]
     observacao: str = ""
 
 

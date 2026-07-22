@@ -4,7 +4,7 @@ export type SistemaStatus = 'normal' | 'alterado' | 'nao-avaliado'
 export type TipoAlerta = 'critico' | 'atencao'
 export type CategoriaAlerta = 'peso' | 'marco' | 'encaminhamento' | 'falta' | 'negligencia'
 export type PrioridadeEncaminhamento = 'Eletivo' | 'Prioritário' | 'Urgente'
-export type StatusMarco = 'confirmed' | 'not-evaluated' | 'not-achieved'
+export type StatusMarco = 'confirmed' | 'not-evaluated' | 'not-achieved' | 'not-verified'
 export type StatusVacina = 'aplicada' | 'em-atraso'
 
 export interface Prontuario {
