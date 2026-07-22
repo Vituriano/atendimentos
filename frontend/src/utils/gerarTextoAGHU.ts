@@ -220,11 +220,6 @@ Avaliados nesta consulta:
 --- DIAGNOSTICO -------------------------------------
 ${pad('CID-10 princ.')}  : ${v(p.diagnostico.cid10Principal)}
 `
-  for (const cid of p.diagnostico.cidsSecundarios) {
-    if (cid.codigo) {
-      texto += `CID-10 secund. : ${cid.codigo} - ${cid.descricao}\n`
-    }
-  }
   texto += `${pad('SID')}  : ${v(p.diagnostico.sid, 'nao aplicavel')}
 
 --- HIPOTESES E CONDUTAS ----------------------------

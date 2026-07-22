@@ -408,29 +408,16 @@ interface CondicoesSocioeconomicasApiResponse {
 }
 
 
-export interface CidSecundarioConsulta {
-  localId: string
-  codigo: string
-  descricao: string
-}
-
 export interface DadosDiagnosticoConsulta {
   cid10Principal: string
-  cidsSecundarios: CidSecundarioConsulta[]
   sid: string
   atualizadoEm: string | null
-}
-
-interface DiagnosticoSecundarioApiPayload {
-  codigo: string
-  descricao: string
 }
 
 interface DiagnosticoApiResponse {
   id: number
   consulta_id: number
   cid10_principal: string
-  cids_secundarios: DiagnosticoSecundarioApiPayload[]
   sid: string
   atualizado_em: string | null
 }
@@ -745,18 +732,9 @@ function clonarCondicoesSocioeconomicas(dados: DadosCondicoesSocioeconomicasCons
 }
 
 
-function criarCidSecundarioVazio(): CidSecundarioConsulta {
-  return {
-    localId: `cid-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    codigo: '',
-    descricao: '',
-  }
-}
-
 function criarDiagnosticoVazio(): DadosDiagnosticoConsulta {
   return {
     cid10Principal: '',
-    cidsSecundarios: [],
     sid: '',
     atualizadoEm: null,
   }
@@ -765,11 +743,6 @@ function criarDiagnosticoVazio(): DadosDiagnosticoConsulta {
 function diagnosticoApiParaStore(apiData: DiagnosticoApiResponse): DadosDiagnosticoConsulta {
   return {
     cid10Principal: apiData.cid10_principal ?? '',
-    cidsSecundarios: (apiData.cids_secundarios ?? []).map((item, index) => ({
-      localId: `cid-db-${index}-${item.codigo || 'sem-codigo'}`,
-      codigo: item.codigo ?? '',
-      descricao: item.descricao ?? '',
-    })),
     sid: apiData.sid ?? '',
     atualizadoEm: apiData.atualizado_em,
   }
@@ -778,12 +751,6 @@ function diagnosticoApiParaStore(apiData: DiagnosticoApiResponse): DadosDiagnost
 function diagnosticoStoreParaApi(dados: DadosDiagnosticoConsulta) {
   return {
     cid10_principal: dados.cid10Principal,
-    cids_secundarios: dados.cidsSecundarios
-      .filter(item => item.codigo.trim() || item.descricao.trim())
-      .map(item => ({
-        codigo: item.codigo,
-        descricao: item.descricao,
-      })),
     sid: dados.sid,
   }
 }
@@ -791,7 +758,6 @@ function diagnosticoStoreParaApi(dados: DadosDiagnosticoConsulta) {
 function clonarDiagnostico(dados: DadosDiagnosticoConsulta): DadosDiagnosticoConsulta {
   return {
     cid10Principal: dados.cid10Principal,
-    cidsSecundarios: dados.cidsSecundarios.map(item => ({ ...item })),
     sid: dados.sid,
     atualizadoEm: dados.atualizadoEm,
   }
@@ -2169,7 +2135,6 @@ export const useConsultaStore = defineStore('consulta', () => {
       if (!data.diagnostico) {
         diagnostico.value = {
           ...diagnosticoAntesDoEnvio,
-          cidsSecundarios: diagnosticoAntesDoEnvio.cidsSecundarios.map(item => ({ ...item })),
           atualizadoEm: new Date().toISOString(),
         }
         atualizarStatusDiagnostico()
@@ -2941,8 +2906,7 @@ export const useConsultaStore = defineStore('consulta', () => {
   function diagnosticoPossuiConteudo(dados: DadosDiagnosticoConsulta): boolean {
     return Boolean(
       dados.cid10Principal.trim() ||
-      dados.sid.trim() ||
-      dados.cidsSecundarios.some(item => item.codigo.trim() || item.descricao.trim())
+      dados.sid.trim()
     )
   }
 
@@ -2963,41 +2927,7 @@ export const useConsultaStore = defineStore('consulta', () => {
   ) {
     diagnostico.value = {
       ...diagnostico.value,
-      cidsSecundarios: diagnostico.value.cidsSecundarios.map(item => ({ ...item })),
       [campo]: valor,
-      atualizadoEm: new Date().toISOString(),
-    }
-    atualizarStatusDiagnostico()
-  }
-
-  function adicionarCidSecundario() {
-    diagnostico.value = {
-      ...diagnostico.value,
-      cidsSecundarios: [...diagnostico.value.cidsSecundarios, criarCidSecundarioVazio()],
-      atualizadoEm: new Date().toISOString(),
-    }
-    atualizarStatusDiagnostico()
-  }
-
-  function removerCidSecundario(localId: string) {
-    diagnostico.value = {
-      ...diagnostico.value,
-      cidsSecundarios: diagnostico.value.cidsSecundarios.filter(item => item.localId !== localId),
-      atualizadoEm: new Date().toISOString(),
-    }
-    atualizarStatusDiagnostico()
-  }
-
-  function atualizarCampoCidSecundario<K extends keyof CidSecundarioConsulta>(
-    localId: string,
-    campo: K,
-    valor: CidSecundarioConsulta[K],
-  ) {
-    diagnostico.value = {
-      ...diagnostico.value,
-      cidsSecundarios: diagnostico.value.cidsSecundarios.map(item => (
-        item.localId === localId ? { ...item, [campo]: valor } : item
-      )),
       atualizadoEm: new Date().toISOString(),
     }
     atualizarStatusDiagnostico()
@@ -3374,9 +3304,6 @@ export const useConsultaStore = defineStore('consulta', () => {
     adicionarProcedimento,
     removerProcedimento,
     atualizarCampoProcedimento,
-    adicionarCidSecundario,
-    removerCidSecundario,
-    atualizarCampoCidSecundario,
     alternarOpcaoDisciplina,
     adicionarEncaminhamento,
     removerEncaminhamento,
