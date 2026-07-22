@@ -92,20 +92,6 @@
             @input="atualizarCampo(encaminhamento.localId, 'justificativaClinica', ($event.target as HTMLTextAreaElement).value)"
           />
         </label>
-
-        <div class="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 text-sm font-medium text-teal-700 transition hover:text-teal-800"
-            @click="encaminhamentoSelecionado = encaminhamento"
-          >
-            <PrinterIcon class="h-4 w-4" />
-            Visualizar documento
-          </button>
-          <span class="text-xs text-slate-400">
-            O documento será gerado com os dados desta consulta.
-          </span>
-        </div>
       </section>
     </div>
 
@@ -134,56 +120,20 @@
         </button>
       </div>
     </div>
-
-    <div
-      v-if="encaminhamentoSelecionado"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      @click.self="encaminhamentoSelecionado = null"
-    >
-      <div class="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl">
-        <div class="mb-4 flex items-start justify-between gap-4">
-          <div>
-            <h3 class="text-base font-semibold text-slate-900">Prévia do encaminhamento</h3>
-            <p class="text-sm text-slate-500">Documento gerado com os dados registrados nesta consulta.</p>
-          </div>
-          <button class="text-slate-400 hover:text-slate-600" @click="encaminhamentoSelecionado = null">
-            <XMarkIcon class="h-5 w-5" />
-          </button>
-        </div>
-
-        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700 whitespace-pre-line">
-          {{ textoDocumento(encaminhamentoSelecionado) }}
-        </div>
-
-        <div class="mt-5 flex justify-end gap-3">
-          <button
-            type="button"
-            class="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
-            @click="encaminhamentoSelecionado = null"
-          >
-            Fechar
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import {
   CheckCircleIcon,
   PaperAirplaneIcon,
   PlusIcon,
-  PrinterIcon,
   XMarkIcon,
 } from '@heroicons/vue/24/outline'
 import { useConsultaStore, type EncaminhamentoConsulta, type PrioridadeEncaminhamento } from '../../stores/consulta'
-import { usePacienteStore } from '../../stores/paciente'
 
 const consulta = useConsultaStore()
-const pacienteStore = usePacienteStore()
-const encaminhamentoSelecionado = ref<EncaminhamentoConsulta | null>(null)
 
 const especialidades = [
   'Gastroenterologia',
@@ -224,27 +174,6 @@ function badgePrioridadeClass(prioridade: PrioridadeEncaminhamento) {
   if (prioridade === 'Alta') return 'bg-red-100 text-red-700'
   if (prioridade === 'Média') return 'bg-amber-100 text-amber-800'
   return 'bg-emerald-100 text-emerald-700'
-}
-
-function textoDocumento(encaminhamento: EncaminhamentoConsulta) {
-  const paciente = pacienteStore.pacienteAtivo
-  const nomePaciente = paciente?.nome ?? 'Paciente'
-  const prontuario = paciente?.prontuario ? `Prontuário: ${paciente.prontuario}` : ''
-
-  return [
-    'ENCAMINHAMENTO',
-    '',
-    `Paciente: ${nomePaciente}`,
-    prontuario,
-    `Especialidade: ${encaminhamento.especialidade || 'Não informada'}`,
-    `Prioridade: ${encaminhamento.prioridade}`,
-    '',
-    'Procedimento / Motivo:',
-    encaminhamento.procedimentoMotivo || 'Não informado.',
-    '',
-    'Justificativa clínica:',
-    encaminhamento.justificativaClinica || 'Não informada.',
-  ].filter(Boolean).join('\n')
 }
 
 async function salvar() {
