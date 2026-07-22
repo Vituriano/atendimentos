@@ -218,36 +218,6 @@ async function salvarSecao() {
       </table>
     </div>
 
-    <!-- Legenda -->
-    <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-500 pt-3 border-t border-slate-100">
-      <div class="flex items-center gap-1.5">
-        <div class="w-5 h-5 rounded border bg-green-100 border-green-500 flex items-center justify-center">
-          <CheckIcon class="h-3 w-3 text-green-600" />
-        </div>
-        Confirmado (observado nesta consulta)
-      </div>
-      <div class="flex items-center gap-1.5">
-        <div class="w-5 h-5 rounded border bg-red-100 border-red-500 flex items-center justify-center">
-          <XMarkIcon class="h-3 w-3 text-red-600" />
-        </div>
-        Não atingido (esperado não observado)
-      </div>
-      <div class="flex items-center gap-1.5">
-        <div class="w-5 h-5 rounded border border-slate-200 flex items-center justify-center">
-          <MinusIcon class="h-3 w-3 text-slate-300" />
-        </div>
-        Não avaliado
-      </div>
-      <div class="flex items-center gap-1.5">
-        <div class="w-5 h-5 rounded bg-teal-50 border border-teal-200"></div>
-        Dentro da janela
-      </div>
-      <div class="flex items-center gap-1.5">
-        <div class="w-5 h-5 rounded bg-slate-100 opacity-60"></div>
-        Fora do alcance (futuro)
-      </div>
-    </div>
-
     <!-- Classificação do Desenvolvimento -->
     <hr class="border-slate-200" />
     <div class="space-y-3">
