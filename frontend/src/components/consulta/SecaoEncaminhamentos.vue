@@ -65,11 +65,11 @@
 
           <button
             type="button"
-            class="mt-7 inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600"
-            title="Remover encaminhamento"
+            class="mt-7 inline-flex w-fit items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
             @click="consulta.removerEncaminhamento(encaminhamento.localId)"
           >
-            <XMarkIcon class="h-5 w-5" />
+            <XMarkIcon class="h-4 w-4" />
+            Cancelar interconsulta
           </button>
         </div>
 
