@@ -396,7 +396,7 @@ interface TriagemNeonatalApiResponse {
   atualizado_em: string | null
 }
 
-export type PrioridadeEncaminhamento = 'Eletivo' | 'Prioritário' | 'Urgente'
+export type PrioridadeEncaminhamento = 'Alta' | 'Média' | 'Baixa'
 
 export interface EncaminhamentoConsulta {
   id: number | null
@@ -652,17 +652,34 @@ function criarEncaminhamentoVazio(): EncaminhamentoConsulta {
     id: null,
     localId: `enc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     especialidade: '',
-    prioridade: 'Eletivo',
+    prioridade: 'Média',
     procedimentoMotivo: '',
     justificativaClinica: '',
     atualizadoEm: null,
   }
 }
 
+// Normaliza a prioridade vinda da API, aceitando os valores atuais (Alta/Média/Baixa)
+// e mapeando graciosamente os valores antigos (Eletivo/Prioritário/Urgente) já salvos.
+function normalizarPrioridadeEncaminhamento(valor: string): PrioridadeEncaminhamento {
+  switch (valor) {
+    case 'Alta':
+    case 'Média':
+    case 'Baixa':
+      return valor
+    case 'Urgente':
+      return 'Alta'
+    case 'Prioritário':
+      return 'Média'
+    case 'Eletivo':
+      return 'Baixa'
+    default:
+      return 'Média'
+  }
+}
+
 function encaminhamentoApiParaStore(apiData: EncaminhamentoApiResponse): EncaminhamentoConsulta {
-  const prioridade = ['Eletivo', 'Prioritário', 'Urgente'].includes(apiData.prioridade)
-    ? apiData.prioridade as PrioridadeEncaminhamento
-    : 'Eletivo'
+  const prioridade = normalizarPrioridadeEncaminhamento(apiData.prioridade)
 
   return {
     id: apiData.id,

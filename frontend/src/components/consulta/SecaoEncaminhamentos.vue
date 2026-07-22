@@ -50,9 +50,9 @@
               :value="encaminhamento.prioridade"
               @change="atualizarCampo(encaminhamento.localId, 'prioridade', ($event.target as HTMLSelectElement).value as PrioridadeEncaminhamento)"
             >
-              <option value="Eletivo">Eletivo</option>
-              <option value="Prioritário">Prioritário</option>
-              <option value="Urgente">Urgente</option>
+              <option value="Alta">Alta</option>
+              <option value="Média">Média</option>
+              <option value="Baixa">Baixa</option>
             </select>
           </label>
 
@@ -221,9 +221,9 @@ function atualizarCampo<K extends keyof EncaminhamentoConsulta>(
 }
 
 function badgePrioridadeClass(prioridade: PrioridadeEncaminhamento) {
-  if (prioridade === 'Urgente') return 'bg-red-100 text-red-700'
-  if (prioridade === 'Prioritário') return 'bg-amber-100 text-amber-800'
-  return 'bg-slate-100 text-slate-600'
+  if (prioridade === 'Alta') return 'bg-red-100 text-red-700'
+  if (prioridade === 'Média') return 'bg-amber-100 text-amber-800'
+  return 'bg-emerald-100 text-emerald-700'
 }
 
 function textoDocumento(encaminhamento: EncaminhamentoConsulta) {
