@@ -199,6 +199,10 @@ const especialidades = [
   'Oftalmologia',
   'Ortopedia',
   'Dermatologia',
+  'Hematologia',
+  'Infectologia',
+  'ADI',
+  'Pediátrico',
 ]
 
 const secaoCompleta = computed(() => consulta.completedSections.has('referral'))
