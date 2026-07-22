@@ -82,7 +82,6 @@ export interface AnamneseHabitos {
   sonoAlteracoes: string
   telasDispositivos: string[]
   telasTempoDiario: string
-  telasFrequencia: string
   chupetaChupaDedo: string
   higieneDentaria: string
   atividadesRecreativas: string
@@ -136,7 +135,6 @@ interface AnamneseHabitosApiPayload {
   sono_alteracoes: string
   telas_dispositivos: string[]
   telas_tempo_diario: string
-  telas_frequencia: string
   chupeta_chupa_dedo: string
   higiene_dentaria: string
   atividades_recreativas: string
@@ -967,7 +965,6 @@ function criarAnamneseVazia(): DadosAnamneseConsulta {
       sonoAlteracoes: '',
       telasDispositivos: [],
       telasTempoDiario: '',
-      telasFrequencia: '',
       chupetaChupaDedo: '',
       higieneDentaria: '',
       atividadesRecreativas: '',
@@ -1166,7 +1163,6 @@ function anamneseApiParaStore(apiData: AnamneseApiResponse): DadosAnamneseConsul
       sonoAlteracoes: apiData.habitos.sono_alteracoes ?? '',
       telasDispositivos: [...(apiData.habitos.telas_dispositivos ?? [])],
       telasTempoDiario: apiData.habitos.telas_tempo_diario ?? '',
-      telasFrequencia: apiData.habitos.telas_frequencia ?? '',
       chupetaChupaDedo: apiData.habitos.chupeta_chupa_dedo ?? '',
       higieneDentaria: apiData.habitos.higiene_dentaria ?? '',
       atividadesRecreativas: apiData.habitos.atividades_recreativas ?? '',
@@ -1214,7 +1210,6 @@ function anamneseStoreParaApi(dados: DadosAnamneseConsulta | DadosAnamnesePayloa
       sono_alteracoes: dados.habitos.sonoAlteracoes,
       telas_dispositivos: [...dados.habitos.telasDispositivos],
       telas_tempo_diario: dados.habitos.telasTempoDiario,
-      telas_frequencia: dados.habitos.telasFrequencia,
       chupeta_chupa_dedo: dados.habitos.chupetaChupaDedo,
       higiene_dentaria: dados.habitos.higieneDentaria,
       atividades_recreativas: dados.habitos.atividadesRecreativas,

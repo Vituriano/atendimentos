@@ -60,14 +60,6 @@ const opcoesLocalSono = [
   { value: 'outro', label: 'Outro' },
 ]
 
-const opcoesFrequenciaTelas = [
-  { value: 'todos-dias', label: 'Todos os dias' },
-  { value: '5-6-dias', label: '5-6 dias' },
-  { value: '3-4-dias', label: '3-4 dias' },
-  { value: '1-2-dias', label: '1-2 dias' },
-  { value: 'raramente', label: 'Raramente' },
-]
-
 const dispositivosTela = ['TV', 'Celular', 'Tablet', 'Computador']
 
 const interrogSistemas: SistemaInterrogatorio[] = [
@@ -536,19 +528,6 @@ async function salvarSecao() {
               class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
               @input="setHabitos('telasTempoDiario', valorCampo($event))"
             />
-          </label>
-          <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-900">Frequência semanal</span>
-            <select
-              :value="consultaStore.anamnese.habitos.telasFrequencia"
-              class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-              @change="setHabitos('telasFrequencia', valorCampo($event))"
-            >
-              <option value="">Selecione a frequência</option>
-              <option v-for="opcao in opcoesFrequenciaTelas" :key="opcao.value" :value="opcao.value">
-                {{ opcao.label }}
-              </option>
-            </select>
           </label>
         </div>
       </section>

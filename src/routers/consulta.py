@@ -150,7 +150,6 @@ class AnamneseHabitosPayload(BaseModel):
     sono_alteracoes: str = ""
     telas_dispositivos: list[str] = Field(default_factory=list)
     telas_tempo_diario: str = ""
-    telas_frequencia: str = ""
     chupeta_chupa_dedo: str = ""
     higiene_dentaria: str = ""
     atividades_recreativas: str = ""
@@ -684,7 +683,6 @@ def _anamnese_payload(registro: ConsultaAnamnese) -> tuple[AnamneseClinicaPayloa
         sono_alteracoes=_texto(registro.habitos_sono_alteracoes),
         telas_dispositivos=_carregar_lista_json(registro.habitos_telas_dispositivos),
         telas_tempo_diario=_texto(registro.habitos_telas_tempo_diario),
-        telas_frequencia=_texto(registro.habitos_telas_frequencia),
         chupeta_chupa_dedo=_texto(registro.habitos_chupeta_chupa_dedo),
         higiene_dentaria=_texto(registro.habitos_higiene_dentaria),
         atividades_recreativas=_texto(registro.habitos_atividades_recreativas),
@@ -2187,7 +2185,6 @@ async def salvar_anamnese(
     registro.habitos_sono_alteracoes = habitos.sono_alteracoes.strip()
     registro.habitos_telas_dispositivos = _salvar_lista_json(habitos.telas_dispositivos)
     registro.habitos_telas_tempo_diario = habitos.telas_tempo_diario.strip()
-    registro.habitos_telas_frequencia = habitos.telas_frequencia.strip()
     registro.habitos_chupeta_chupa_dedo = habitos.chupeta_chupa_dedo.strip()
     registro.habitos_higiene_dentaria = habitos.higiene_dentaria.strip()
     registro.habitos_atividades_recreativas = habitos.atividades_recreativas.strip()

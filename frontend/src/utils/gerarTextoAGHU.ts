@@ -150,7 +150,6 @@ Sono:
 Telas:
   Dispositivos: ${p.anamnese.habitos.telasDispositivos.length > 0 ? p.anamnese.habitos.telasDispositivos.join(', ') : '—'}
   Tempo diario: ${v(p.anamnese.habitos.telasTempoDiario)}
-  Frequencia: ${v(p.anamnese.habitos.telasFrequencia)}
 
 Outros:
   Chupeta/chupa-dedo: ${v(p.anamnese.habitos.chupetaChupaDedo)}
