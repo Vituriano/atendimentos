@@ -129,6 +129,7 @@ class AnamneseClinicaPayload(BaseModel):
     medicacoes_rotina: str = ""
     exames_complementares: str = ""
     antecedentes_doencas: str = ""
+    acompanhamentos: str = ""
 
 
 class AnamneseAlimentacaoPayload(BaseModel):
@@ -664,6 +665,7 @@ def _anamnese_payload(registro: ConsultaAnamnese) -> tuple[AnamneseClinicaPayloa
         medicacoes_rotina=_texto(registro.clinica_medicacoes_rotina),
         exames_complementares=_texto(registro.clinica_exames_complementares),
         antecedentes_doencas=_texto(registro.clinica_antecedentes_doencas),
+        acompanhamentos=_texto(registro.clinica_acompanhamentos),
     )
     alimentacao = AnamneseAlimentacaoPayload(
         tipo_aleitamento=_texto(registro.alimentacao_tipo_aleitamento),
@@ -2166,6 +2168,7 @@ async def salvar_anamnese(
     registro.clinica_medicacoes_rotina = clinica.medicacoes_rotina.strip()
     registro.clinica_exames_complementares = clinica.exames_complementares.strip()
     registro.clinica_antecedentes_doencas = clinica.antecedentes_doencas.strip()
+    registro.clinica_acompanhamentos = clinica.acompanhamentos.strip()
 
     alimentacao = body.alimentacao
     registro.alimentacao_tipo_aleitamento = alimentacao.tipo_aleitamento.strip()

@@ -347,6 +347,17 @@ async function salvarSecao() {
             @input="setClinica('examesComplementares', valorCampo($event))"
           />
         </label>
+
+        <label class="block space-y-2">
+          <span class="text-sm font-medium text-slate-900">Acompanhamentos</span>
+          <textarea
+            :value="consultaStore.anamnese.clinica.acompanhamentos"
+            rows="3"
+            placeholder="Ex: Acompanhamento com neuropediatra desde 2024; fonoaudiologia semanal"
+            class="w-full resize-y rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+            @input="setClinica('acompanhamentos', valorCampo($event))"
+          />
+        </label>
       </section>
     </template>
 

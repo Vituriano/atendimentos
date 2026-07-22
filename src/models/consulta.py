@@ -164,6 +164,7 @@ class ConsultaAnamnese(Base):
     clinica_medicacoes_rotina = Column(Text, nullable=True)
     clinica_exames_complementares = Column(Text, nullable=True)
     clinica_antecedentes_doencas = Column(Text, nullable=True)
+    clinica_acompanhamentos = Column(Text, nullable=True)
 
     alimentacao_tipo_aleitamento = Column(Text, nullable=True)
     alimentacao_cardapio_cafe = Column(Text, nullable=True)

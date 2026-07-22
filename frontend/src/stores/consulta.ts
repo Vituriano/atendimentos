@@ -61,6 +61,7 @@ export interface AnamneseClinica {
   medicacoesRotina: string
   examesComplementares: string
   antecedentesDoencas: string
+  acompanhamentos: string
 }
 
 export interface AnamneseAlimentacao {
@@ -114,6 +115,7 @@ interface AnamneseClinicaApiPayload {
   medicacoes_rotina: string
   exames_complementares: string
   antecedentes_doencas: string
+  acompanhamentos: string
 }
 
 interface AnamneseAlimentacaoApiPayload {
@@ -946,6 +948,7 @@ function criarAnamneseVazia(): DadosAnamneseConsulta {
       medicacoesRotina: '',
       examesComplementares: '',
       antecedentesDoencas: '',
+      acompanhamentos: '',
     },
     alimentacao: {
       tipoAleitamento: '',
@@ -1144,6 +1147,7 @@ function anamneseApiParaStore(apiData: AnamneseApiResponse): DadosAnamneseConsul
       medicacoesRotina: apiData.clinica.medicacoes_rotina ?? '',
       examesComplementares: apiData.clinica.exames_complementares ?? '',
       antecedentesDoencas: apiData.clinica.antecedentes_doencas ?? '',
+      acompanhamentos: apiData.clinica.acompanhamentos ?? '',
     },
     alimentacao: {
       tipoAleitamento: apiData.alimentacao.tipo_aleitamento ?? '',
@@ -1191,6 +1195,7 @@ function anamneseStoreParaApi(dados: DadosAnamneseConsulta | DadosAnamnesePayloa
       medicacoes_rotina: dados.clinica.medicacoesRotina,
       exames_complementares: dados.clinica.examesComplementares,
       antecedentes_doencas: dados.clinica.antecedentesDoencas,
+      acompanhamentos: dados.clinica.acompanhamentos,
     },
     alimentacao: {
       tipo_aleitamento: dados.alimentacao.tipoAleitamento,
