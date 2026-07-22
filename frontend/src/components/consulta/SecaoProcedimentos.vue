@@ -38,7 +38,7 @@
         <button
           type="button"
           class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
-          @click="consulta.adicionarProcedimento()"
+          @click="adicionarProcedimento()"
         >
           <PlusIcon class="h-4 w-4" />
           Adicionar procedimento
@@ -50,22 +50,43 @@
       </div>
 
       <article
-        v-for="item in procedimentos.procedimentos"
+        v-for="item in pilha"
         :key="item.localId"
-        class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+        class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200"
       >
-        <div class="mb-3 flex items-start justify-between gap-3">
-          <p class="text-sm font-semibold text-slate-900">Procedimento</p>
-          <button
-            type="button"
-            class="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-            title="Remover procedimento"
-            @click="consulta.removerProcedimento(item.localId)"
-          >
-            <XMarkIcon class="h-5 w-5" />
-          </button>
+        <div class="flex items-start justify-between gap-3" :class="estaMinimizado(item.localId) ? '' : 'mb-3'">
+          <div class="flex min-w-0 items-center gap-2">
+            <p class="text-sm font-semibold text-slate-900">Procedimento</p>
+            <span
+              v-if="estaMinimizado(item.localId) && resumoProcedimento(item)"
+              class="truncate text-sm text-slate-500"
+            >
+              {{ resumoProcedimento(item) }}
+            </span>
+          </div>
+          <div class="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              class="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              :title="estaMinimizado(item.localId) ? 'Expandir' : 'Minimizar'"
+              :aria-label="estaMinimizado(item.localId) ? 'Expandir' : 'Minimizar'"
+              @click="alternarMinimizado(item.localId)"
+            >
+              <ChevronDownIcon v-if="estaMinimizado(item.localId)" class="h-5 w-5" />
+              <ChevronUpIcon v-else class="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              class="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              title="Remover procedimento"
+              @click="consulta.removerProcedimento(item.localId)"
+            >
+              <XMarkIcon class="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
+        <template v-if="!estaMinimizado(item.localId)">
         <div class="grid gap-4 lg:grid-cols-[1fr_90px_1fr]">
           <label class="space-y-1">
             <span class="text-xs font-medium text-slate-700">Procedimento</span>
@@ -115,6 +136,7 @@
             @input="atualizarCampo(item.localId, 'observacoes', ($event.target as HTMLTextAreaElement).value)"
           />
         </label>
+        </template>
       </article>
     </template>
 
@@ -146,14 +168,28 @@
 import { computed } from 'vue'
 import {
   CheckCircleIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
   InformationCircleIcon,
   PlusIcon,
   XMarkIcon,
 } from '@heroicons/vue/24/outline'
 import { useConsultaStore, type ProcedimentoConsulta } from '../../stores/consulta'
+import { usePilha } from '../../composables/usePilha'
 
 const consulta = useConsultaStore()
 const procedimentos = computed(() => consulta.procedimentos)
+
+const listaProcedimentos = computed<ProcedimentoConsulta[]>(() => procedimentos.value.procedimentos)
+
+// Comportamento de pilha (igual ao Exame Físico): o procedimento adicionado/editado
+// por último sobe para o topo e os demais preenchidos são colapsados. Reusa o
+// composable genérico usePilha, ordenando por localId.
+const { pilha, promover, estaMinimizado, alternarMinimizado } = usePilha<ProcedimentoConsulta>({
+  itens: listaProcedimentos,
+  getId: item => item.localId,
+  estaPreenchido: item => Boolean(item.procedimento.trim()),
+})
 
 const opcoesProcedimento = [
   'Nebulização',
@@ -188,17 +224,34 @@ function alternarRealizados() {
   consulta.atualizarRealizadosProcedimentos(procedimentos.value.realizados !== true)
 }
 
+function adicionarProcedimento() {
+  consulta.adicionarProcedimento()
+  const criado = listaProcedimentos.value.at(-1)
+  if (criado) {
+    promover(criado.localId)
+  }
+}
+
 function atualizarCampo<K extends keyof ProcedimentoConsulta>(
   localId: string,
   campo: K,
   valor: ProcedimentoConsulta[K],
 ) {
   consulta.atualizarCampoProcedimento(localId, campo, valor)
+  promover(localId)
 }
 
 function atualizarQuantidade(localId: string, valor: string) {
   const numero = valor === '' ? null : Number(valor)
   consulta.atualizarCampoProcedimento(localId, 'quantidade', Number.isFinite(numero) ? numero : null)
+  promover(localId)
+}
+
+// Resumo exibido no cabeçalho quando o card está minimizado.
+function resumoProcedimento(item: ProcedimentoConsulta): string {
+  const nome = item.procedimento.trim()
+  if (!nome) return ''
+  return item.quantidade && item.quantidade > 0 ? `${nome} — ${item.quantidade}x` : nome
 }
 
 async function salvar() {
