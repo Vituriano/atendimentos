@@ -360,6 +360,7 @@ export interface DadosDinamicaFamiliarConsulta {
   preocupacaoComportamento: boolean | null
   disciplinaOpcoes: string[]
   disciplinaOutros: string
+  observacoes: Record<string, string>
   atualizadoEm: string | null
 }
 
@@ -376,6 +377,7 @@ interface DinamicaFamiliarApiResponse {
   preocupacao_comportamento: boolean | null
   disciplina_opcoes: string[]
   disciplina_outros: string
+  observacoes: Record<string, string>
   atualizado_em: string | null
 }
 
@@ -653,6 +655,7 @@ function criarDinamicaFamiliarVazia(): DadosDinamicaFamiliarConsulta {
     preocupacaoComportamento: null,
     disciplinaOpcoes: [],
     disciplinaOutros: '',
+    observacoes: {},
     atualizadoEm: null,
   }
 }
@@ -669,6 +672,7 @@ function dinamicaFamiliarApiParaStore(apiData: DinamicaFamiliarApiResponse): Dad
     preocupacaoComportamento: apiData.preocupacao_comportamento,
     disciplinaOpcoes: [...(apiData.disciplina_opcoes ?? [])],
     disciplinaOutros: apiData.disciplina_outros ?? '',
+    observacoes: { ...(apiData.observacoes ?? {}) },
     atualizadoEm: apiData.atualizado_em,
   }
 }
@@ -685,6 +689,7 @@ function dinamicaFamiliarStoreParaApi(dados: DadosDinamicaFamiliarConsulta) {
     preocupacao_comportamento: dados.preocupacaoComportamento,
     disciplina_opcoes: [...dados.disciplinaOpcoes],
     disciplina_outros: dados.disciplinaOutros,
+    observacoes: { ...dados.observacoes },
   }
 }
 
@@ -692,6 +697,7 @@ function clonarDinamicaFamiliar(dados: DadosDinamicaFamiliarConsulta): DadosDina
   return {
     ...dados,
     disciplinaOpcoes: [...dados.disciplinaOpcoes],
+    observacoes: { ...dados.observacoes },
   }
 }
 
@@ -2825,7 +2831,8 @@ export const useConsultaStore = defineStore('consulta', () => {
       dados.familiarPreso !== null ||
       dados.preocupacaoComportamento !== null ||
       dados.disciplinaOpcoes.length > 0 ||
-      dados.disciplinaOutros.trim()
+      dados.disciplinaOutros.trim() ||
+      Object.keys(dados.observacoes).length > 0
     )
   }
 
@@ -2877,6 +2884,22 @@ export const useConsultaStore = defineStore('consulta', () => {
       opcoes.add(opcao)
     }
     atualizarCampoDinamicaFamiliar('disciplinaOpcoes', Array.from(opcoes))
+  }
+
+  function atualizarObservacaoDinamica(campo: string, texto: string) {
+    const observacoes = { ...dinamicaFamiliar.value.observacoes }
+    if (texto.trim()) {
+      observacoes[campo] = texto
+    } else {
+      delete observacoes[campo]
+    }
+    dinamicaFamiliar.value = {
+      ...dinamicaFamiliar.value,
+      observacoes,
+      disciplinaOpcoes: [...dinamicaFamiliar.value.disciplinaOpcoes],
+      atualizadoEm: new Date().toISOString(),
+    }
+    atualizarStatusDinamicaFamiliar()
   }
 
 
@@ -3335,6 +3358,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     removerProcedimento,
     atualizarCampoProcedimento,
     alternarOpcaoDisciplina,
+    atualizarObservacaoDinamica,
     adicionarEncaminhamento,
     removerEncaminhamento,
     atualizarCampoEncaminhamento,

@@ -90,6 +90,14 @@
               Não
             </label>
           </div>
+
+          <input
+            type="text"
+            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 md:col-span-2"
+            placeholder="Observação (opcional)"
+            :value="dinamica.observacoes[pergunta.campo] ?? ''"
+            @input="consulta.atualizarObservacaoDinamica(pergunta.campo, ($event.target as HTMLInputElement).value)"
+          />
         </div>
       </section>
 

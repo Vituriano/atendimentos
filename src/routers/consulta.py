@@ -307,6 +307,7 @@ class DinamicaFamiliarSalvarRequest(BaseModel):
     preocupacao_comportamento: bool | None = None
     disciplina_opcoes: list[str] = Field(default_factory=list)
     disciplina_outros: str = ""
+    observacoes: dict[str, str] = Field(default_factory=dict)
 
 
 class DinamicaFamiliarResponse(BaseModel):
@@ -322,6 +323,7 @@ class DinamicaFamiliarResponse(BaseModel):
     preocupacao_comportamento: bool | None
     disciplina_opcoes: list[str]
     disciplina_outros: str
+    observacoes: dict[str, str]
     atualizado_em: datetime | None
 
 
@@ -1001,6 +1003,7 @@ def _dinamica_familiar_response(registro: ConsultaDinamicaFamiliar | None) -> Di
         preocupacao_comportamento=registro.preocupacao_comportamento,
         disciplina_opcoes=_carregar_lista_json(registro.disciplina_opcoes),
         disciplina_outros=_texto(registro.disciplina_outros),
+        observacoes=_carregar_dict_json(registro.observacoes),
         atualizado_em=registro.updated_at,
     )
 
@@ -1021,6 +1024,7 @@ def _dinamica_familiar_possui_conteudo(registro: ConsultaDinamicaFamiliar | None
             registro.preocupacao_comportamento,
             _carregar_lista_json(registro.disciplina_opcoes),
             registro.disciplina_outros,
+            _carregar_dict_json(registro.observacoes),
         ]
     )
 
@@ -2419,6 +2423,7 @@ async def salvar_dinamica_familiar(
     registro.preocupacao_comportamento = body.preocupacao_comportamento
     registro.disciplina_opcoes = _salvar_lista_json(body.disciplina_opcoes)
     registro.disciplina_outros = body.disciplina_outros.strip()
+    registro.observacoes = _salvar_dict_json(body.observacoes)
     registro.updated_at = datetime.utcnow()
 
     await db.flush()
