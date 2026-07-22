@@ -13,74 +13,48 @@
 
     <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">CID-10 Principal <span class="text-red-500">*</span></label>
-      <input
-        :value="diagnostico.cid10Principal"
-        type="text"
-        class="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 shadow-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-        placeholder="Ex: Z00.1 — Exame médico geral do lactente"
-        @input="consulta.atualizarCampoDiagnostico('cid10Principal', ($event.target as HTMLInputElement).value)"
-      />
+      <div ref="autocompleteRef" class="relative mt-3">
+        <input
+          v-model="termoBusca"
+          type="text"
+          role="combobox"
+          aria-autocomplete="list"
+          :aria-expanded="listaAberta"
+          class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 shadow-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+          placeholder="Digite código ou descrição. Ex: Z00.1 ou resfriado"
+          @input="aoDigitar"
+          @focus="abrirLista"
+          @keydown="aoTeclar"
+        />
+        <ul
+          v-if="listaAberta && sugestoes.length"
+          class="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+        >
+          <li
+            v-for="(item, index) in sugestoes"
+            :key="item.codigo"
+            :class="[
+              'cursor-pointer px-3 py-2 text-sm',
+              index === indiceDestacado ? 'bg-teal-50 text-teal-800' : 'text-slate-700 hover:bg-slate-50',
+            ]"
+            @mousedown.prevent="selecionarCid(item)"
+            @mouseenter="indiceDestacado = index"
+          >
+            <span class="font-semibold">{{ item.codigo }}</span>
+            <span class="text-slate-400"> — </span>
+            <span>{{ item.descricao }}</span>
+          </li>
+        </ul>
+        <p
+          v-else-if="listaAberta && termoBusca.trim().length > 0"
+          class="absolute z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500 shadow-lg"
+        >
+          Nenhum CID encontrado na lista inicial. O texto digitado será mantido como diagnóstico.
+        </p>
+      </div>
       <p class="mt-2 text-xs text-slate-500">
         O CID-10 é obrigatório para encaminhamentos, laudos e faturamento.
       </p>
-    </div>
-
-    <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div class="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <h3 class="text-sm font-semibold text-slate-900">CIDs Secundários</h3>
-          <p class="text-xs text-slate-500">Registre diagnósticos associados, se houver.</p>
-        </div>
-        <button
-          class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          type="button"
-          @click="consulta.adicionarCidSecundario()"
-        >
-          <PlusIcon class="h-4 w-4" />
-          Adicionar CID secundário
-        </button>
-      </div>
-
-      <div v-if="diagnostico.cidsSecundarios.length" class="space-y-2">
-        <div
-          v-for="item in diagnostico.cidsSecundarios"
-          :key="item.localId"
-          class="grid grid-cols-[120px_1fr_auto] gap-2"
-        >
-          <input
-            :value="item.codigo"
-            type="text"
-            class="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 shadow-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-            placeholder="Código"
-            @input="consulta.atualizarCampoCidSecundario(item.localId, 'codigo', ($event.target as HTMLInputElement).value)"
-          />
-          <input
-            :value="item.descricao"
-            type="text"
-            class="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 shadow-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-            placeholder="Descrição"
-            @input="consulta.atualizarCampoCidSecundario(item.localId, 'descricao', ($event.target as HTMLInputElement).value)"
-          />
-          <button
-            class="rounded-lg px-2 text-slate-400 hover:bg-slate-50 hover:text-slate-600"
-            type="button"
-            title="Remover CID secundário"
-            @click="consulta.removerCidSecundario(item.localId)"
-          >
-            <XMarkIcon class="h-5 w-5" />
-          </button>
-        </div>
-      </div>
-
-      <button
-        v-else
-        class="inline-flex items-center gap-2 text-sm font-medium text-teal-700 hover:text-teal-800"
-        type="button"
-        @click="consulta.adicionarCidSecundario()"
-      >
-        <PlusIcon class="h-4 w-4" />
-        Adicionar CID secundário
-      </button>
     </div>
 
     <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -134,22 +108,110 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { DocumentTextIcon, PlusIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { DocumentTextIcon } from '@heroicons/vue/24/outline'
 import { useConsultaStore } from '../../stores/consulta'
+import { cid10Starter, type ItemCID10 } from '../../data/cid10'
 
 const consulta = useConsultaStore()
 const mensagemSucesso = ref('')
 
 const diagnostico = computed(() => consulta.diagnostico)
 
+const termoBusca = ref(diagnostico.value.cid10Principal)
+const listaAberta = ref(false)
+const indiceDestacado = ref(-1)
+const autocompleteRef = ref<HTMLElement | null>(null)
+
+const LIMITE_SUGESTOES = 8
+
+// Mantém o campo sincronizado quando o diagnóstico é carregado do backend.
+watch(() => diagnostico.value.cid10Principal, (novoValor) => {
+  if (novoValor !== termoBusca.value) {
+    termoBusca.value = novoValor
+  }
+})
+
+const sugestoes = computed<ItemCID10[]>(() => {
+  const termo = termoBusca.value.trim().toLowerCase()
+  if (!termo) {
+    return cid10Starter.slice(0, LIMITE_SUGESTOES)
+  }
+  return cid10Starter
+    .filter(item => (
+      item.codigo.toLowerCase().includes(termo) ||
+      item.descricao.toLowerCase().includes(termo)
+    ))
+    .slice(0, LIMITE_SUGESTOES)
+})
+
 const possuiDiagnosticoRegistrado = computed(() => (
   diagnostico.value.cid10Principal.trim().length > 0 ||
-  diagnostico.value.sid.trim().length > 0 ||
-  diagnostico.value.cidsSecundarios.some(item => item.codigo.trim() || item.descricao.trim())
+  diagnostico.value.sid.trim().length > 0
 ))
 
 const diagnosticoCompleto = computed(() => diagnostico.value.cid10Principal.trim().length > 0)
+
+function abrirLista() {
+  listaAberta.value = true
+  indiceDestacado.value = -1
+}
+
+function aoDigitar() {
+  listaAberta.value = true
+  indiceDestacado.value = -1
+  consulta.atualizarCampoDiagnostico('cid10Principal', termoBusca.value)
+}
+
+function selecionarCid(item: ItemCID10) {
+  const texto = `${item.codigo} — ${item.descricao}`
+  termoBusca.value = texto
+  consulta.atualizarCampoDiagnostico('cid10Principal', texto)
+  listaAberta.value = false
+  indiceDestacado.value = -1
+}
+
+function aoTeclar(evento: KeyboardEvent) {
+  if (evento.key === 'ArrowDown') {
+    evento.preventDefault()
+    if (!listaAberta.value) {
+      listaAberta.value = true
+    }
+    if (sugestoes.value.length) {
+      indiceDestacado.value = (indiceDestacado.value + 1) % sugestoes.value.length
+    }
+  } else if (evento.key === 'ArrowUp') {
+    evento.preventDefault()
+    if (sugestoes.value.length) {
+      indiceDestacado.value = indiceDestacado.value <= 0
+        ? sugestoes.value.length - 1
+        : indiceDestacado.value - 1
+    }
+  } else if (evento.key === 'Enter') {
+    if (listaAberta.value && indiceDestacado.value >= 0 && sugestoes.value[indiceDestacado.value]) {
+      evento.preventDefault()
+      selecionarCid(sugestoes.value[indiceDestacado.value])
+    }
+  } else if (evento.key === 'Escape') {
+    listaAberta.value = false
+    indiceDestacado.value = -1
+  }
+}
+
+function aoClicarFora(evento: MouseEvent) {
+  if (autocompleteRef.value && !autocompleteRef.value.contains(evento.target as Node)) {
+    listaAberta.value = false
+    indiceDestacado.value = -1
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('mousedown', aoClicarFora)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('mousedown', aoClicarFora)
+})
 
 async function salvar() {
   mensagemSucesso.value = ''
