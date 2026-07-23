@@ -15,7 +15,7 @@
       <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Hipóteses Diagnósticas</label>
       <textarea
         :value="dados.hipotesesDiagnosticas"
-        class="mt-3 min-h-24 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+        class="mt-3 min-h-48 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
         placeholder="Ex: 1. Asma brônquica (J45). 2. DRGE associada. 3. Rinite alérgica a investigar."
         @input="consulta.atualizarCampoHipotesesCondutas('hipotesesDiagnosticas', ($event.target as HTMLTextAreaElement).value)"
       />
@@ -28,7 +28,7 @@
       <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Condutas e Plano de Cuidado</label>
       <textarea
         :value="dados.condutasPlanoCuidado"
-        class="mt-3 min-h-24 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+        class="mt-3 min-h-48 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
         placeholder="Ex: 1. Manter dieta habitual. 2. Retorno em 30 dias. 3. Azitromicina 10mg/kg/dia por 3 dias. 4. Encaminhar Pneumologia."
         @input="consulta.atualizarCampoHipotesesCondutas('condutasPlanoCuidado', ($event.target as HTMLTextAreaElement).value)"
       />
