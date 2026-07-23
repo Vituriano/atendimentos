@@ -410,7 +410,6 @@ interface CondicoesSocioeconomicasApiResponse {
 
 export interface DadosDiagnosticoConsulta {
   cid10Principal: string
-  sid: string
   atualizadoEm: string | null
 }
 
@@ -418,7 +417,6 @@ interface DiagnosticoApiResponse {
   id: number
   consulta_id: number
   cid10_principal: string
-  sid: string
   atualizado_em: string | null
 }
 
@@ -735,7 +733,6 @@ function clonarCondicoesSocioeconomicas(dados: DadosCondicoesSocioeconomicasCons
 function criarDiagnosticoVazio(): DadosDiagnosticoConsulta {
   return {
     cid10Principal: '',
-    sid: '',
     atualizadoEm: null,
   }
 }
@@ -743,7 +740,6 @@ function criarDiagnosticoVazio(): DadosDiagnosticoConsulta {
 function diagnosticoApiParaStore(apiData: DiagnosticoApiResponse): DadosDiagnosticoConsulta {
   return {
     cid10Principal: apiData.cid10_principal ?? '',
-    sid: apiData.sid ?? '',
     atualizadoEm: apiData.atualizado_em,
   }
 }
@@ -751,14 +747,12 @@ function diagnosticoApiParaStore(apiData: DiagnosticoApiResponse): DadosDiagnost
 function diagnosticoStoreParaApi(dados: DadosDiagnosticoConsulta) {
   return {
     cid10_principal: dados.cid10Principal,
-    sid: dados.sid,
   }
 }
 
 function clonarDiagnostico(dados: DadosDiagnosticoConsulta): DadosDiagnosticoConsulta {
   return {
     cid10Principal: dados.cid10Principal,
-    sid: dados.sid,
     atualizadoEm: dados.atualizadoEm,
   }
 }
@@ -2904,10 +2898,7 @@ export const useConsultaStore = defineStore('consulta', () => {
 
 
   function diagnosticoPossuiConteudo(dados: DadosDiagnosticoConsulta): boolean {
-    return Boolean(
-      dados.cid10Principal.trim() ||
-      dados.sid.trim()
-    )
+    return Boolean(dados.cid10Principal.trim())
   }
 
   function diagnosticoCompleto(dados: DadosDiagnosticoConsulta): boolean {

@@ -58,25 +58,6 @@
     </div>
 
     <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div class="mb-3 flex items-center gap-2">
-        <label class="text-sm font-semibold text-slate-900">SID</label>
-        <span
-          class="inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 text-[10px] font-bold text-slate-500"
-          title="Preencha o código SID quando aplicável à instituição."
-        >
-          i
-        </span>
-      </div>
-      <input
-        :value="diagnostico.sid"
-        type="text"
-        class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 shadow-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-        placeholder="Código SID, se aplicável"
-        @input="consulta.atualizarCampoDiagnostico('sid', ($event.target as HTMLInputElement).value)"
-      />
-    </div>
-
-    <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p v-if="diagnosticoCompleto" class="text-sm font-medium text-teal-700">
@@ -146,8 +127,7 @@ const sugestoes = computed<ItemCID10[]>(() => {
 })
 
 const possuiDiagnosticoRegistrado = computed(() => (
-  diagnostico.value.cid10Principal.trim().length > 0 ||
-  diagnostico.value.sid.trim().length > 0
+  diagnostico.value.cid10Principal.trim().length > 0
 ))
 
 const diagnosticoCompleto = computed(() => diagnostico.value.cid10Principal.trim().length > 0)
