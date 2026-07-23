@@ -25,12 +25,6 @@
       >
         Selecionar todos
       </button>
-      <button
-        @click="limparSelecao"
-        class="text-sm font-medium text-slate-700 transition-colors hover:text-slate-900"
-      >
-        Limpar seleção
-      </button>
     </div>
 
     <div
@@ -46,24 +40,27 @@
 
     <div v-else class="grid gap-4">
       <SistemaExame
-        v-for="id in sistemasSelecionados"
-        :key="id"
-        :id="id"
-        :label="getSistemaLabel(id)"
-        :icon="getSistemaIcon(id)"
-        :system="consultaStore.exameFisico[id as keyof ExameFisico] || { status: '', descricao: '' }"
+        v-for="item in pilha"
+        :key="item.id"
+        :id="item.id"
+        :label="getSistemaLabel(item.id)"
+        :icon="getSistemaIcon(item.id)"
+        :minimizado="estaMinimizado(item.id)"
+        :system="consultaStore.exameFisico[item.id] || { status: '', descricao: '' }"
         @update-status="updateStatus"
         @update-descricao="updateDescricao"
-        @remove="toggleSistema(id)"
+        @toggle-minimizar="alternarMinimizado(item.id)"
+        @remove="toggleSistema(item.id)"
       />
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useConsultaStore } from '../../stores/consulta'
 import SistemaExame from './SistemaExame.vue'
+import { usePilha } from '../../composables/usePilha'
 import type { ExameFisico, SistemaStatus } from '../../types/clinica'
 import {
   HeartIcon as Stethoscope,
@@ -103,6 +100,25 @@ const sistemas = [
 
 const sistemasSelecionados = ref<Array<keyof ExameFisico>>([])
 
+interface SistemaSelecionado {
+  id: keyof ExameFisico
+}
+
+const itensSelecionados = computed<SistemaSelecionado[]>(() =>
+  sistemasSelecionados.value.map(id => ({ id })),
+)
+
+// Comportamento de pilha: o sistema selecionado/preenchido sobe para o topo e os
+// demais preenchidos são colapsados. Composable genérico, reaproveitável depois.
+const { pilha, promover, estaMinimizado, alternarMinimizado } = usePilha<SistemaSelecionado>({
+  itens: itensSelecionados,
+  getId: item => item.id,
+  estaPreenchido: (item) => {
+    const registro = consultaStore.exameFisico[item.id]
+    return Boolean(registro?.status || registro?.descricao?.trim())
+  },
+})
+
 watch(
   () => consultaStore.exameFisico,
   (exameFisico) => {
@@ -129,15 +145,12 @@ function toggleSistema(id: string) {
     sistemasSelecionados.value = sistemasSelecionados.value.filter(sId => sId !== validId)
   } else {
     sistemasSelecionados.value.push(validId)
+    promover(validId)
   }
 }
 
 function selecionarTodos() {
   sistemasSelecionados.value = sistemas.map(s => s.id as keyof ExameFisico)
-}
-
-function limparSelecao() {
-  sistemasSelecionados.value = []
 }
 
 function getSistemaLabel(id: string): string {
@@ -150,9 +163,11 @@ function getSistemaIcon(id: string) {
 
 function updateStatus(payload: { id: string; status: SistemaStatusSelection }) {
   consultaStore.updateSistemaStatus(payload.id as keyof ExameFisico, payload.status)
+  promover(payload.id)
 }
 
 function updateDescricao(payload: { id: string; descricao: string }) {
   consultaStore.updateSistemaDescricao(payload.id as keyof ExameFisico, payload.descricao)
+  promover(payload.id)
 }
 </script>

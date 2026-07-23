@@ -1508,11 +1508,20 @@ export const useConsultaStore = defineStore('consulta', () => {
     return Object.values(dados).some(sistema => Boolean(sistema.status || sistema.descricao.trim()))
   }
 
+  // Com a UX de pilha o médico avalia apenas alguns sistemas (não os 14). A seção
+  // é considerada completa quando há ao menos um sistema avaliado e todo sistema
+  // que o médico começou a preencher (com status ou observação) já tem um status.
+  const exameFisicoCompleto = computed(() => {
+    const sistemasEngajados = Object.values(exameFisico.value)
+      .filter(s => s.status !== '' || s.descricao.trim() !== '')
+    return avaliadosCount.value > 0 && sistemasEngajados.every(s => s.status !== '')
+  })
+
   function atualizarStatusExameFisico() {
     if (exameFisicoPossuiConteudo(exameFisico.value)) {
       markSectionStarted('clinical')
     }
-    setSectionComplete('clinical', allStatusesSelected.value)
+    setSectionComplete('clinical', exameFisicoCompleto.value)
   }
 
   function mchatPossuiConteudo(): boolean {
