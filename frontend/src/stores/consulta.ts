@@ -86,7 +86,13 @@ export interface AntecedentesPerinataisConsulta {
   periNeonatal: AntecedentesPeriNeonatal
 }
 
-export type ValorCampoAnamnese = string | boolean | string[] | AntecedentesPerinataisConsulta
+export interface ExameTrazido {
+  localId: string
+  exame: string
+  analise: string
+}
+
+export type ValorCampoAnamnese = string | boolean | string[] | AntecedentesPerinataisConsulta | ExameTrazido[]
 
 export interface AnamneseClinica {
   queixaPrincipal: string
@@ -104,10 +110,10 @@ export interface AnamneseClinica {
   interrogatorioSistemaNervoso: string
   sistemasInterrogatorioAlterados: string[]
   medicacoesRotina: string
-  examesComplementares: string
   antecedentesDoencas: string
   acompanhamentos: string
   antecedentesPerinatais: AntecedentesPerinataisConsulta
+  examesTrazidos: ExameTrazido[]
 }
 
 export interface AnamneseAlimentacao {
@@ -186,6 +192,11 @@ interface AntecedentesPerinataisApiPayload {
   peri_neonatal: AntecedentesPeriNeonataisApiPayload
 }
 
+interface ExameTrazidoApiPayload {
+  exame: string
+  analise: string
+}
+
 interface AnamneseClinicaApiPayload {
   queixa_principal: string
   historia_doenca_atual: string
@@ -202,10 +213,10 @@ interface AnamneseClinicaApiPayload {
   interrogatorio_sistema_nervoso: string
   sistemas_interrogatorio_alterados: string[]
   medicacoes_rotina: string
-  exames_complementares: string
   antecedentes_doencas: string
   acompanhamentos: string
   antecedentes_perinatais: AntecedentesPerinataisApiPayload
+  exames_trazidos: ExameTrazidoApiPayload[]
 }
 
 interface AnamneseAlimentacaoApiPayload {
@@ -1091,10 +1102,10 @@ function criarAnamneseVazia(): DadosAnamneseConsulta {
       interrogatorioSistemaNervoso: '',
       sistemasInterrogatorioAlterados: [],
       medicacoesRotina: '',
-      examesComplementares: '',
       antecedentesDoencas: '',
       acompanhamentos: '',
       antecedentesPerinatais: criarAntecedentesPerinataisVazio(),
+      examesTrazidos: [],
     },
     alimentacao: {
       tipoAleitamento: '',
@@ -1129,6 +1140,7 @@ function clonarAnamnese(dados: DadosAnamneseConsulta): DadosAnamneseConsulta {
       ...dados.clinica,
       sistemasInterrogatorioAlterados: [...dados.clinica.sistemasInterrogatorioAlterados],
       antecedentesPerinatais: clonarAntecedentesPerinatais(dados.clinica.antecedentesPerinatais),
+      examesTrazidos: dados.clinica.examesTrazidos.map(item => ({ ...item })),
     },
     alimentacao: { ...dados.alimentacao },
     habitos: {
@@ -1372,10 +1384,14 @@ function anamneseApiParaStore(apiData: AnamneseApiResponse): DadosAnamneseConsul
       interrogatorioSistemaNervoso: apiData.clinica.interrogatorio_sistema_nervoso ?? '',
       sistemasInterrogatorioAlterados: [...(apiData.clinica.sistemas_interrogatorio_alterados ?? [])],
       medicacoesRotina: apiData.clinica.medicacoes_rotina ?? '',
-      examesComplementares: apiData.clinica.exames_complementares ?? '',
       antecedentesDoencas: apiData.clinica.antecedentes_doencas ?? '',
       acompanhamentos: apiData.clinica.acompanhamentos ?? '',
       antecedentesPerinatais: antecedentesPerinataisApiParaStore(apiData.clinica.antecedentes_perinatais),
+      examesTrazidos: (apiData.clinica.exames_trazidos ?? []).map((item, index) => ({
+        localId: `exame-db-${index}`,
+        exame: item.exame ?? '',
+        analise: item.analise ?? '',
+      })),
     },
     alimentacao: {
       tipoAleitamento: apiData.alimentacao.tipo_aleitamento ?? '',
@@ -1421,10 +1437,10 @@ function anamneseStoreParaApi(dados: DadosAnamneseConsulta | DadosAnamnesePayloa
       interrogatorio_sistema_nervoso: dados.clinica.interrogatorioSistemaNervoso,
       sistemas_interrogatorio_alterados: [...dados.clinica.sistemasInterrogatorioAlterados],
       medicacoes_rotina: dados.clinica.medicacoesRotina,
-      exames_complementares: dados.clinica.examesComplementares,
       antecedentes_doencas: dados.clinica.antecedentesDoencas,
       acompanhamentos: dados.clinica.acompanhamentos,
       antecedentes_perinatais: antecedentesPerinataisStoreParaApi(dados.clinica.antecedentesPerinatais),
+      exames_trazidos: dados.clinica.examesTrazidos.map(item => ({ exame: item.exame, analise: item.analise })),
     },
     alimentacao: {
       tipo_aleitamento: dados.alimentacao.tipoAleitamento,

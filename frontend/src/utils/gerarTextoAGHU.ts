@@ -103,6 +103,10 @@ export function gerarTextoAGHU(p: ParamsGerarTextoAGHU): string {
     ? `${p.antropometria.pressaoSistolicaMmHg}/${p.antropometria.pressaoDiastolicaMmHg} mmHg`
     : 'nao aferida'
 
+  const examesTrazidosTexto = p.anamnese.clinica.examesTrazidos.length > 0
+    ? `Exames trazidos pelo paciente:\n${p.anamnese.clinica.examesTrazidos.map(item => `  - ${v(item.exame)}: ${v(item.analise)}`).join('\n')}`
+    : ''
+
   let texto = `================================================
    ATENDIMENTO PEDIATRICO - HC/UFPE
 ================================================
@@ -126,7 +130,7 @@ ${pad('IMC')}  : ${p.antropometria.imc ? `${p.antropometria.imc} kg/m2` : '—'}
 Queixa principal: ${v(p.anamnese.clinica.queixaPrincipal)}
 ${p.anamnese.clinica.historiaDoencaAtual ? `\nHDA:\n${p.anamnese.clinica.historiaDoencaAtual}\n` : ''}
 ${p.anamnese.clinica.medicacoesRotina ? `Medicacoes de rotina: ${p.anamnese.clinica.medicacoesRotina}` : ''}
-${p.anamnese.clinica.examesComplementares ? `Exames complementares: ${p.anamnese.clinica.examesComplementares}` : ''}
+${examesTrazidosTexto}
 ${p.anamnese.clinica.antecedentesDoencas ? `Antecedentes pessoais: ${p.anamnese.clinica.antecedentesDoencas}` : ''}
 
 --- ANTECEDENTES GESTACIONAIS E PERINATAIS ----------

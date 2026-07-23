@@ -5,6 +5,7 @@ import {
   CheckCircleIcon,
   CheckIcon,
   ExclamationTriangleIcon,
+  PlusIcon,
   XMarkIcon,
 } from '@heroicons/vue/24/outline'
 import {
@@ -16,6 +17,7 @@ import {
   type AntecedentesGestacionais,
   type AntecedentesPeriNeonatal,
   type ClassificacaoPesoNascimento,
+  type ExameTrazido,
   type SorologiaGestacional,
   type ValorCampoAnamnese,
 } from '../../stores/consulta'
@@ -233,6 +235,34 @@ function setAntecedentesPeriNeonatal<K extends keyof AntecedentesPeriNeonatal>(c
     ...atual,
     periNeonatal: { ...atual.periNeonatal, [campo]: valor },
   })
+}
+
+function criarExameTrazidoVazio(): ExameTrazido {
+  return {
+    localId: `exame-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    exame: '',
+    analise: '',
+  }
+}
+
+function adicionarExameTrazido() {
+  mensagemSalvamento.value = null
+  const lista = [...consultaStore.anamnese.clinica.examesTrazidos, criarExameTrazidoVazio()]
+  setClinica('examesTrazidos', lista)
+}
+
+function removerExameTrazido(localId: string) {
+  mensagemSalvamento.value = null
+  const lista = consultaStore.anamnese.clinica.examesTrazidos.filter(item => item.localId !== localId)
+  setClinica('examesTrazidos', lista)
+}
+
+function atualizarExameTrazido(localId: string, campo: 'exame' | 'analise', valor: string) {
+  mensagemSalvamento.value = null
+  const lista = consultaStore.anamnese.clinica.examesTrazidos.map(item =>
+    item.localId === localId ? { ...item, [campo]: valor } : item
+  )
+  setClinica('examesTrazidos', lista)
 }
 
 function valorInicialNumero(valor: number | null | undefined): string {
@@ -456,16 +486,56 @@ async function salvarSecao() {
           />
         </label>
 
-        <label class="block space-y-2">
-          <span class="text-sm font-medium text-slate-900">Exames complementares atuais</span>
-          <textarea
-            :value="consultaStore.anamnese.clinica.examesComplementares"
-            rows="3"
-            placeholder="Ex: Hemograma (12/04) — Hb 11,2, leucócitos 8.900. Rx tórax normal."
-            class="w-full resize-y rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-            @input="setClinica('examesComplementares', valorCampo($event))"
-          />
-        </label>
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium text-slate-900">Exames trazidos pelo paciente</span>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+              @click="adicionarExameTrazido"
+            >
+              <PlusIcon class="h-3.5 w-3.5" />
+              Adicionar exame
+            </button>
+          </div>
+
+          <p
+            v-if="consultaStore.anamnese.clinica.examesTrazidos.length === 0"
+            class="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-sm text-slate-400"
+          >
+            Nenhum exame trazido registrado. Clique em “Adicionar exame” para registrar.
+          </p>
+
+          <article
+            v-for="item in consultaStore.anamnese.clinica.examesTrazidos"
+            :key="item.localId"
+            class="rounded-lg border border-slate-200 bg-slate-50/50 p-3 space-y-2"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <input
+                :value="item.exame"
+                placeholder="Ex: Raio-X de tórax"
+                class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                @input="atualizarExameTrazido(item.localId, 'exame', ($event.target as HTMLInputElement).value)"
+              />
+              <button
+                type="button"
+                class="rounded-full p-1 text-slate-400 hover:bg-white hover:text-slate-600"
+                title="Remover exame"
+                @click="removerExameTrazido(item.localId)"
+              >
+                <XMarkIcon class="h-4 w-4" />
+              </button>
+            </div>
+            <textarea
+              :value="item.analise"
+              rows="2"
+              placeholder="Análise do médico sobre esse exame"
+              class="w-full resize-y rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+              @input="atualizarExameTrazido(item.localId, 'analise', ($event.target as HTMLTextAreaElement).value)"
+            />
+          </article>
+        </div>
 
         <label class="block space-y-2">
           <span class="text-sm font-medium text-slate-900">Acompanhamentos</span>

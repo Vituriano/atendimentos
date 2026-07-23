@@ -154,6 +154,11 @@ class AntecedentesPerinataisPayload(BaseModel):
     peri_neonatal: AntecedentesPeriNeonataisPayload = Field(default_factory=AntecedentesPeriNeonataisPayload)
 
 
+class ExameTrazidoPayload(BaseModel):
+    exame: str = ""
+    analise: str = ""
+
+
 class AnamneseClinicaPayload(BaseModel):
     queixa_principal: str = ""
     historia_doenca_atual: str = ""
@@ -170,10 +175,10 @@ class AnamneseClinicaPayload(BaseModel):
     interrogatorio_sistema_nervoso: str = ""
     sistemas_interrogatorio_alterados: list[str] = Field(default_factory=list)
     medicacoes_rotina: str = ""
-    exames_complementares: str = ""
     antecedentes_doencas: str = ""
     acompanhamentos: str = ""
     antecedentes_perinatais: AntecedentesPerinataisPayload = Field(default_factory=AntecedentesPerinataisPayload)
+    exames_trazidos: list[ExameTrazidoPayload] = Field(default_factory=list)
 
 
 class AnamneseAlimentacaoPayload(BaseModel):
@@ -790,6 +795,39 @@ def _antecedentes_perinatais_para_json(payload: AntecedentesPerinataisPayload) -
     return json.dumps(dados, ensure_ascii=False)
 
 
+def _exames_trazidos_payload(value: Any) -> list[ExameTrazidoPayload]:
+    if value is None or value == "":
+        carregado: Any = []
+    else:
+        try:
+            carregado = json.loads(str(value))
+        except (TypeError, ValueError, json.JSONDecodeError):
+            carregado = []
+    if not isinstance(carregado, list):
+        return []
+
+    exames: list[ExameTrazidoPayload] = []
+    for item in carregado:
+        if not isinstance(item, dict):
+            continue
+        exames.append(
+            ExameTrazidoPayload(
+                exame=_texto(item.get("exame")),
+                analise=_texto(item.get("analise")),
+            )
+        )
+    return exames
+
+
+def _exames_trazidos_para_json(itens: list[ExameTrazidoPayload]) -> str:
+    dados = [
+        {"exame": item.exame.strip(), "analise": item.analise.strip()}
+        for item in itens
+        if item.exame.strip() or item.analise.strip()
+    ]
+    return json.dumps(dados, ensure_ascii=False)
+
+
 def _anamnese_payload(registro: ConsultaAnamnese) -> tuple[AnamneseClinicaPayload, AnamneseAlimentacaoPayload, AnamneseHabitosPayload]:
     clinica = AnamneseClinicaPayload(
         queixa_principal=_texto(registro.clinica_queixa_principal),
@@ -807,10 +845,10 @@ def _anamnese_payload(registro: ConsultaAnamnese) -> tuple[AnamneseClinicaPayloa
         interrogatorio_sistema_nervoso=_texto(registro.clinica_interrogatorio_sistema_nervoso),
         sistemas_interrogatorio_alterados=_carregar_lista_json(registro.clinica_sistemas_interrogatorio_alterados),
         medicacoes_rotina=_texto(registro.clinica_medicacoes_rotina),
-        exames_complementares=_texto(registro.clinica_exames_complementares),
         antecedentes_doencas=_texto(registro.clinica_antecedentes_doencas),
         acompanhamentos=_texto(registro.clinica_acompanhamentos),
         antecedentes_perinatais=_antecedentes_perinatais_payload(registro.clinica_antecedentes_perinatais),
+        exames_trazidos=_exames_trazidos_payload(registro.clinica_exames_trazidos),
     )
     alimentacao = AnamneseAlimentacaoPayload(
         tipo_aleitamento=_texto(registro.alimentacao_tipo_aleitamento),
@@ -2309,10 +2347,10 @@ async def salvar_anamnese(
     registro.clinica_interrogatorio_sistema_nervoso = clinica.interrogatorio_sistema_nervoso.strip()
     registro.clinica_sistemas_interrogatorio_alterados = _salvar_lista_json(clinica.sistemas_interrogatorio_alterados)
     registro.clinica_medicacoes_rotina = clinica.medicacoes_rotina.strip()
-    registro.clinica_exames_complementares = clinica.exames_complementares.strip()
     registro.clinica_antecedentes_doencas = clinica.antecedentes_doencas.strip()
     registro.clinica_acompanhamentos = clinica.acompanhamentos.strip()
     registro.clinica_antecedentes_perinatais = _antecedentes_perinatais_para_json(clinica.antecedentes_perinatais)
+    registro.clinica_exames_trazidos = _exames_trazidos_para_json(clinica.exames_trazidos)
 
     alimentacao = body.alimentacao
     registro.alimentacao_tipo_aleitamento = alimentacao.tipo_aleitamento.strip()
