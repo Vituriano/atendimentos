@@ -12,7 +12,6 @@ import type {
   DadosDiagnosticoConsulta,
   DadosHipotesesCondutasConsulta,
   DadosProcedimentosConsulta,
-  DadoExternoConsulta,
   ClassificacaoDesenvolvimento,
 } from '../stores/consulta'
 import type { StatusMarco, ExameFisico } from '../types/clinica'
@@ -77,7 +76,6 @@ export interface ParamsGerarTextoAGHU {
   diagnostico: DadosDiagnosticoConsulta
   hipotesesCondutas: DadosHipotesesCondutasConsulta
   procedimentos: DadosProcedimentosConsulta
-  dadosExternos: DadoExternoConsulta[]
   statusMarcos: Record<string, StatusMarco | null>
   marcosDoGrupo: { id: string; nome: string }[]
   idadeEmMeses: number
@@ -240,20 +238,6 @@ ${p.hipotesesCondutas.hipotesesDiagnosticas ? `Hipoteses diagnosticas:\n${p.hipo
     p.procedimentos.procedimentos.forEach((proc, i) => {
       texto += `${i + 1}. ${proc.procedimento}  Qtd: ${proc.quantidade ?? '—'}  CID: ${v(proc.cidVinculado)}\n`
       if (proc.observacoes) texto += `     ${proc.observacoes}\n`
-    })
-  }
-
-  if (p.dadosExternos.length > 0) {
-    texto += `
---- DADOS DE ATENDIMENTO EXTERNO --------------------
-`
-    p.dadosExternos.forEach(ext => {
-      texto += `Data: ${v(ext.dataConsultaExterna)}  |  Servico: ${v(ext.servicoOrigem)}
-Peso: ${ext.pesoKg ? `${ext.pesoKg} kg` : '—'}  |  Altura: ${ext.alturaCm ? `${ext.alturaCm} cm` : '—'}
-Observacoes: ${v(ext.observacoesClinicas)}
-Origem: ${v(ext.comoDadosObtidos)}
-
-`
     })
   }
 

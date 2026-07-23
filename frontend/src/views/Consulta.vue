@@ -86,7 +86,6 @@
           <SecaoDiagnostico v-else-if="consulta.activeSection === 'diagnostico'" />
           <SecaoHipotesesCondutas v-else-if="consulta.activeSection === 'condutasHipoteses'" />
           <SecaoProcedimentos v-else-if="consulta.activeSection === 'procedimentos'" />
-          <SecaoDadosExternos v-else-if="consulta.activeSection === 'externo'" />
           <!-- Placeholder para seções ainda não implementadas -->
           <div v-else class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center text-sm text-slate-400">
             Conteúdo da seção "{{ secaoAtiva?.label }}" será implementado em breve.
@@ -134,7 +133,7 @@ import {
   ChartBarIcon, DocumentTextIcon, ShieldCheckIcon, SparklesIcon,
   AcademicCapIcon, HeartIcon, ClipboardDocumentCheckIcon, CpuChipIcon,
   UsersIcon, HomeIcon, PaperAirplaneIcon, DocumentMagnifyingGlassIcon,
-  WrenchScrewdriverIcon, DocumentArrowDownIcon,
+  WrenchScrewdriverIcon,
 } from '@heroicons/vue/24/outline'
 import { storeToRefs } from 'pinia'
 import { usePacienteStore } from '../stores/paciente'
@@ -161,7 +160,6 @@ import SecaoCondicoesSocioeconomicas from '../components/consulta/SecaoCondicoes
 import SecaoDiagnostico from '../components/consulta/SecaoDiagnostico.vue'
 import SecaoHipotesesCondutas from '../components/consulta/SecaoHipotesesCondutas.vue'
 import SecaoProcedimentos from '../components/consulta/SecaoProcedimentos.vue'
-import SecaoDadosExternos from '../components/consulta/SecaoDadosExternos.vue'
 
 const sectionIcons: Record<SecaoId, unknown> = {
   anthropometric: ChartBarIcon,
@@ -179,7 +177,6 @@ const sectionIcons: Record<SecaoId, unknown> = {
   diagnostico: DocumentMagnifyingGlassIcon,
   condutasHipoteses: DocumentTextIcon,
   procedimentos: WrenchScrewdriverIcon,
-  externo: DocumentArrowDownIcon,
 }
 
 const sectionDescriptions: Record<SecaoId, string> = {
@@ -198,7 +195,6 @@ const sectionDescriptions: Record<SecaoId, string> = {
   diagnostico: 'Registro do diagnóstico principal e secundários (CID-10 / SID).',
   condutasHipoteses: 'Raciocínio clínico e plano de cuidado desta consulta.',
   procedimentos: 'Procedimentos realizados durante o atendimento, vinculados ao diagnóstico.',
-  externo: 'Dados de consultas realizadas em outros serviços, fornecidos pela família.',
 }
 
 const router = useRouter()
@@ -291,7 +287,6 @@ function gerarTextos() {
     diagnostico: consulta.diagnostico,
     hipotesesCondutas: consulta.hipotesesCondutas,
     procedimentos: consulta.procedimentos,
-    dadosExternos: consulta.dadosExternos,
     statusMarcos: consulta.statusMarcos,
     marcosDoGrupo: grupo.marcos,
     idadeEmMeses,
