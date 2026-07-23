@@ -86,6 +86,33 @@ export interface AntecedentesPerinataisConsulta {
   periNeonatal: AntecedentesPeriNeonatal
 }
 
+/** Idade gestacional (semanas) a partir da qual a criança não é considerada prematura. */
+const LIMITE_PREMATURIDADE_SEMANAS = 37
+/** Idade gestacional (semanas) de uma gestação a termo, usada como referência para o cálculo. */
+const SEMANAS_GESTACAO_A_TERMO = 40
+/** Semanas por mês (média), usado para converter semanas de correção em meses. */
+const SEMANAS_POR_MES = 4.33
+
+/**
+ * Corrige a idade cronológica (em meses) para prematuridade, conforme a metodologia da
+ * Caderneta de Saúde da Criança (Ministério da Saúde): subtrai da idade atual o tempo que
+ * faltou para completar 40 semanas de gestação.
+ *
+ * Retorna a própria idade cronológica, sem correção, quando não há idade gestacional
+ * registrada ou quando ela é >= 37 semanas (não prematuro).
+ */
+export function calcularIdadeCorrigidaEmMeses(
+  idadeEmMeses: number,
+  idadeGestacionalSemanas: number | null
+): number {
+  if (!idadeGestacionalSemanas || idadeGestacionalSemanas >= LIMITE_PREMATURIDADE_SEMANAS) {
+    return idadeEmMeses
+  }
+
+  const mesesParaCorrigir = Math.max(0, (SEMANAS_GESTACAO_A_TERMO - idadeGestacionalSemanas) / SEMANAS_POR_MES)
+  return Math.max(0, idadeEmMeses - mesesParaCorrigir)
+}
+
 export interface ExameTrazido {
   localId: string
   exame: string
@@ -1735,6 +1762,18 @@ export const useConsultaStore = defineStore('consulta', () => {
 
   const totalMarcosRegistrados = computed(
     () => Object.values(statusMarcos.value).filter(v => v !== null).length
+  )
+
+  // Idade (em meses) usada para avaliar os marcos do desenvolvimento: corrigida por
+  // prematuridade quando há idade gestacional registrada na anamnese (< 37 semanas),
+  // caindo para a idade cronológica nos demais casos. Arredondada para baixo (mesma
+  // granularidade inteira de `pacienteStore.idadeEmMeses`) — a correção costuma gerar um
+  // valor fracionário, e as colunas da grade de marcos são inteiras.
+  const idadeGestacionalSemanasMarcos = computed(
+    () => anamnese.value.clinica.antecedentesPerinatais.periNeonatal.idadeGestacionalSemanas
+  )
+  const idadeEmMesesCorrigida = computed(() =>
+    Math.floor(calcularIdadeCorrigidaEmMeses(pacienteStore.idadeEmMeses, idadeGestacionalSemanasMarcos.value))
   )
 
   function toggleStatusMarco(marcoId: string, idadeColuna: number, status: StatusMarco) {
@@ -3570,6 +3609,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     observacaoGeralMarcos,
     classificacaoDesenvolvimento,
     totalMarcosRegistrados,
+    idadeEmMesesCorrigida,
     iniciarConsulta,
     prepararConsultaPaciente,
     setActiveSection,
