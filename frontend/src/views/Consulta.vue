@@ -105,13 +105,30 @@
         <span class="text-xs text-slate-400">
           {{ consulta.currentIndex + 1 }} / {{ consulta.secoes.length }}
         </span>
-        <button
-          class="flex items-center gap-1 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          :disabled="!consulta.canGoNext"
-          @click="consulta.goNext()"
-        >
-          Próxima <ChevronRightIcon class="h-4 w-4" />
-        </button>
+        <div class="flex items-center gap-3">
+          <div class="flex flex-col items-end gap-1">
+            <button
+              class="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
+              :disabled="salvandoRascunho"
+              @click="salvarRascunho"
+            >
+              {{ salvandoRascunho ? 'Salvando...' : 'Salvar Rascunho' }}
+            </button>
+            <p v-if="erroRascunho" class="text-xs text-red-600">{{ erroRascunho }}</p>
+          </div>
+          <div class="flex flex-col items-end gap-1">
+            <button
+              class="flex items-center gap-1 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              :disabled="!consulta.canGoNext"
+              @click="consulta.goNext()"
+            >
+              Próxima <ChevronRightIcon class="h-4 w-4" />
+            </button>
+            <p v-if="consulta.erroSalvamentoNavegacao" class="text-xs text-red-600">
+              {{ consulta.erroSalvamentoNavegacao }}
+            </p>
+          </div>
+        </div>
       </footer>
     </div>
   </div>
