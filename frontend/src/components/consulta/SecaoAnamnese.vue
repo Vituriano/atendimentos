@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import {
   CheckCircleIcon,
   CheckIcon,
@@ -12,8 +13,13 @@ import {
   type AnamneseAlimentacao,
   type AnamneseClinica,
   type AnamneseHabitos,
+  type AntecedentesGestacionais,
+  type AntecedentesPeriNeonatal,
+  type ClassificacaoPesoNascimento,
+  type SorologiaGestacional,
   type ValorCampoAnamnese,
 } from '../../stores/consulta'
+import { usePacienteStore } from '../../stores/paciente'
 
 type CampoInterrogatorio =
   | 'interrogatorioGeral'
@@ -36,6 +42,8 @@ interface SistemaInterrogatorio {
 }
 
 const consultaStore = useConsultaStore()
+const pacienteStore = usePacienteStore()
+const { pacienteAtivo } = storeToRefs(pacienteStore)
 const activeTab = ref<AbaAnamnese>('clinica')
 const mensagemSalvamento = ref<string | null>(null)
 
@@ -61,6 +69,29 @@ const opcoesLocalSono = [
 ]
 
 const dispositivosTela = ['TV', 'Celular', 'Tablet', 'Computador']
+
+const opcoesTipoParto = [
+  { value: 'vaginal', label: 'Vaginal' },
+  { value: 'cesarea', label: 'Cesárea' },
+]
+
+const opcoesResultadoSorologia = [
+  { value: 'reagente', label: 'Reagente' },
+  { value: 'nao-reagente', label: 'Não reagente' },
+  { value: 'nao-realizado', label: 'Não realizado' },
+]
+
+const opcoesOrtolani = [
+  { value: 'positivo', label: 'Positivo' },
+  { value: 'negativo', label: 'Negativo' },
+  { value: 'nao-realizado', label: 'Não realizado' },
+]
+
+const opcoesClassificacaoPesoNascimento: { value: ClassificacaoPesoNascimento; label: string }[] = [
+  { value: 'aig', label: 'AIG — Adequado para Idade Gestacional' },
+  { value: 'pig', label: 'PIG — Pequeno para Idade Gestacional' },
+  { value: 'gig', label: 'GIG — Grande para Idade Gestacional' },
+]
 
 const interrogSistemas: SistemaInterrogatorio[] = [
   {
@@ -176,6 +207,94 @@ function setHabitos(campo: keyof AnamneseHabitos, valor: ValorCampoAnamnese) {
   mensagemSalvamento.value = null
   consultaStore.atualizarCampoAnamnese('habitos', campo, valor as AnamneseHabitos[keyof AnamneseHabitos])
 }
+
+function setAntecedentesGestacionais<K extends keyof AntecedentesGestacionais>(campo: K, valor: AntecedentesGestacionais[K]) {
+  const atual = consultaStore.anamnese.clinica.antecedentesPerinatais
+  setClinica('antecedentesPerinatais', {
+    ...atual,
+    gestacional: { ...atual.gestacional, [campo]: valor },
+  })
+}
+
+function setSorologiaGestacional<K extends keyof SorologiaGestacional>(campo: K, valor: SorologiaGestacional[K]) {
+  const atual = consultaStore.anamnese.clinica.antecedentesPerinatais
+  setClinica('antecedentesPerinatais', {
+    ...atual,
+    gestacional: {
+      ...atual.gestacional,
+      sorologias: { ...atual.gestacional.sorologias, [campo]: valor },
+    },
+  })
+}
+
+function setAntecedentesPeriNeonatal<K extends keyof AntecedentesPeriNeonatal>(campo: K, valor: AntecedentesPeriNeonatal[K]) {
+  const atual = consultaStore.anamnese.clinica.antecedentesPerinatais
+  setClinica('antecedentesPerinatais', {
+    ...atual,
+    periNeonatal: { ...atual.periNeonatal, [campo]: valor },
+  })
+}
+
+function valorInicialNumero(valor: number | null | undefined): string {
+  return valor === null || valor === undefined ? '' : String(valor).replace('.', ',')
+}
+
+function parseNumeroPtBr(valor: string): number | null {
+  const normalizado = valor.trim().replace(',', '.')
+  if (!normalizado) return null
+  const numero = Number(normalizado)
+  return Number.isFinite(numero) ? numero : null
+}
+
+type CampoNumericoPeriNeonatal = 'idadeGestacionalSemanas' | 'pesoNascimentoGramas' | 'comprimentoNascimentoCm' | 'perimetroCefalicoCm'
+
+let atualizandoPeriNeonatalNumeroPelaTela = false
+
+const camposNumericosPeriNeonatal = reactive({
+  idadeGestacionalSemanas: valorInicialNumero(consultaStore.anamnese.clinica.antecedentesPerinatais.periNeonatal.idadeGestacionalSemanas),
+  pesoNascimentoGramas: valorInicialNumero(consultaStore.anamnese.clinica.antecedentesPerinatais.periNeonatal.pesoNascimentoGramas),
+  comprimentoNascimentoCm: valorInicialNumero(consultaStore.anamnese.clinica.antecedentesPerinatais.periNeonatal.comprimentoNascimentoCm),
+  perimetroCefalicoCm: valorInicialNumero(consultaStore.anamnese.clinica.antecedentesPerinatais.periNeonatal.perimetroCefalicoCm),
+})
+
+watch(
+  () => consultaStore.anamnese.clinica.antecedentesPerinatais.periNeonatal,
+  periNeonatal => {
+    if (atualizandoPeriNeonatalNumeroPelaTela) return
+
+    camposNumericosPeriNeonatal.idadeGestacionalSemanas = valorInicialNumero(periNeonatal.idadeGestacionalSemanas)
+    camposNumericosPeriNeonatal.pesoNascimentoGramas = valorInicialNumero(periNeonatal.pesoNascimentoGramas)
+    camposNumericosPeriNeonatal.comprimentoNascimentoCm = valorInicialNumero(periNeonatal.comprimentoNascimentoCm)
+    camposNumericosPeriNeonatal.perimetroCefalicoCm = valorInicialNumero(periNeonatal.perimetroCefalicoCm)
+  }
+)
+
+function atualizarPeriNeonatalNumero(campo: CampoNumericoPeriNeonatal, valor: string) {
+  camposNumericosPeriNeonatal[campo] = valor
+
+  atualizandoPeriNeonatalNumeroPelaTela = true
+  setAntecedentesPeriNeonatal(campo, parseNumeroPtBr(valor))
+  queueMicrotask(() => {
+    atualizandoPeriNeonatalNumeroPelaTela = false
+  })
+}
+
+const idadeGestacionalSemanas = computed(() => consultaStore.anamnese.clinica.antecedentesPerinatais.periNeonatal.idadeGestacionalSemanas)
+
+const idadeGestacionalInvalida = computed(() => {
+  const valor = idadeGestacionalSemanas.value
+  return valor !== null && (valor < 20 || valor > 45)
+})
+
+const idadeCorrigidaTexto = computed(() => {
+  const idadeGestacional = idadeGestacionalSemanas.value
+  const idadeEmMeses = pacienteAtivo.value?.idadeEmMeses ?? 0
+  if (!idadeGestacional || idadeGestacional >= 37) return ''
+
+  const mesesParaCorrigir = Math.max(0, (40 - idadeGestacional) / 4.33)
+  const idadeCorrigida = Math.max(0, idadeEmMeses - mesesParaCorrigir)
+  return `${idadeCorrigida.toFixed(1).replace('.', ',')} meses`
+})
 
 function toggleSistemaInterrogatorio(id: string) {
   const selecionados = new Set(consultaStore.anamnese.clinica.sistemasInterrogatorioAlterados)
@@ -358,6 +477,376 @@ async function salvarSecao() {
             @input="setClinica('acompanhamentos', valorCampo($event))"
           />
         </label>
+      </section>
+
+      <section class="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Antecedentes Gestacionais e Perinatais</p>
+          <span
+            v-if="idadeCorrigidaTexto"
+            class="rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs font-medium text-teal-700"
+          >
+            Idade corrigida: {{ idadeCorrigidaTexto }}
+          </span>
+        </div>
+
+        <div class="space-y-3">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Gestacional</p>
+
+          <div class="space-y-2">
+            <span class="text-sm font-medium text-slate-900">Gravidez planejada?</span>
+            <div class="flex gap-4">
+              <label class="flex items-center gap-2 text-sm text-slate-900">
+                <input
+                  type="radio"
+                  name="gravidez-planejada"
+                  :checked="consultaStore.anamnese.clinica.antecedentesPerinatais.gestacional.gravidezPlanejada === true"
+                  class="h-4 w-4 border-slate-300 text-teal-600 focus:ring-teal-500"
+                  @change="setAntecedentesGestacionais('gravidezPlanejada', true)"
+                />
+                Sim
+              </label>
+              <label class="flex items-center gap-2 text-sm text-slate-900">
+                <input
+                  type="radio"
+                  name="gravidez-planejada"
+                  :checked="consultaStore.anamnese.clinica.antecedentesPerinatais.gestacional.gravidezPlanejada === false"
+                  class="h-4 w-4 border-slate-300 text-teal-600 focus:ring-teal-500"
+                  @change="setAntecedentesGestacionais('gravidezPlanejada', false)"
+                />
+                Não
+              </label>
+            </div>
+          </div>
+
+          <div class="grid gap-4 md:grid-cols-2">
+            <label class="space-y-2">
+              <span class="text-sm font-medium text-slate-900">Local e número de consultas do Pré-natal</span>
+              <input
+                :value="consultaStore.anamnese.clinica.antecedentesPerinatais.gestacional.preNatalLocalConsultas"
+                placeholder="Ex: UBS Bairro X, 7 consultas"
+                class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                @input="setAntecedentesGestacionais('preNatalLocalConsultas', valorCampo($event))"
+              />
+            </label>
+            <label class="space-y-2">
+              <span class="text-sm font-medium text-slate-900">Medicações durante a gestação</span>
+              <input
+                :value="consultaStore.anamnese.clinica.antecedentesPerinatais.gestacional.medicacoes"
+                placeholder="Ex: Ácido fólico, sulfato ferroso"
+                class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                @input="setAntecedentesGestacionais('medicacoes', valorCampo($event))"
+              />
+            </label>
+            <label class="space-y-2">
+              <span class="text-sm font-medium text-slate-900">Comorbidades durante a gestação</span>
+              <input
+                :value="consultaStore.anamnese.clinica.antecedentesPerinatais.gestacional.comorbidadesGestacao"
+                placeholder="Ex: Diabetes gestacional, pré-eclâmpsia"
+                class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                @input="setAntecedentesGestacionais('comorbidadesGestacao', valorCampo($event))"
+              />
+            </label>
+            <label class="space-y-2">
+              <span class="text-sm font-medium text-slate-900">Tabagismo materno</span>
+              <input
+                :value="consultaStore.anamnese.clinica.antecedentesPerinatais.gestacional.tabagismoMaterno"
+                placeholder="Ex: Negado, ou quantidade/frequência"
+                class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                @input="setAntecedentesGestacionais('tabagismoMaterno', valorCampo($event))"
+              />
+            </label>
+            <label class="space-y-2">
+              <span class="text-sm font-medium text-slate-900">Etilismo materno</span>
+              <input
+                :value="consultaStore.anamnese.clinica.antecedentesPerinatais.gestacional.etilismoMaterno"
+                placeholder="Ex: Negado, ou quantidade/frequência"
+                class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                @input="setAntecedentesGestacionais('etilismoMaterno', valorCampo($event))"
+              />
+            </label>
+            <label class="space-y-2">
+              <span class="text-sm font-medium text-slate-900">Outras drogas</span>
+              <input
+                :value="consultaStore.anamnese.clinica.antecedentesPerinatais.gestacional.outrasDrogas"
+                placeholder="Ex: Negado"
+                class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                @input="setAntecedentesGestacionais('outrasDrogas', valorCampo($event))"
+              />
+            </label>
+          </div>
+
+          <div class="space-y-2">
+            <p class="text-sm font-medium text-slate-900">Sorologias maternas</p>
+            <div class="grid gap-3 md:grid-cols-3">
+              <label class="space-y-1">
+                <span class="text-xs font-medium text-slate-700">VDRL</span>
+                <select
+                  :value="consultaStore.anamnese.clinica.antecedentesPerinatais.gestacional.sorologias.vdrl"
+                  class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                  @change="setSorologiaGestacional('vdrl', valorCampo($event))"
+                >
+                  <option value="">Selecione</option>
+                  <option v-for="opcao in opcoesResultadoSorologia" :key="opcao.value" :value="opcao.value">{{ opcao.label }}</option>
+                </select>
+              </label>
+              <label class="space-y-1">
+                <span class="text-xs font-medium text-slate-700">HIV</span>
+                <select
+                  :value="consultaStore.anamnese.clinica.antecedentesPerinatais.gestacional.sorologias.hiv"
+                  class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                  @change="setSorologiaGestacional('hiv', valorCampo($event))"
+                >
+                  <option value="">Selecione</option>
+                  <option v-for="opcao in opcoesResultadoSorologia" :key="opcao.value" :value="opcao.value">{{ opcao.label }}</option>
+                </select>
+              </label>
+              <label class="space-y-1">
+                <span class="text-xs font-medium text-slate-700">Hepatite B</span>
+                <select
+                  :value="consultaStore.anamnese.clinica.antecedentesPerinatais.gestacional.sorologias.hepatiteB"
+                  class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                  @change="setSorologiaGestacional('hepatiteB', valorCampo($event))"
+                >
+                  <option value="">Selecione</option>
+                  <option v-for="opcao in opcoesResultadoSorologia" :key="opcao.value" :value="opcao.value">{{ opcao.label }}</option>
+                </select>
+              </label>
+              <label class="space-y-1">
+                <span class="text-xs font-medium text-slate-700">Hepatite C</span>
+                <select
+                  :value="consultaStore.anamnese.clinica.antecedentesPerinatais.gestacional.sorologias.hepatiteC"
+                  class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                  @change="setSorologiaGestacional('hepatiteC', valorCampo($event))"
+                >
+                  <option value="">Selecione</option>
+                  <option v-for="opcao in opcoesResultadoSorologia" :key="opcao.value" :value="opcao.value">{{ opcao.label }}</option>
+                </select>
+              </label>
+              <label class="space-y-1">
+                <span class="text-xs font-medium text-slate-700">Toxoplasmose</span>
+                <select
+                  :value="consultaStore.anamnese.clinica.antecedentesPerinatais.gestacional.sorologias.toxoplasmose"
+                  class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                  @change="setSorologiaGestacional('toxoplasmose', valorCampo($event))"
+                >
+                  <option value="">Selecione</option>
+                  <option v-for="opcao in opcoesResultadoSorologia" :key="opcao.value" :value="opcao.value">{{ opcao.label }}</option>
+                </select>
+              </label>
+              <label class="space-y-1">
+                <span class="text-xs font-medium text-slate-700">CMV</span>
+                <select
+                  :value="consultaStore.anamnese.clinica.antecedentesPerinatais.gestacional.sorologias.cmv"
+                  class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                  @change="setSorologiaGestacional('cmv', valorCampo($event))"
+                >
+                  <option value="">Selecione</option>
+                  <option v-for="opcao in opcoesResultadoSorologia" :key="opcao.value" :value="opcao.value">{{ opcao.label }}</option>
+                </select>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-3 border-t border-slate-100 pt-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Peri e Neonatal</p>
+
+          <div class="grid gap-4 md:grid-cols-2">
+            <label class="space-y-2">
+              <span class="text-sm font-medium text-slate-900">Tipo de parto</span>
+              <select
+                :value="consultaStore.anamnese.clinica.antecedentesPerinatais.periNeonatal.tipoParto"
+                class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                @change="setAntecedentesPeriNeonatal('tipoParto', valorCampo($event))"
+              >
+                <option value="">Selecione</option>
+                <option v-for="opcao in opcoesTipoParto" :key="opcao.value" :value="opcao.value">{{ opcao.label }}</option>
+              </select>
+            </label>
+            <label class="space-y-2">
+              <span class="text-sm font-medium text-slate-900">Apgar</span>
+              <input
+                :value="consultaStore.anamnese.clinica.antecedentesPerinatais.periNeonatal.apgar"
+                placeholder="Ex: 8/9"
+                class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                @input="setAntecedentesPeriNeonatal('apgar', valorCampo($event))"
+              />
+            </label>
+          </div>
+
+          <div class="space-y-2">
+            <span class="text-sm font-medium text-slate-900">Necessidade de reanimação?</span>
+            <div class="flex flex-wrap items-center gap-4">
+              <label class="flex items-center gap-2 text-sm text-slate-900">
+                <input
+                  type="radio"
+                  name="necessidade-reanimacao"
+                  :checked="consultaStore.anamnese.clinica.antecedentesPerinatais.periNeonatal.necessidadeReanimacao === true"
+                  class="h-4 w-4 border-slate-300 text-teal-600 focus:ring-teal-500"
+                  @change="setAntecedentesPeriNeonatal('necessidadeReanimacao', true)"
+                />
+                Sim
+              </label>
+              <label class="flex items-center gap-2 text-sm text-slate-900">
+                <input
+                  type="radio"
+                  name="necessidade-reanimacao"
+                  :checked="consultaStore.anamnese.clinica.antecedentesPerinatais.periNeonatal.necessidadeReanimacao === false"
+                  class="h-4 w-4 border-slate-300 text-teal-600 focus:ring-teal-500"
+                  @change="setAntecedentesPeriNeonatal('necessidadeReanimacao', false)"
+                />
+                Não
+              </label>
+            </div>
+            <input
+              v-if="consultaStore.anamnese.clinica.antecedentesPerinatais.periNeonatal.necessidadeReanimacao === true"
+              :value="consultaStore.anamnese.clinica.antecedentesPerinatais.periNeonatal.reanimacaoDetalhe"
+              placeholder="Detalhe a reanimação realizada"
+              class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+              @input="setAntecedentesPeriNeonatal('reanimacaoDetalhe', valorCampo($event))"
+            />
+          </div>
+
+          <div class="grid gap-4 md:grid-cols-2">
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-slate-900" for="anamnese-idade-gestacional">Idade gestacional ao nascer (semanas)</label>
+              <input
+                id="anamnese-idade-gestacional"
+                :value="camposNumericosPeriNeonatal.idadeGestacionalSemanas"
+                type="text"
+                inputmode="decimal"
+                placeholder="Ex: 34"
+                class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                @input="atualizarPeriNeonatalNumero('idadeGestacionalSemanas', ($event.target as HTMLInputElement).value)"
+              />
+              <p v-if="idadeGestacionalInvalida" class="text-xs text-amber-700">Faixa esperada: 20 a 45 semanas.</p>
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-slate-900" for="anamnese-peso-nascimento">Peso ao nascimento (gramas)</label>
+              <input
+                id="anamnese-peso-nascimento"
+                :value="camposNumericosPeriNeonatal.pesoNascimentoGramas"
+                type="text"
+                inputmode="decimal"
+                placeholder="Ex: 2450"
+                class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                @input="atualizarPeriNeonatalNumero('pesoNascimentoGramas', ($event.target as HTMLInputElement).value)"
+              />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-slate-900" for="anamnese-comprimento-nascimento">Comprimento ao nascimento (cm)</label>
+              <input
+                id="anamnese-comprimento-nascimento"
+                :value="camposNumericosPeriNeonatal.comprimentoNascimentoCm"
+                type="text"
+                inputmode="decimal"
+                placeholder="Ex: 47,5"
+                class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                @input="atualizarPeriNeonatalNumero('comprimentoNascimentoCm', ($event.target as HTMLInputElement).value)"
+              />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-slate-900" for="anamnese-pc-nascimento">Perímetro cefálico ao nascimento (cm)</label>
+              <input
+                id="anamnese-pc-nascimento"
+                :value="camposNumericosPeriNeonatal.perimetroCefalicoCm"
+                type="text"
+                inputmode="decimal"
+                placeholder="Ex: 34,5"
+                class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                @input="atualizarPeriNeonatalNumero('perimetroCefalicoCm', ($event.target as HTMLInputElement).value)"
+              />
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <span class="text-sm font-medium text-slate-900">Classificação do peso ao nascer</span>
+            <div class="flex flex-wrap gap-4">
+              <label
+                v-for="opcao in opcoesClassificacaoPesoNascimento"
+                :key="opcao.value"
+                class="flex items-center gap-2 text-sm text-slate-900"
+              >
+                <input
+                  type="radio"
+                  name="classificacao-peso-nascimento"
+                  :value="opcao.value"
+                  :checked="consultaStore.anamnese.clinica.antecedentesPerinatais.periNeonatal.classificacaoPesoNascimento === opcao.value"
+                  class="h-4 w-4 border-slate-300 text-teal-600 focus:ring-teal-500"
+                  @change="setAntecedentesPeriNeonatal('classificacaoPesoNascimento', opcao.value)"
+                />
+                {{ opcao.label }}
+              </label>
+            </div>
+          </div>
+
+          <label class="space-y-2">
+            <span class="text-sm font-medium text-slate-900">Ortolani</span>
+            <select
+              :value="consultaStore.anamnese.clinica.antecedentesPerinatais.periNeonatal.ortolani"
+              class="w-full max-w-xs rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+              @change="setAntecedentesPeriNeonatal('ortolani', valorCampo($event))"
+            >
+              <option value="">Selecione</option>
+              <option v-for="opcao in opcoesOrtolani" :key="opcao.value" :value="opcao.value">{{ opcao.label }}</option>
+            </select>
+          </label>
+
+          <label class="block space-y-2">
+            <span class="text-sm font-medium text-slate-900">Exames (painel neonatal)</span>
+            <textarea
+              :value="consultaStore.anamnese.clinica.antecedentesPerinatais.periNeonatal.exames"
+              rows="2"
+              placeholder="Ex: Triagem metabólica normal"
+              class="w-full resize-y rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+              @input="setAntecedentesPeriNeonatal('exames', valorCampo($event))"
+            />
+          </label>
+
+          <div class="grid gap-4 md:grid-cols-2">
+            <label class="space-y-2">
+              <span class="text-sm font-medium text-slate-900">Tipagem sanguínea materna</span>
+              <input
+                :value="consultaStore.anamnese.clinica.antecedentesPerinatais.periNeonatal.tipagemSanguineaMaterna"
+                placeholder="Ex: O+"
+                class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                @input="setAntecedentesPeriNeonatal('tipagemSanguineaMaterna', valorCampo($event))"
+              />
+            </label>
+            <label class="space-y-2">
+              <span class="text-sm font-medium text-slate-900">Tipagem sanguínea do paciente</span>
+              <input
+                :value="consultaStore.anamnese.clinica.antecedentesPerinatais.periNeonatal.tipagemSanguineaPaciente"
+                placeholder="Ex: A+"
+                class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                @input="setAntecedentesPeriNeonatal('tipagemSanguineaPaciente', valorCampo($event))"
+              />
+            </label>
+            <label class="space-y-2">
+              <span class="text-sm font-medium text-slate-900">VDRL (painel neonatal)</span>
+              <select
+                :value="consultaStore.anamnese.clinica.antecedentesPerinatais.periNeonatal.vdrlNeonatal"
+                class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                @change="setAntecedentesPeriNeonatal('vdrlNeonatal', valorCampo($event))"
+              >
+                <option value="">Selecione</option>
+                <option v-for="opcao in opcoesResultadoSorologia" :key="opcao.value" :value="opcao.value">{{ opcao.label }}</option>
+              </select>
+            </label>
+            <label class="space-y-2">
+              <span class="text-sm font-medium text-slate-900">HIV (painel neonatal)</span>
+              <select
+                :value="consultaStore.anamnese.clinica.antecedentesPerinatais.periNeonatal.hivNeonatal"
+                class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                @change="setAntecedentesPeriNeonatal('hivNeonatal', valorCampo($event))"
+              >
+                <option value="">Selecione</option>
+                <option v-for="opcao in opcoesResultadoSorologia" :key="opcao.value" :value="opcao.value">{{ opcao.label }}</option>
+              </select>
+            </label>
+          </div>
+        </div>
       </section>
     </template>
 

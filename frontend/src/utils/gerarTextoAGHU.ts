@@ -129,6 +129,13 @@ ${p.anamnese.clinica.medicacoesRotina ? `Medicacoes de rotina: ${p.anamnese.clin
 ${p.anamnese.clinica.examesComplementares ? `Exames complementares: ${p.anamnese.clinica.examesComplementares}` : ''}
 ${p.anamnese.clinica.antecedentesDoencas ? `Antecedentes pessoais: ${p.anamnese.clinica.antecedentesDoencas}` : ''}
 
+--- ANTECEDENTES GESTACIONAIS E PERINATAIS ----------
+${pad('IG ao nascer')}  : ${p.anamnese.clinica.antecedentesPerinatais.periNeonatal.idadeGestacionalSemanas ? `${p.anamnese.clinica.antecedentesPerinatais.periNeonatal.idadeGestacionalSemanas} semanas` : '—'}
+${pad('Tipo de parto')}  : ${v(p.anamnese.clinica.antecedentesPerinatais.periNeonatal.tipoParto)}
+${pad('Apgar')}  : ${v(p.anamnese.clinica.antecedentesPerinatais.periNeonatal.apgar)}
+${pad('Peso nasc.')}  : ${p.anamnese.clinica.antecedentesPerinatais.periNeonatal.pesoNascimentoGramas ? `${p.anamnese.clinica.antecedentesPerinatais.periNeonatal.pesoNascimentoGramas} g` : '—'}
+${pad('Classificacao')}  : ${v(p.anamnese.clinica.antecedentesPerinatais.periNeonatal.classificacaoPesoNascimento.toUpperCase(), 'Nao classificado')}
+
 --- ALIMENTACAO -------------------------------------
 Tipo: ${v(p.anamnese.alimentacao.tipoAleitamento)}
 ${p.anamnese.alimentacao.cardapioCafe ? `Cafe da manha: ${p.anamnese.alimentacao.cardapioCafe}` : ''}
@@ -164,7 +171,6 @@ ${v(p.imunizacoes.statusVacinal, 'Nao informado')}
     const tn = p.triagemNeonatal
     texto += `
 --- TRIAGEM NEONATAL --------------------------------
-${pad('IG ao nascer')}  : ${tn.idadeGestacionalSemanas ? `${tn.idadeGestacionalSemanas} semanas` : '—'}
 ${pad('Peso nasc.')}  : ${tn.pesoNascimentoGramas ? `${tn.pesoNascimentoGramas} g` : '—'}
 ${tn.hipotesesDiagnosticasAnteriores ? `Hipoteses diagnosticas anteriores: ${tn.hipotesesDiagnosticasAnteriores}\n` : ''}${coletasTexto('Teste do Pezinho', tn.testePezinho)}${coletasTexto('Teste da Orelhinha', tn.testeOrelhinha)}Teste do Olhinho     : ${v(tn.testeOlhinho.resultado)} ${tn.testeOlhinho.data ? `(${tn.testeOlhinho.data})` : ''} ${v(tn.testeOlhinho.descricao, '')}
 Fundo de olho        : ${v(tn.testeFundoDeOlho.resultado)} ${tn.testeFundoDeOlho.data ? `(${tn.testeFundoDeOlho.data})` : ''} ${v(tn.testeFundoDeOlho.descricao, '')}

@@ -6,29 +6,9 @@
           <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Identificação Estendida</h3>
           <p class="mt-1 text-sm text-slate-500">Registre dados do nascimento e condições prévias relevantes.</p>
         </div>
-        <span
-          v-if="idadeCorrigidaTexto"
-          class="rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs font-medium text-teal-700"
-        >
-          Idade corrigida: {{ idadeCorrigidaTexto }}
-        </span>
       </div>
 
       <div class="grid gap-4 md:grid-cols-2">
-        <div class="space-y-2">
-          <label class="text-sm font-medium text-slate-700" for="idade-gestacional">Idade gestacional ao nascer (semanas)</label>
-          <input
-            id="idade-gestacional"
-            :value="camposNumericos.idadeGestacionalSemanas"
-            type="text"
-            inputmode="decimal"
-            placeholder="Ex: 34"
-            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 shadow-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-            @input="atualizarNumero('idadeGestacionalSemanas', ($event.target as HTMLInputElement).value)"
-          />
-          <p v-if="idadeGestacionalInvalida" class="text-xs text-amber-700">Faixa esperada para triagem: 20 a 45 semanas.</p>
-        </div>
-
         <div class="space-y-2">
           <label class="text-sm font-medium text-slate-700" for="peso-nascimento">Peso ao nascimento (gramas)</label>
           <input
@@ -247,8 +227,6 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
-import { storeToRefs } from 'pinia'
-import { usePacienteStore } from '../../stores/paciente'
 import {
   useConsultaStore,
   type DadosTriagemNeonatalConsulta,
@@ -257,13 +235,11 @@ import {
 } from '../../stores/consulta'
 
 const consulta = useConsultaStore()
-const pacienteStore = usePacienteStore()
-const { pacienteAtivo } = storeToRefs(pacienteStore)
 const mensagemSucesso = ref('')
 
 const PEZINHO_MAX_COLETAS = 4
 
-type CampoNumero = 'idadeGestacionalSemanas' | 'pesoNascimentoGramas'
+type CampoNumero = 'pesoNascimentoGramas'
 type CampoTexto = 'hipotesesDiagnosticasAnteriores'
 type ChaveColecao = 'testePezinho' | 'testeOrelhinha'
 type ChaveUnico = 'testeOlhinho' | 'testeFundoDeOlho' | 'testeCoracaozinho'
@@ -273,16 +249,14 @@ const triagem = computed(() => consulta.triagemNeonatal)
 let atualizandoNumeroPelaTela = false
 
 const camposNumericos = reactive({
-  idadeGestacionalSemanas: valorInicialNumero(triagem.value.idadeGestacionalSemanas),
   pesoNascimentoGramas: valorInicialNumero(triagem.value.pesoNascimentoGramas),
 })
 
 watch(
-  () => [triagem.value.idadeGestacionalSemanas, triagem.value.pesoNascimentoGramas],
+  () => triagem.value.pesoNascimentoGramas,
   () => {
     if (atualizandoNumeroPelaTela) return
 
-    camposNumericos.idadeGestacionalSemanas = valorInicialNumero(triagem.value.idadeGestacionalSemanas)
     camposNumericos.pesoNascimentoGramas = valorInicialNumero(triagem.value.pesoNascimentoGramas)
   }
 )
@@ -311,7 +285,6 @@ const triagemCompleta = computed(() => totalResultados.value === totalTestes.val
 const triagemIniciada = computed(() => {
   const dados = triagem.value
   return Boolean(
-    dados.idadeGestacionalSemanas !== null ||
     dados.pesoNascimentoGramas !== null ||
     dados.hipotesesDiagnosticasAnteriores.trim() ||
     totalResultados.value > 0 ||
@@ -320,24 +293,9 @@ const triagemIniciada = computed(() => {
   )
 })
 
-const idadeGestacionalInvalida = computed(() => {
-  const valor = triagem.value.idadeGestacionalSemanas
-  return valor !== null && (valor < 20 || valor > 45)
-})
-
 const pesoNascimentoInvalido = computed(() => {
   const valor = triagem.value.pesoNascimentoGramas
   return valor !== null && (valor < 300 || valor > 7000)
-})
-
-const idadeCorrigidaTexto = computed(() => {
-  const idadeGestacional = triagem.value.idadeGestacionalSemanas
-  const idadeEmMeses = pacienteAtivo.value?.idadeEmMeses ?? 0
-  if (!idadeGestacional || idadeGestacional >= 37) return ''
-
-  const mesesParaCorrigir = Math.max(0, (40 - idadeGestacional) / 4.33)
-  const idadeCorrigida = Math.max(0, idadeEmMeses - mesesParaCorrigir)
-  return `${idadeCorrigida.toFixed(1).replace('.', ',')} meses`
 })
 
 function valorInicialNumero(valor: number | null | undefined): string {
@@ -357,7 +315,6 @@ function criarColetaVazia(): TesteTriagemNeonatal {
 
 function clonarDados(): DadosTriagemNeonatalConsulta {
   return {
-    idadeGestacionalSemanas: triagem.value.idadeGestacionalSemanas,
     pesoNascimentoGramas: triagem.value.pesoNascimentoGramas,
     hipotesesDiagnosticasAnteriores: triagem.value.hipotesesDiagnosticasAnteriores,
     testePezinho: triagem.value.testePezinho.map(coleta => ({ ...coleta })),
