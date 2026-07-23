@@ -5,8 +5,6 @@ import type { Paciente, Consulta, AlertaClinico, DadosAntropometricos } from '..
 import { getAntropometriaRangePaciente } from '../data/antropometria-ranges'
 import api from '../services/api'
 
-const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
-
 function parseDataNascimentoPaciente(valor: string): Date | null {
   const data = valor.trim()
   if (!data) return null
@@ -29,7 +27,9 @@ function parseDataNascimentoPaciente(valor: string): Date | null {
 
 function formatarDataConsulta(isoDate: string): string {
   const d = new Date(isoDate)
-  return `${MESES[d.getMonth()]}/${d.getFullYear()}`
+  const dia = String(d.getDate()).padStart(2, '0')
+  const mes = String(d.getMonth() + 1).padStart(2, '0')
+  return `${dia}/${mes}/${d.getFullYear()}`
 }
 
 function classificarFaixa(valor: number, min: number, max: number): string {
