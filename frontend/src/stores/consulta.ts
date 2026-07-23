@@ -394,7 +394,6 @@ export interface TesteTriagemNeonatal {
 }
 
 export interface DadosTriagemNeonatalConsulta {
-  pesoNascimentoGramas: number | null
   hipotesesDiagnosticasAnteriores: string
   testePezinho: TesteTriagemNeonatal[]
   testeOrelhinha: TesteTriagemNeonatal[]
@@ -413,7 +412,6 @@ interface TesteTriagemNeonatalApiPayload {
 interface TriagemNeonatalApiResponse {
   id: number
   consulta_id: number
-  peso_nascimento_gramas: number | null
   hipoteses_diagnosticas_anteriores: string
   teste_pezinho_coletas: TesteTriagemNeonatalApiPayload[]
   teste_orelhinha_coletas: TesteTriagemNeonatalApiPayload[]
@@ -607,7 +605,6 @@ function criarTesteTriagemNeonatalVazio(): TesteTriagemNeonatal {
 
 function criarTriagemNeonatalVazia(): DadosTriagemNeonatalConsulta {
   return {
-    pesoNascimentoGramas: null,
     hipotesesDiagnosticasAnteriores: '',
     testePezinho: [criarTesteTriagemNeonatalVazio()],
     testeOrelhinha: [criarTesteTriagemNeonatalVazio()],
@@ -634,7 +631,6 @@ function coletasApiParaStore(coletas: TesteTriagemNeonatalApiPayload[] | undefin
 
 function triagemNeonatalApiParaStore(apiData: TriagemNeonatalApiResponse): DadosTriagemNeonatalConsulta {
   return {
-    pesoNascimentoGramas: apiData.peso_nascimento_gramas,
     hipotesesDiagnosticasAnteriores: apiData.hipoteses_diagnosticas_anteriores ?? '',
     testePezinho: coletasApiParaStore(apiData.teste_pezinho_coletas),
     testeOrelhinha: coletasApiParaStore(apiData.teste_orelhinha_coletas),
@@ -651,7 +647,6 @@ function coletaStoreParaApi(coleta: TesteTriagemNeonatal) {
 
 function triagemNeonatalStoreParaApi(dados: DadosTriagemNeonatalConsulta) {
   return {
-    peso_nascimento_gramas: dados.pesoNascimentoGramas,
     hipoteses_diagnosticas_anteriores: dados.hipotesesDiagnosticasAnteriores,
     teste_pezinho_coletas: dados.testePezinho.map(coletaStoreParaApi),
     teste_orelhinha_coletas: dados.testeOrelhinha.map(coletaStoreParaApi),
@@ -663,7 +658,6 @@ function triagemNeonatalStoreParaApi(dados: DadosTriagemNeonatalConsulta) {
 
 function clonarTriagemNeonatal(dados: DadosTriagemNeonatalConsulta): DadosTriagemNeonatalConsulta {
   return {
-    pesoNascimentoGramas: dados.pesoNascimentoGramas,
     hipotesesDiagnosticasAnteriores: dados.hipotesesDiagnosticasAnteriores,
     testePezinho: dados.testePezinho.map(coleta => ({ ...coleta })),
     testeOrelhinha: dados.testeOrelhinha.map(coleta => ({ ...coleta })),
@@ -2992,7 +2986,6 @@ export const useConsultaStore = defineStore('consulta', () => {
 
   function triagemNeonatalPossuiConteudo(dados: DadosTriagemNeonatalConsulta): boolean {
     return Boolean(
-      dados.pesoNascimentoGramas !== null ||
       dados.hipotesesDiagnosticasAnteriores.trim() ||
       dados.testePezinho.some(testeTriagemPossuiConteudo) ||
       dados.testeOrelhinha.some(testeTriagemPossuiConteudo) ||
