@@ -31,7 +31,7 @@ export type SecaoId =
   | 'anthropometric' | 'anamnesis' | 'imunizacoes' | 'triagemNeonatal'
   | 'escolaridade' | 'clinical' | 'milestones' | 'mchat'
   | 'historiaFamiliar' | 'dinamicaFamiliar' | 'socioeconomico'
-  | 'referral' | 'diagnostico' | 'condutasHipoteses' | 'procedimentos' | 'externo'
+  | 'referral' | 'diagnostico' | 'condutasHipoteses' | 'procedimentos'
 
 export interface Secao {
   id: SecaoId
@@ -478,31 +478,6 @@ interface ProcedimentosApiResponse {
   atualizado_em: string | null
 }
 
-export interface DadoExternoConsulta {
-  id: number | null
-  localId: string
-  dataConsultaExterna: string
-  servicoOrigem: string
-  pesoKg: number | null
-  alturaCm: number | null
-  observacoesClinicas: string
-  comoDadosObtidos: string
-  atualizadoEm: string | null
-}
-
-interface DadoExternoApiResponse {
-  id: number
-  consulta_id: number
-  ordem: number
-  data_consulta_externa: string | null
-  servico_origem: string
-  peso: number | null
-  altura: number | null
-  observacoes_clinicas: string
-  como_dados_obtidos: string
-  atualizado_em: string | null
-}
-
 function criarTesteTriagemNeonatalVazio(): TesteTriagemNeonatal {
   return {
     resultado: '',
@@ -906,50 +881,6 @@ function clonarProcedimentos(dados: DadosProcedimentosConsulta): DadosProcedimen
 }
 
 
-function criarDadoExternoVazio(): DadoExternoConsulta {
-  return {
-    id: null,
-    localId: `externo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    dataConsultaExterna: '',
-    servicoOrigem: '',
-    pesoKg: null,
-    alturaCm: null,
-    observacoesClinicas: '',
-    comoDadosObtidos: '',
-    atualizadoEm: null,
-  }
-}
-
-function dadoExternoApiParaStore(apiData: DadoExternoApiResponse): DadoExternoConsulta {
-  return {
-    id: apiData.id,
-    localId: `externo-api-${apiData.id}`,
-    dataConsultaExterna: apiData.data_consulta_externa ?? '',
-    servicoOrigem: apiData.servico_origem ?? '',
-    pesoKg: apiData.peso,
-    alturaCm: apiData.altura,
-    observacoesClinicas: apiData.observacoes_clinicas ?? '',
-    comoDadosObtidos: apiData.como_dados_obtidos ?? '',
-    atualizadoEm: apiData.atualizado_em,
-  }
-}
-
-function dadoExternoStoreParaApi(item: DadoExternoConsulta) {
-  return {
-    id: item.id,
-    data_consulta_externa: item.dataConsultaExterna || null,
-    servico_origem: item.servicoOrigem,
-    peso: item.pesoKg,
-    altura: item.alturaCm,
-    observacoes_clinicas: item.observacoesClinicas,
-    como_dados_obtidos: item.comoDadosObtidos,
-  }
-}
-
-function clonarDadosExternos(dados: DadoExternoConsulta[]): DadoExternoConsulta[] {
-  return dados.map(item => ({ ...item }))
-}
-
 function criarEscolaridadeVazia(): DadosEscolaridadeConsulta {
   return {
     frequentaEscolaCreche: null,
@@ -1138,7 +1069,6 @@ interface ConsultaAtivaApiResponse {
   diagnostico?: DiagnosticoApiResponse | null
   hipoteses_condutas?: HipotesesCondutasApiResponse | null
   procedimentos?: ProcedimentosApiResponse | null
-  dados_externos?: DadoExternoApiResponse[]
   marcos_desenvolvimento?: MarcoDesenvolvimentoApiResponse[]
   exame_fisico?: ExameFisicoApiResponse | null
   mchat?: MchatApiResponse | null
@@ -1338,8 +1268,6 @@ export const useConsultaStore = defineStore('consulta', () => {
   const erroSalvamentoHipotesesCondutas = ref<string | null>(null)
   const salvandoProcedimentos = ref(false)
   const erroSalvamentoProcedimentos = ref<string | null>(null)
-  const salvandoDadosExternos = ref(false)
-  const erroSalvamentoDadosExternos = ref<string | null>(null)
   const salvandoMarcos = ref(false)
   const erroSalvamentoMarcos = ref<string | null>(null)
   const salvandoExameFisico = ref(false)
@@ -1363,7 +1291,6 @@ export const useConsultaStore = defineStore('consulta', () => {
   const diagnostico = ref<DadosDiagnosticoConsulta>(criarDiagnosticoVazio())
   const hipotesesCondutas = ref<DadosHipotesesCondutasConsulta>(criarHipotesesCondutasVazia())
   const procedimentos = ref<DadosProcedimentosConsulta>(criarProcedimentosVazio())
-  const dadosExternos = ref<DadoExternoConsulta[]>([])
   const historicoImunizacoes = ref<HistoricoImunizacoesItem[]>([])
 
   const idadeEmMeses = computed(() => pacienteStore.pacienteAtivo?.idadeEmMeses ?? 0)
@@ -1406,7 +1333,6 @@ export const useConsultaStore = defineStore('consulta', () => {
       { id: 'diagnostico', label: 'Diagnóstico', group: 'registro' },
       { id: 'condutasHipoteses', label: 'Hipóteses e Condutas', group: 'registro' },
       { id: 'procedimentos', label: 'Procedimentos', group: 'registro' },
-      { id: 'externo', label: 'Dados Externos', group: 'registro' },
     )
 
     return base
@@ -1600,8 +1526,6 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoHipotesesCondutas.value = null
     salvandoProcedimentos.value = false
     erroSalvamentoProcedimentos.value = null
-    salvandoDadosExternos.value = false
-    erroSalvamentoDadosExternos.value = null
     salvandoMarcos.value = false
     erroSalvamentoMarcos.value = null
     salvandoExameFisico.value = false
@@ -1628,7 +1552,6 @@ export const useConsultaStore = defineStore('consulta', () => {
     diagnostico.value = criarDiagnosticoVazio()
     hipotesesCondutas.value = criarHipotesesCondutasVazia()
     procedimentos.value = criarProcedimentosVazio()
-    dadosExternos.value = []
     historicoImunizacoes.value = []
     exameFisico.value = criarExameFisicoVazio()
     mchatAnswers.value = {}
@@ -1697,7 +1620,6 @@ export const useConsultaStore = defineStore('consulta', () => {
       diagnostico.value = criarDiagnosticoVazio()
       hipotesesCondutas.value = criarHipotesesCondutasVazia()
       procedimentos.value = criarProcedimentosVazio()
-      dadosExternos.value = []
       historicoImunizacoes.value = []
       exameFisico.value = criarExameFisicoVazio()
       mchatAnswers.value = {}
@@ -1737,7 +1659,6 @@ export const useConsultaStore = defineStore('consulta', () => {
     diagnostico.value = response.diagnostico ? diagnosticoApiParaStore(response.diagnostico) : criarDiagnosticoVazio()
     hipotesesCondutas.value = response.hipoteses_condutas ? hipotesesCondutasApiParaStore(response.hipoteses_condutas) : criarHipotesesCondutasVazia()
     procedimentos.value = response.procedimentos ? procedimentosApiParaStore(response.procedimentos) : criarProcedimentosVazio()
-    dadosExternos.value = (response.dados_externos ?? []).map(dadoExternoApiParaStore)
     historicoImunizacoes.value = (response.imunizacoes_historico ?? []).map(historicoImunizacoesApiParaStore)
     exameFisico.value = response.exame_fisico ? exameFisicoApiParaStore(response.exame_fisico) : criarExameFisicoVazio()
     mchatAnswers.value = response.mchat?.respostas ? { ...response.mchat.respostas } : {}
@@ -1764,7 +1685,6 @@ export const useConsultaStore = defineStore('consulta', () => {
     atualizarStatusDiagnostico()
     atualizarStatusHipotesesCondutas()
     atualizarStatusProcedimentos()
-    atualizarStatusDadosExternos()
     atualizarStatusExameFisico()
     atualizarStatusMchat()
   }
@@ -2310,43 +2230,6 @@ export const useConsultaStore = defineStore('consulta', () => {
   }
 
 
-  async function salvarDadosExternos() {
-    const pacienteId = pacienteStore.pacienteAtivo?.id
-    if (!pacienteId) {
-      throw new Error('Nenhum paciente ativo para salvar dados externos.')
-    }
-
-    const dadosAntesDoEnvio = clonarDadosExternos(dadosExternos.value)
-    salvandoDadosExternos.value = true
-    erroSalvamentoDadosExternos.value = null
-
-    try {
-      const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/dados-externos', {
-        paciente_id: pacienteId,
-        registros: dadosAntesDoEnvio.map(dadoExternoStoreParaApi),
-      })
-
-      aplicarConsultaAtiva(data, pacienteId)
-
-      if (!data.dados_externos) {
-        dadosExternos.value = dadosAntesDoEnvio.map(item => ({
-          ...item,
-          atualizadoEm: new Date().toISOString(),
-        }))
-        atualizarStatusDadosExternos()
-      }
-
-      return data
-    } catch (error) {
-      erroSalvamentoDadosExternos.value = 'Não foi possível salvar os dados externos no banco.'
-      console.error('Erro ao salvar dados externos:', error)
-      throw error
-    } finally {
-      salvandoDadosExternos.value = false
-    }
-  }
-
-
   async function salvarExameFisico() {
     const pacienteId = pacienteStore.pacienteAtivo?.id
     if (!pacienteId) {
@@ -2444,7 +2327,6 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoDiagnostico.value = null
     erroSalvamentoHipotesesCondutas.value = null
     erroSalvamentoProcedimentos.value = null
-    erroSalvamentoDadosExternos.value = null
     erroSalvamentoMarcos.value = null
     erroSalvamentoExameFisico.value = null
     erroSalvamentoMchat.value = null
@@ -2463,7 +2345,6 @@ export const useConsultaStore = defineStore('consulta', () => {
     salvandoDiagnostico.value = valor
     salvandoHipotesesCondutas.value = valor
     salvandoProcedimentos.value = valor
-    salvandoDadosExternos.value = valor
     salvandoMarcos.value = valor
     salvandoExameFisico.value = valor
     salvandoMchat.value = valor
@@ -2492,7 +2373,6 @@ export const useConsultaStore = defineStore('consulta', () => {
     const diagnosticoSnapshot = clonarDiagnostico(diagnostico.value)
     const hipotesesCondutasSnapshot = clonarHipotesesCondutas(hipotesesCondutas.value)
     const procedimentosSnapshot = clonarProcedimentos(procedimentos.value)
-    const dadosExternosSnapshot = clonarDadosExternos(dadosExternos.value)
     const exameFisicoSnapshot = clonarExameFisico(exameFisico.value)
     const mchatSnapshot = { ...mchatAnswers.value }
     const statusMarcosSnapshot = { ...statusMarcos.value }
@@ -2640,13 +2520,6 @@ export const useConsultaStore = defineStore('consulta', () => {
         await postar('/api/consultas/procedimentos', {
           paciente_id: pacienteId,
           ...procedimentosStoreParaApi(procedimentosSnapshot),
-        })
-      }
-
-      if (secoesVisiveis.has('externo')) {
-        await postar('/api/consultas/dados-externos', {
-          paciente_id: pacienteId,
-          registros: dadosExternosSnapshot.map(dadoExternoStoreParaApi),
         })
       }
 
@@ -3227,62 +3100,6 @@ export const useConsultaStore = defineStore('consulta', () => {
   }
 
 
-  function dadoExternoPossuiConteudo(item: DadoExternoConsulta): boolean {
-    return Boolean(
-      item.dataConsultaExterna ||
-      item.servicoOrigem.trim() ||
-      item.pesoKg !== null ||
-      item.alturaCm !== null ||
-      item.observacoesClinicas.trim() ||
-      item.comoDadosObtidos.trim()
-    )
-  }
-
-  function dadoExternoCompleto(item: DadoExternoConsulta): boolean {
-    return Boolean(
-      item.comoDadosObtidos.trim() &&
-      (
-        item.dataConsultaExterna ||
-        item.servicoOrigem.trim() ||
-        item.pesoKg !== null ||
-        item.alturaCm !== null ||
-        item.observacoesClinicas.trim()
-      )
-    )
-  }
-
-  function atualizarStatusDadosExternos() {
-    if (dadosExternos.value.some(dadoExternoPossuiConteudo)) {
-      markSectionStarted('externo')
-    }
-    setSectionComplete('externo', dadosExternos.value.some(dadoExternoCompleto))
-  }
-
-  function adicionarDadoExterno(dado?: DadoExternoConsulta) {
-    dadosExternos.value = [
-      ...dadosExternos.value,
-      dado ? { ...dado, localId: dado.localId || criarDadoExternoVazio().localId } : criarDadoExternoVazio(),
-    ]
-    atualizarStatusDadosExternos()
-  }
-
-  function removerDadoExterno(localId: string) {
-    dadosExternos.value = dadosExternos.value.filter(item => item.localId !== localId)
-    atualizarStatusDadosExternos()
-  }
-
-  function atualizarCampoDadoExterno<K extends keyof DadoExternoConsulta>(
-    localId: string,
-    campo: K,
-    valor: DadoExternoConsulta[K],
-  ) {
-    dadosExternos.value = dadosExternos.value.map(item => (
-      item.localId === localId ? { ...item, [campo]: valor, atualizadoEm: new Date().toISOString() } : item
-    ))
-    atualizarStatusDadosExternos()
-  }
-
-
   function escolaridadePossuiConteudo(dados: DadosEscolaridadeConsulta): boolean {
     return Boolean(
       dados.frequentaEscolaCreche !== null ||
@@ -3363,8 +3180,6 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoHipotesesCondutas.value = null
     salvandoProcedimentos.value = false
     erroSalvamentoProcedimentos.value = null
-    salvandoDadosExternos.value = false
-    erroSalvamentoDadosExternos.value = null
     salvandoMarcos.value = false
     erroSalvamentoMarcos.value = null
     salvandoExameFisico.value = false
@@ -3394,7 +3209,6 @@ export const useConsultaStore = defineStore('consulta', () => {
     diagnostico.value = criarDiagnosticoVazio()
     hipotesesCondutas.value = criarHipotesesCondutasVazia()
     procedimentos.value = criarProcedimentosVazio()
-    dadosExternos.value = []
     historicoImunizacoes.value = []
     exameFisico.value = criarExameFisicoVazio()
     mchatAnswers.value = {}
@@ -3419,7 +3233,6 @@ export const useConsultaStore = defineStore('consulta', () => {
     diagnostico,
     hipotesesCondutas,
     procedimentos,
-    dadosExternos,
     historicoImunizacoes,
     salvandoAntropometria,
     erroSalvamentoAntropometria,
@@ -3445,8 +3258,6 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoHipotesesCondutas,
     salvandoProcedimentos,
     erroSalvamentoProcedimentos,
-    salvandoDadosExternos,
-    erroSalvamentoDadosExternos,
     salvandoMarcos,
     erroSalvamentoMarcos,
     salvandoExameFisico,
@@ -3489,7 +3300,6 @@ export const useConsultaStore = defineStore('consulta', () => {
     salvarDiagnostico,
     salvarHipotesesCondutas,
     salvarProcedimentos,
-    salvarDadosExternos,
     salvarExameFisico,
     salvarMchat,
     finalizarConsulta,
@@ -3515,9 +3325,6 @@ export const useConsultaStore = defineStore('consulta', () => {
     adicionarProcedimento,
     removerProcedimento,
     atualizarCampoProcedimento,
-    adicionarDadoExterno,
-    removerDadoExterno,
-    atualizarCampoDadoExterno,
     adicionarCidSecundario,
     removerCidSecundario,
     atualizarCampoCidSecundario,
