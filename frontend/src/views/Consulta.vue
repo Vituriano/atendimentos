@@ -143,7 +143,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ChevronLeftIcon, ChevronRightIcon,
@@ -256,6 +256,39 @@ watch(
     }
   }
 )
+
+// Auto-save periódico: protege contra perda de dados em caso de aba fechada,
+// travamento do navegador ou esquecimento de clicar em "Salvar Rascunho" — sem
+// depender só do goNext (o médico pode ficar bastante tempo na mesma seção).
+// 90s é um meio-termo entre "perde pouco em caso de acidente" e "não bombardeia
+// o backend com o POST completo do atendimento a cada seção visitada".
+const AUTO_SAVE_INTERVAL_MS = 90_000
+
+let autoSaveIntervalId: ReturnType<typeof setInterval> | null = null
+
+function executarAutoSalvamentoPeriodico() {
+  // Sem consulta carregada (paciente não ativo, modo leitura, ou tela de
+  // resumo pós-finalização) — não há o que salvar.
+  if (mostrarResumo.value) return
+  if (!pacienteAtivo.value?.id || pacienteStore.modoLeitura) return
+  // Evita empilhar requisições: pula o tick se já existe um salvamento em
+  // andamento, seja disparado por este auto-save, pelo botão "Salvar
+  // Rascunho" ou pelo auto-save de goNext ao trocar de seção.
+  if (salvandoRascunho.value || consulta.salvandoAtendimento) return
+
+  void salvarRascunho()
+}
+
+onMounted(() => {
+  autoSaveIntervalId = setInterval(executarAutoSalvamentoPeriodico, AUTO_SAVE_INTERVAL_MS)
+})
+
+onUnmounted(() => {
+  if (autoSaveIntervalId !== null) {
+    clearInterval(autoSaveIntervalId)
+    autoSaveIntervalId = null
+  }
+})
 
 async function salvarRascunho() {
   if (salvandoRascunho.value) return

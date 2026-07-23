@@ -1248,6 +1248,10 @@ export const useConsultaStore = defineStore('consulta', () => {
   // sessão. Impede que um retorno à tela de consulta (ex.: voltar do briefing)
   // recarregue o snapshot persistido por cima de edições ainda não salvas.
   const consultaCarregada = ref(false)
+  // Indica que um salvamento do atendimento completo (rascunho) está em andamento —
+  // usado por quem dispara salvamentos em segundo plano (avançar de seção, auto-save
+  // periódico) para não empilhar requisições concorrentes.
+  const salvandoAtendimento = ref(false)
   // Erro do salvamento automático de rascunho disparado ao avançar de seção
   // (goNext). Não bloqueia a navegação — só é exibido para o usuário.
   const erroSalvamentoNavegacao = ref<string | null>(null)
@@ -1517,6 +1521,7 @@ export const useConsultaStore = defineStore('consulta', () => {
   function limparDadosDaConsultaAtual() {
     consultaAtivaId.value = null
     consultaCarregada.value = false
+    salvandoAtendimento.value = false
     erroSalvamentoNavegacao.value = null
     completedSections.value = new Set()
     startedSections.value = new Set()
@@ -2421,6 +2426,7 @@ export const useConsultaStore = defineStore('consulta', () => {
 
     limparErrosSalvamentoAtendimento()
     setSalvandoAtendimento(true)
+    salvandoAtendimento.value = true
 
     try {
       if (secoesVisiveis.has('anthropometric') && antropometriaCompleta(antropometriaSnapshot)) {
@@ -2564,6 +2570,7 @@ export const useConsultaStore = defineStore('consulta', () => {
       throw error
     } finally {
       setSalvandoAtendimento(false)
+      salvandoAtendimento.value = false
     }
   }
 
@@ -3194,6 +3201,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     consultaAtivaId.value = null
     consultaCarregada.value = false
     currentPacienteId.value = null
+    salvandoAtendimento.value = false
     erroSalvamentoNavegacao.value = null
     salvandoAntropometria.value = false
     erroSalvamentoAntropometria.value = null
@@ -3260,6 +3268,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     consultaIniciada,
     consultaAtivaId,
     currentPacienteId,
+    salvandoAtendimento,
     erroSalvamentoNavegacao,
     antropometria,
     anamnese,
