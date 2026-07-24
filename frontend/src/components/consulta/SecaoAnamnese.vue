@@ -1197,9 +1197,6 @@ async function salvarSecao() {
         <p v-else-if="mensagemSalvamento" class="text-xs text-teal-700">
           {{ mensagemSalvamento }}
         </p>
-        <p v-else class="text-xs text-slate-400">
-          Os dados digitados ficam na tela; clique em Salvar Rascunho no topo da tela para gravar no banco.
-        </p>
       </div>
     </section>
   </div>
