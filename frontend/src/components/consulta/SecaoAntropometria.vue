@@ -357,7 +357,6 @@ async function salvarSecao() {
             {{ consultaStore.erroSalvamentoAntropometria }}
           </p>
           <p v-else-if="secaoCompleta" class="mt-1 text-xs text-slate-400">Seção salva no banco e marcada como completa.</p>
-          <p v-else class="mt-1 text-xs text-slate-400">Depois de conferir os dados, clique em Salvar Rascunho no topo da tela.</p>
         </div>
       </div>
 

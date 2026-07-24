@@ -1521,12 +1521,9 @@ export const useConsultaStore = defineStore('consulta', () => {
   // recarregue o snapshot persistido por cima de edições ainda não salvas.
   const consultaCarregada = ref(false)
   // Indica que um salvamento do atendimento completo (rascunho) está em andamento —
-  // usado por quem dispara salvamentos em segundo plano (avançar de seção, auto-save
-  // periódico) para não empilhar requisições concorrentes.
+  // usado pelo salvamento automático disparado a cada alteração (ver Consulta.vue)
+  // para não empilhar requisições concorrentes.
   const salvandoAtendimento = ref(false)
-  // Erro do salvamento automático de rascunho disparado ao avançar de seção
-  // (goNext). Não bloqueia a navegação — só é exibido para o usuário.
-  const erroSalvamentoNavegacao = ref<string | null>(null)
   const salvandoAntropometria = ref(false)
   const erroSalvamentoAntropometria = ref<string | null>(null)
   const salvandoAnamnese = ref(false)
@@ -1643,10 +1640,6 @@ export const useConsultaStore = defineStore('consulta', () => {
     if (s >= 3 && s <= 7) return 'medium'
     return 'high'
   })
-
-  const currentIndex = computed(() => secoes.value.findIndex(s => s.id === activeSection.value))
-  const canGoPrev = computed(() => currentIndex.value > 0)
-  const canGoNext = computed(() => currentIndex.value < secoes.value.length - 1)
 
   // Marcos do desenvolvimento — chave composta: `${marcoId}-${idadeColuna}`
   const statusMarcos = ref<Record<string, StatusMarco | null>>({})
@@ -1811,7 +1804,6 @@ export const useConsultaStore = defineStore('consulta', () => {
     consultaAtivaId.value = null
     consultaCarregada.value = false
     salvandoAtendimento.value = false
-    erroSalvamentoNavegacao.value = null
     completedSections.value = new Set()
     startedSections.value = new Set()
     salvandoAntropometria.value = false
@@ -2655,7 +2647,6 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoMarcos.value = null
     erroSalvamentoExameFisico.value = null
     erroSalvamentoMchat.value = null
-    erroSalvamentoNavegacao.value = null
   }
 
   function setSalvandoAtendimento(valor: boolean) {
@@ -3447,36 +3438,12 @@ export const useConsultaStore = defineStore('consulta', () => {
     atualizarStatusEscolaridade()
   }
 
-  async function goNext() {
-    if (!canGoNext.value) return
-
-    // Salva o rascunho da seção ativa antes de trocar de seção, para não perder o
-    // que foi preenchido caso o usuário feche a aba sem clicar em "Salvar
-    // Rascunho". Falha no salvamento não deve travar a navegação — só é
-    // reportada ao usuário (mesmo padrão de erroSalvamentoX das demais seções).
-    try {
-      await salvarRascunhoSecaoAtiva()
-    } catch (error) {
-      erroSalvamentoNavegacao.value = 'Não foi possível salvar o rascunho da seção antes de avançar.'
-      console.error('Erro ao salvar rascunho ao avançar de seção:', error)
-    }
-
-    activeSection.value = secoes.value[currentIndex.value + 1].id
-  }
-
-  function goPrev() {
-    if (canGoPrev.value) {
-      activeSection.value = secoes.value[currentIndex.value - 1].id
-    }
-  }
-
   function resetConsulta() {
     consultaIniciada.value = null
     consultaAtivaId.value = null
     consultaCarregada.value = false
     currentPacienteId.value = null
     salvandoAtendimento.value = false
-    erroSalvamentoNavegacao.value = null
     salvandoAntropometria.value = false
     erroSalvamentoAntropometria.value = null
     salvandoAnamnese.value = false
@@ -3544,7 +3511,6 @@ export const useConsultaStore = defineStore('consulta', () => {
     consultaAtivaId,
     currentPacienteId,
     salvandoAtendimento,
-    erroSalvamentoNavegacao,
     antropometria,
     anamnese,
     imunizacoes,
@@ -3594,9 +3560,6 @@ export const useConsultaStore = defineStore('consulta', () => {
     finalizandoConsulta,
     erroFinalizarConsulta,
     secoes,
-    currentIndex,
-    canGoPrev,
-    canGoNext,
     statusMarcos,
     observacoesMarcos,
     observacaoGeralMarcos,
@@ -3656,8 +3619,6 @@ export const useConsultaStore = defineStore('consulta', () => {
     adicionarEncaminhamento,
     removerEncaminhamento,
     atualizarCampoEncaminhamento,
-    goNext,
-    goPrev,
     resetConsulta,
     toggleStatusMarco,
     getStatusMarco,

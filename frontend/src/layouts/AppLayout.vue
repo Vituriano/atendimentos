@@ -161,7 +161,7 @@
         <h1 class="text-xl font-bold tracking-tight text-slate-900">{{ route.meta.title ?? '' }}</h1>
       </header>
 
-      <main class="flex-1 overflow-auto px-6 py-6">
+      <main :class="['flex-1 overflow-auto', isConsulta ? 'bg-white' : 'px-6 py-6']">
         <RouterView />
       </main>
     </div>
@@ -192,6 +192,11 @@ const pacienteStore = usePacienteStore()
 const pacienteAtivo = computed(() => pacienteStore.pacienteAtivo)
 const tipoEntradaPaciente = computed(() => pacienteAtivo.value?.tipoEntrada ?? null)
 const modoLeitura = computed(() => pacienteStore.modoLeitura)
+
+// A tela de Consulta monta seu próprio "sub-shell" (sidebar + header + footer
+// preenchendo 100% da altura/largura) e já cuida do próprio fundo branco — o
+// padding/canto cinza deste <main> criava uma moldura "flutuante" ao redor dela.
+const isConsulta = computed(() => route.path === '/consulta')
 
 const patientNavItems = [
   { label: 'Briefing Clínico', icon: ClipboardDocumentListIcon },

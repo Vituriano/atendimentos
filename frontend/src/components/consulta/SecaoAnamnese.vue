@@ -248,7 +248,9 @@ function criarExameTrazidoVazio(): ExameTrazido {
 
 function adicionarExameTrazido() {
   mensagemSalvamento.value = null
-  const lista = [...consultaStore.anamnese.clinica.examesTrazidos, criarExameTrazidoVazio()]
+  // Exame novo entra no topo da lista (diretriz: item digitável recém-adicionado
+  // sempre fica visível em primeiro lugar, sem precisar rolar até o fim).
+  const lista = [criarExameTrazidoVazio(), ...consultaStore.anamnese.clinica.examesTrazidos]
   setClinica('examesTrazidos', lista)
 }
 
@@ -1194,9 +1196,6 @@ async function salvarSecao() {
         </p>
         <p v-else-if="mensagemSalvamento" class="text-xs text-teal-700">
           {{ mensagemSalvamento }}
-        </p>
-        <p v-else class="text-xs text-slate-400">
-          Os dados digitados ficam na tela; clique em Salvar Rascunho no topo da tela para gravar no banco.
         </p>
       </div>
     </section>

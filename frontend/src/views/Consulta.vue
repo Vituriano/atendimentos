@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-full">
+  <div class="flex h-full bg-white">
 
     <!-- Tela pós-finalização (cobre o layout inteiro) -->
     <ResumoConsulta
@@ -33,18 +33,11 @@
           </div>
           <ConsultaTimer v-if="consulta.consultaIniciada" :start-time="consulta.consultaIniciada" />
         </div>
-        <div class="flex items-center gap-2">
-          <div class="flex flex-col items-end gap-1">
-            <button
-              class="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
-              :disabled="salvandoRascunho"
-              @click="salvarRascunho"
-            >
-              {{ salvandoRascunho ? 'Salvando...' : 'Salvar Rascunho' }}
-            </button>
-            <p v-if="mensagemRascunho" class="text-xs text-teal-700">{{ mensagemRascunho }}</p>
-            <p v-if="erroRascunho" class="text-xs text-red-600">{{ erroRascunho }}</p>
-          </div>
+        <div class="flex items-center gap-3">
+          <!-- Salvamento automático e silencioso a cada alteração — sem indicador
+               de "salvando"/"salvo" o tempo todo. Só aparece algo aqui se o
+               salvamento falhar de verdade, para não deixar o médico sem saber. -->
+          <p v-if="erroSalvamentoAutomatico" class="text-xs text-red-600">{{ erroSalvamentoAutomatico }}</p>
           <button
             class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
             :disabled="consulta.finalizandoConsulta"
@@ -92,44 +85,6 @@
           </div>
         </div>
       </main>
-
-      <!-- Prev / Next -->
-      <footer class="flex items-center justify-between border-t border-slate-200 bg-white px-6 py-3 shrink-0">
-        <button
-          class="flex items-center gap-1 rounded-lg px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          :disabled="!consulta.canGoPrev"
-          @click="consulta.goPrev()"
-        >
-          <ChevronLeftIcon class="h-4 w-4" /> Anterior
-        </button>
-        <span class="text-xs text-slate-400">
-          {{ consulta.currentIndex + 1 }} / {{ consulta.secoes.length }}
-        </span>
-        <div class="flex items-center gap-3">
-          <div class="flex flex-col items-end gap-1">
-            <button
-              class="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
-              :disabled="salvandoRascunho"
-              @click="salvarRascunho"
-            >
-              {{ salvandoRascunho ? 'Salvando...' : 'Salvar Rascunho' }}
-            </button>
-            <p v-if="erroRascunho" class="text-xs text-red-600">{{ erroRascunho }}</p>
-          </div>
-          <div class="flex flex-col items-end gap-1">
-            <button
-              class="flex items-center gap-1 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              :disabled="!consulta.canGoNext"
-              @click="consulta.goNext()"
-            >
-              Próxima <ChevronRightIcon class="h-4 w-4" />
-            </button>
-            <p v-if="consulta.erroSalvamentoNavegacao" class="text-xs text-red-600">
-              {{ consulta.erroSalvamentoNavegacao }}
-            </p>
-          </div>
-        </div>
-      </footer>
     </div>
   </div>
 
@@ -146,7 +101,6 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  ChevronLeftIcon, ChevronRightIcon,
   ChartBarIcon, DocumentTextIcon, ShieldCheckIcon, SparklesIcon,
   AcademicCapIcon, HeartIcon, ClipboardDocumentCheckIcon, CpuChipIcon,
   UsersIcon, HomeIcon, PaperAirplaneIcon, DocumentMagnifyingGlassIcon,
@@ -224,9 +178,8 @@ const mostrarDialogFinalizacao = ref(false)
 const mostrarResumo = ref(false)
 const textoAGHU = ref('')
 const textosEncaminhamento = ref<string[]>([])
-const salvandoRascunho = ref(false)
-const mensagemRascunho = ref('')
-const erroRascunho = ref('')
+const salvandoAutomatico = ref(false)
+const erroSalvamentoAutomatico = ref('')
 
 const secaoAtiva = computed(() => consulta.secoes.find(s => s.id === consulta.activeSection))
 
@@ -257,56 +210,63 @@ watch(
   }
 )
 
-// Auto-save periódico: protege contra perda de dados em caso de aba fechada,
-// travamento do navegador ou esquecimento de clicar em "Salvar Rascunho" — sem
-// depender só do goNext (o médico pode ficar bastante tempo na mesma seção).
-// 90s é um meio-termo entre "perde pouco em caso de acidente" e "não bombardeia
-// o backend com o POST completo do atendimento a cada seção visitada".
-const AUTO_SAVE_INTERVAL_MS = 90_000
+// Salvamento automático: não existe mais botão manual, avanço de seção ou
+// timer periódico disparando o save — qualquer alteração em qualquer campo da
+// consulta ativa já é persistida sozinha, pouco depois de o médico parar de
+// digitar. `consulta.$subscribe` do Pinia dispara a cada mutação de estado da
+// store (qualquer atualizarCampoX de qualquer seção), então não é preciso
+// instrumentar cada função de seção uma por uma para saber "algo mudou".
+const SALVAMENTO_DEBOUNCE_MS = 1_500
 
-let autoSaveIntervalId: ReturnType<typeof setInterval> | null = null
+let debounceSalvamentoId: ReturnType<typeof setTimeout> | null = null
+let unsubscribeConsulta: (() => void) | null = null
 
-function executarAutoSalvamentoPeriodico() {
-  // Sem consulta carregada (paciente não ativo, modo leitura, ou tela de
-  // resumo pós-finalização) — não há o que salvar.
+function agendarSalvamentoAutomatico() {
   if (mostrarResumo.value) return
   if (!pacienteAtivo.value?.id || pacienteStore.modoLeitura) return
-  // Evita empilhar requisições: pula o tick se já existe um salvamento em
-  // andamento, seja disparado por este auto-save, pelo botão "Salvar
-  // Rascunho" ou pelo auto-save de goNext ao trocar de seção.
-  if (salvandoRascunho.value || consulta.salvandoAtendimento) return
 
-  void salvarRascunho()
+  if (debounceSalvamentoId !== null) clearTimeout(debounceSalvamentoId)
+  debounceSalvamentoId = setTimeout(() => {
+    debounceSalvamentoId = null
+    void executarSalvamentoAutomatico()
+  }, SALVAMENTO_DEBOUNCE_MS)
+}
+
+async function executarSalvamentoAutomatico() {
+  // Evita empilhar requisições: se já existe um salvamento em andamento, a
+  // próxima mutação de estado (inclusive as do próprio salvamento em curso)
+  // vai reagendar um novo debounce depois que ele terminar.
+  if (salvandoAutomatico.value || consulta.salvandoAtendimento) return
+
+  salvandoAutomatico.value = true
+  try {
+    await consulta.salvarRascunhoSecaoAtiva()
+    erroSalvamentoAutomatico.value = ''
+  } catch (error) {
+    erroSalvamentoAutomatico.value = error instanceof Error
+      ? error.message
+      : 'Não foi possível salvar automaticamente.'
+  } finally {
+    salvandoAutomatico.value = false
+  }
 }
 
 onMounted(() => {
-  autoSaveIntervalId = setInterval(executarAutoSalvamentoPeriodico, AUTO_SAVE_INTERVAL_MS)
+  unsubscribeConsulta = consulta.$subscribe(() => {
+    agendarSalvamentoAutomatico()
+  })
 })
 
 onUnmounted(() => {
-  if (autoSaveIntervalId !== null) {
-    clearInterval(autoSaveIntervalId)
-    autoSaveIntervalId = null
+  if (debounceSalvamentoId !== null) {
+    clearTimeout(debounceSalvamentoId)
+    debounceSalvamentoId = null
+  }
+  if (unsubscribeConsulta !== null) {
+    unsubscribeConsulta()
+    unsubscribeConsulta = null
   }
 })
-
-async function salvarRascunho() {
-  if (salvandoRascunho.value) return
-
-  salvandoRascunho.value = true
-  mensagemRascunho.value = ''
-  erroRascunho.value = ''
-
-  try {
-    await consulta.salvarRascunhoSecaoAtiva()
-    mensagemRascunho.value = 'Rascunho do atendimento salvo.'
-  } catch (error) {
-    const mensagem = error instanceof Error ? error.message : 'Não foi possível salvar o rascunho.'
-    erroRascunho.value = mensagem
-  } finally {
-    salvandoRascunho.value = false
-  }
-}
 
 function calcularDuracaoMinutos(): number {
   if (!consulta.consultaIniciada) return 0
