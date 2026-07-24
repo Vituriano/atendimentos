@@ -211,6 +211,7 @@ Avaliados nesta consulta:
     const status = p.statusMarcos[key]
     if (status === 'confirmed') texto += `  [OK] ${marco.nome}\n`
     else if (status === 'not-achieved') texto += `  [X]  ${marco.nome}\n`
+    else if (status === 'not-verified') texto += `  [NV] ${marco.nome} (nao verificado)\n`
     else texto += `  [-]  ${marco.nome} (nao avaliado)\n`
   }
   texto += `\nClassificacao do desenvolvimento: ${classificacaoLabel(p.classificacaoDesenvolvimento)}\n`

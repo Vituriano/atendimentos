@@ -205,6 +205,16 @@ async function salvarSecao() {
                 >
                   <XMarkIcon class="h-3 w-3" />
                 </button>
+                <button
+                  @click="toggleStatus(marco.id, col, 'not-verified')"
+                  title="Não verificado"
+                  class="w-6 h-6 rounded border flex items-center justify-center transition-colors"
+                  :class="getStatus(marco.id, col) === 'not-verified'
+                    ? 'bg-slate-200 border-slate-500 text-slate-700'
+                    : 'border-teal-200 hover:bg-slate-100'"
+                >
+                  <span class="text-[10px] font-bold leading-none">NV</span>
+                </button>
               </div>
 
               <!-- Célula futura -->
@@ -218,34 +228,19 @@ async function salvarSecao() {
       </table>
     </div>
 
-    <!-- Legenda -->
-    <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-500 pt-3 border-t border-slate-100">
-      <div class="flex items-center gap-1.5">
-        <div class="w-5 h-5 rounded border bg-green-100 border-green-500 flex items-center justify-center">
-          <CheckIcon class="h-3 w-3 text-green-600" />
-        </div>
-        Confirmado (observado nesta consulta)
-      </div>
-      <div class="flex items-center gap-1.5">
-        <div class="w-5 h-5 rounded border bg-red-100 border-red-500 flex items-center justify-center">
-          <XMarkIcon class="h-3 w-3 text-red-600" />
-        </div>
-        Não atingido (esperado não observado)
-      </div>
-      <div class="flex items-center gap-1.5">
-        <div class="w-5 h-5 rounded border border-slate-200 flex items-center justify-center">
-          <MinusIcon class="h-3 w-3 text-slate-300" />
-        </div>
-        Não avaliado
-      </div>
-      <div class="flex items-center gap-1.5">
-        <div class="w-5 h-5 rounded bg-teal-50 border border-teal-200"></div>
-        Dentro da janela
-      </div>
-      <div class="flex items-center gap-1.5">
-        <div class="w-5 h-5 rounded bg-slate-100 opacity-60"></div>
-        Fora do alcance (futuro)
-      </div>
+    <!-- Observação final geral da seção -->
+    <div class="space-y-1.5">
+      <label class="text-sm font-medium text-slate-700">Observação final geral</label>
+      <p class="text-xs text-slate-500">
+        Registro geral sobre a avaliação dos marcos desta consulta (usado para apoiar alertas).
+      </p>
+      <textarea
+        :value="consultaStore.observacaoGeralMarcos"
+        @input="(e) => consultaStore.setObservacaoGeralMarcos((e.target as HTMLTextAreaElement).value)"
+        rows="3"
+        placeholder="Observação geral sobre os marcos do desenvolvimento (opcional)"
+        class="w-full text-sm text-slate-700 placeholder-slate-300 border border-slate-200 rounded-lg px-3 py-2 resize-y focus:outline-none focus:ring-1 focus:ring-teal-400 focus:border-teal-400"
+      />
     </div>
 
     <!-- Classificação do Desenvolvimento -->

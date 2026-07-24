@@ -504,6 +504,7 @@ class ConsultaMarcoDesenvolvimento(Base):
     idade_coluna_meses = Column(Integer, nullable=False)
     status = Column(String(32), nullable=False)
     observacao = Column(Text, nullable=True)
+    observacao_geral = Column(Text, nullable=True)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
     deleted_at = Column(DateTime, nullable=True)

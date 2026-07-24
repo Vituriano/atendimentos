@@ -442,13 +442,14 @@ class DadoExternoResponse(BaseModel):
 class MarcoDesenvolvimentoPayload(BaseModel):
     marco_id: str = Field(..., min_length=1)
     idade_coluna_meses: int = Field(..., ge=0, le=240)
-    status: Literal["confirmed", "not-evaluated", "not-achieved"]
+    status: Literal["confirmed", "not-evaluated", "not-achieved", "not-verified"]
     observacao: str = ""
 
 
 class MarcosDesenvolvimentoSalvarRequest(BaseModel):
     paciente_id: str = Field(..., min_length=1)
     registros: list[MarcoDesenvolvimentoPayload] = Field(default_factory=list)
+    observacao_geral: str = ""
 
 
 class MarcoDesenvolvimentoResponse(BaseModel):
@@ -458,6 +459,7 @@ class MarcoDesenvolvimentoResponse(BaseModel):
     idade_coluna_meses: int
     status: str
     observacao: str
+    observacao_geral: str = ""
     atualizado_em: datetime | None
 
 
@@ -1671,6 +1673,7 @@ def _marco_desenvolvimento_response(registro: ConsultaMarcoDesenvolvimento) -> M
         idade_coluna_meses=registro.idade_coluna_meses,
         status=_texto(registro.status),
         observacao=_texto(registro.observacao),
+        observacao_geral=_texto(registro.observacao_geral),
         atualizado_em=registro.updated_at,
     )
 
@@ -1914,6 +1917,7 @@ async def salvar_marcos_desenvolvimento(
                 idade_coluna_meses=item.idade_coluna_meses,
                 status=item.status,
                 observacao=item.observacao,
+                observacao_geral=body.observacao_geral,
             )
         )
 
