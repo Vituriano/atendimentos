@@ -1,7 +1,7 @@
 """add observacao_geral to consulta marcos desenvolvimento
 
-Revision ID: j6k7l8m9n0o1
-Revises: i5j6k7l8m9n0
+Revision ID: v7w8x9y0z1a2
+Revises: p1q2r3s4t5u6
 Create Date: 2026-07-21 00:00:00.000000
 """
 from typing import Sequence, Union
@@ -10,8 +10,8 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision: str = "j6k7l8m9n0o1"
-down_revision: Union[str, Sequence[str], None] = "i5j6k7l8m9n0"
+revision: str = "v7w8x9y0z1a2"
+down_revision: Union[str, Sequence[str], None] = "p1q2r3s4t5u6"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
