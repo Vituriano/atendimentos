@@ -38,6 +38,7 @@ export const calendarioVacinal: VacinaCalendario[] = [
       { id: '1a', label: '1ª Dose' },
       { id: '2a', label: '2ª Dose' },
       { id: '3a', label: '3ª Dose' },
+      { id: 'reforco', label: 'Reforço' },
     ],
   },
   {
@@ -56,6 +57,7 @@ export const calendarioVacinal: VacinaCalendario[] = [
     doses: [
       { id: '1a', label: '1ª Dose' },
       { id: '2a', label: '2ª Dose' },
+      { id: 'reforco', label: 'Reforço' },
     ],
   },
   {
@@ -66,6 +68,7 @@ export const calendarioVacinal: VacinaCalendario[] = [
       { id: '1a', label: '1ª Dose' },
       { id: '2a', label: '2ª Dose' },
       { id: '3a', label: '3ª Dose' },
+      { id: 'reforco', label: 'Reforço' },
     ],
   },
   {
@@ -75,6 +78,7 @@ export const calendarioVacinal: VacinaCalendario[] = [
     doses: [
       { id: '1a', label: '1ª Dose' },
       { id: '2a', label: '2ª Dose' },
+      { id: 'reforco', label: 'Reforço' },
     ],
   },
   {
@@ -83,6 +87,7 @@ export const calendarioVacinal: VacinaCalendario[] = [
     cor: 'green',
     doses: [
       { id: '1a', label: '1ª Dose' },
+      { id: '2a', label: '2ª Dose' },
     ],
   },
   {

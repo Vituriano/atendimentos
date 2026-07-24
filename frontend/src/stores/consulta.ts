@@ -168,6 +168,7 @@ interface ImunizacoesApiResponse {
   id: number
   consulta_id: number
   status_vacinal: string
+  status_vacinas: Record<string, 'aplicada' | 'em-atraso'>
   atualizado_em: string | null
 }
 
@@ -885,7 +886,7 @@ function criarImunizacoesVazia(): DadosImunizacoesConsulta {
 function imunizacoesApiParaStore(apiData: ImunizacoesApiResponse): DadosImunizacoesConsulta {
   return {
     statusVacinal: apiData.status_vacinal ?? '',
-    statusVacinas: {},
+    statusVacinas: { ...(apiData.status_vacinas ?? {}) },
     atualizadoEm: apiData.atualizado_em,
   }
 }
@@ -1865,6 +1866,7 @@ export const useConsultaStore = defineStore('consulta', () => {
       const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/imunizacoes', {
         paciente_id: pacienteId,
         status_vacinal: statusVacinalAntesDoEnvio,
+        status_vacinas: { ...imunizacoes.value.statusVacinas },
       })
 
       aplicarConsultaAtiva(data, pacienteId)
@@ -2412,6 +2414,7 @@ export const useConsultaStore = defineStore('consulta', () => {
         await postar('/api/consultas/imunizacoes', {
           paciente_id: pacienteId,
           status_vacinal: imunizacoesSnapshot.statusVacinal,
+          status_vacinas: { ...imunizacoesSnapshot.statusVacinas },
         })
       }
 
