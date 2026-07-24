@@ -111,6 +111,54 @@ class AntropometriaResponse(BaseModel):
     atualizado_em: datetime | None
 
 
+class SorologiaGestacionalPayload(BaseModel):
+    vdrl: str = ""
+    hiv: str = ""
+    hepatite_b: str = ""
+    hepatite_c: str = ""
+    toxoplasmose: str = ""
+    cmv: str = ""
+
+
+class AntecedentesGestacionaisPayload(BaseModel):
+    gravidez_planejada: bool | None = None
+    pre_natal_local_consultas: str = ""
+    medicacoes: str = ""
+    comorbidades_gestacao: str = ""
+    tabagismo_materno: str = ""
+    etilismo_materno: str = ""
+    outras_drogas: str = ""
+    sorologias: SorologiaGestacionalPayload = Field(default_factory=SorologiaGestacionalPayload)
+
+
+class AntecedentesPeriNeonataisPayload(BaseModel):
+    tipo_parto: str = ""
+    necessidade_reanimacao: bool | None = None
+    reanimacao_detalhe: str = ""
+    apgar: str = ""
+    idade_gestacional_semanas: int | None = Field(default=None, ge=20, le=45)
+    peso_nascimento_gramas: int | None = Field(default=None, ge=0)
+    comprimento_nascimento_cm: float | None = Field(default=None, ge=0)
+    perimetro_cefalico_cm: float | None = Field(default=None, ge=0)
+    ortolani: str = ""
+    exames: str = ""
+    tipagem_sanguinea_materna: str = ""
+    tipagem_sanguinea_paciente: str = ""
+    vdrl_neonatal: str = ""
+    hiv_neonatal: str = ""
+    classificacao_peso_nascimento: str = ""
+
+
+class AntecedentesPerinataisPayload(BaseModel):
+    gestacional: AntecedentesGestacionaisPayload = Field(default_factory=AntecedentesGestacionaisPayload)
+    peri_neonatal: AntecedentesPeriNeonataisPayload = Field(default_factory=AntecedentesPeriNeonataisPayload)
+
+
+class ExameTrazidoPayload(BaseModel):
+    exame: str = ""
+    analise: str = ""
+
+
 class AnamneseClinicaPayload(BaseModel):
     queixa_principal: str = ""
     historia_doenca_atual: str = ""
@@ -127,8 +175,10 @@ class AnamneseClinicaPayload(BaseModel):
     interrogatorio_sistema_nervoso: str = ""
     sistemas_interrogatorio_alterados: list[str] = Field(default_factory=list)
     medicacoes_rotina: str = ""
-    exames_complementares: str = ""
     antecedentes_doencas: str = ""
+    acompanhamentos: str = ""
+    antecedentes_perinatais: AntecedentesPerinataisPayload = Field(default_factory=AntecedentesPerinataisPayload)
+    exames_trazidos: list[ExameTrazidoPayload] = Field(default_factory=list)
 
 
 class AnamneseAlimentacaoPayload(BaseModel):
@@ -150,7 +200,6 @@ class AnamneseHabitosPayload(BaseModel):
     sono_alteracoes: str = ""
     telas_dispositivos: list[str] = Field(default_factory=list)
     telas_tempo_diario: str = ""
-    telas_frequencia: str = ""
     chupeta_chupa_dedo: str = ""
     higiene_dentaria: str = ""
     atividades_recreativas: str = ""
@@ -219,7 +268,6 @@ class TesteTriagemNeonatalPayload(BaseModel):
 
 class TriagemNeonatalSalvarRequest(BaseModel):
     paciente_id: str = Field(..., min_length=1)
-    idade_gestacional_semanas: int | None = Field(default=None, ge=20, le=45)
     peso_nascimento_gramas: int | None = Field(default=None, ge=300, le=7000)
     hipoteses_diagnosticas_anteriores: str = ""
     teste_pezinho_coletas: list[TesteTriagemNeonatalPayload] = Field(default_factory=list, max_length=4)
@@ -232,7 +280,6 @@ class TriagemNeonatalSalvarRequest(BaseModel):
 class TriagemNeonatalResponse(BaseModel):
     id: int
     consulta_id: int
-    idade_gestacional_semanas: int | None
     peso_nascimento_gramas: int | None
     hipoteses_diagnosticas_anteriores: str
     teste_pezinho_coletas: list[TesteTriagemNeonatalPayload]
@@ -646,6 +693,141 @@ def _antropometria_response(registro: ConsultaAntropometria | None) -> Antropome
     )
 
 
+def _sorologia_gestacional_payload(dados: dict) -> SorologiaGestacionalPayload:
+    return SorologiaGestacionalPayload(
+        vdrl=_texto(dados.get("vdrl")),
+        hiv=_texto(dados.get("hiv")),
+        hepatite_b=_texto(dados.get("hepatite_b")),
+        hepatite_c=_texto(dados.get("hepatite_c")),
+        toxoplasmose=_texto(dados.get("toxoplasmose")),
+        cmv=_texto(dados.get("cmv")),
+    )
+
+
+def _antecedentes_gestacionais_payload(dados: dict) -> AntecedentesGestacionaisPayload:
+    return AntecedentesGestacionaisPayload(
+        gravidez_planejada=dados.get("gravidez_planejada"),
+        pre_natal_local_consultas=_texto(dados.get("pre_natal_local_consultas")),
+        medicacoes=_texto(dados.get("medicacoes")),
+        comorbidades_gestacao=_texto(dados.get("comorbidades_gestacao")),
+        tabagismo_materno=_texto(dados.get("tabagismo_materno")),
+        etilismo_materno=_texto(dados.get("etilismo_materno")),
+        outras_drogas=_texto(dados.get("outras_drogas")),
+        sorologias=_sorologia_gestacional_payload(dados.get("sorologias") or {}),
+    )
+
+
+def _antecedentes_peri_neonatais_payload(dados: dict) -> AntecedentesPeriNeonataisPayload:
+    return AntecedentesPeriNeonataisPayload(
+        tipo_parto=_texto(dados.get("tipo_parto")),
+        necessidade_reanimacao=dados.get("necessidade_reanimacao"),
+        reanimacao_detalhe=_texto(dados.get("reanimacao_detalhe")),
+        apgar=_texto(dados.get("apgar")),
+        idade_gestacional_semanas=dados.get("idade_gestacional_semanas"),
+        peso_nascimento_gramas=dados.get("peso_nascimento_gramas"),
+        comprimento_nascimento_cm=dados.get("comprimento_nascimento_cm"),
+        perimetro_cefalico_cm=dados.get("perimetro_cefalico_cm"),
+        ortolani=_texto(dados.get("ortolani")),
+        exames=_texto(dados.get("exames")),
+        tipagem_sanguinea_materna=_texto(dados.get("tipagem_sanguinea_materna")),
+        tipagem_sanguinea_paciente=_texto(dados.get("tipagem_sanguinea_paciente")),
+        vdrl_neonatal=_texto(dados.get("vdrl_neonatal")),
+        hiv_neonatal=_texto(dados.get("hiv_neonatal")),
+        classificacao_peso_nascimento=_texto(dados.get("classificacao_peso_nascimento")),
+    )
+
+
+def _antecedentes_perinatais_payload(value: Any) -> AntecedentesPerinataisPayload:
+    if value is None or value == "":
+        carregado: dict = {}
+    else:
+        try:
+            carregado = json.loads(str(value))
+        except (TypeError, ValueError, json.JSONDecodeError):
+            carregado = {}
+    if not isinstance(carregado, dict):
+        carregado = {}
+    return AntecedentesPerinataisPayload(
+        gestacional=_antecedentes_gestacionais_payload(carregado.get("gestacional") or {}),
+        peri_neonatal=_antecedentes_peri_neonatais_payload(carregado.get("peri_neonatal") or {}),
+    )
+
+
+def _antecedentes_perinatais_para_json(payload: AntecedentesPerinataisPayload) -> str:
+    gestacional = payload.gestacional
+    peri_neonatal = payload.peri_neonatal
+    dados = {
+        "gestacional": {
+            "gravidez_planejada": gestacional.gravidez_planejada,
+            "pre_natal_local_consultas": gestacional.pre_natal_local_consultas.strip(),
+            "medicacoes": gestacional.medicacoes.strip(),
+            "comorbidades_gestacao": gestacional.comorbidades_gestacao.strip(),
+            "tabagismo_materno": gestacional.tabagismo_materno.strip(),
+            "etilismo_materno": gestacional.etilismo_materno.strip(),
+            "outras_drogas": gestacional.outras_drogas.strip(),
+            "sorologias": {
+                "vdrl": gestacional.sorologias.vdrl.strip(),
+                "hiv": gestacional.sorologias.hiv.strip(),
+                "hepatite_b": gestacional.sorologias.hepatite_b.strip(),
+                "hepatite_c": gestacional.sorologias.hepatite_c.strip(),
+                "toxoplasmose": gestacional.sorologias.toxoplasmose.strip(),
+                "cmv": gestacional.sorologias.cmv.strip(),
+            },
+        },
+        "peri_neonatal": {
+            "tipo_parto": peri_neonatal.tipo_parto.strip(),
+            "necessidade_reanimacao": peri_neonatal.necessidade_reanimacao,
+            "reanimacao_detalhe": peri_neonatal.reanimacao_detalhe.strip(),
+            "apgar": peri_neonatal.apgar.strip(),
+            "idade_gestacional_semanas": peri_neonatal.idade_gestacional_semanas,
+            "peso_nascimento_gramas": peri_neonatal.peso_nascimento_gramas,
+            "comprimento_nascimento_cm": peri_neonatal.comprimento_nascimento_cm,
+            "perimetro_cefalico_cm": peri_neonatal.perimetro_cefalico_cm,
+            "ortolani": peri_neonatal.ortolani.strip(),
+            "exames": peri_neonatal.exames.strip(),
+            "tipagem_sanguinea_materna": peri_neonatal.tipagem_sanguinea_materna.strip(),
+            "tipagem_sanguinea_paciente": peri_neonatal.tipagem_sanguinea_paciente.strip(),
+            "vdrl_neonatal": peri_neonatal.vdrl_neonatal.strip(),
+            "hiv_neonatal": peri_neonatal.hiv_neonatal.strip(),
+            "classificacao_peso_nascimento": peri_neonatal.classificacao_peso_nascimento.strip(),
+        },
+    }
+    return json.dumps(dados, ensure_ascii=False)
+
+
+def _exames_trazidos_payload(value: Any) -> list[ExameTrazidoPayload]:
+    if value is None or value == "":
+        carregado: Any = []
+    else:
+        try:
+            carregado = json.loads(str(value))
+        except (TypeError, ValueError, json.JSONDecodeError):
+            carregado = []
+    if not isinstance(carregado, list):
+        return []
+
+    exames: list[ExameTrazidoPayload] = []
+    for item in carregado:
+        if not isinstance(item, dict):
+            continue
+        exames.append(
+            ExameTrazidoPayload(
+                exame=_texto(item.get("exame")),
+                analise=_texto(item.get("analise")),
+            )
+        )
+    return exames
+
+
+def _exames_trazidos_para_json(itens: list[ExameTrazidoPayload]) -> str:
+    dados = [
+        {"exame": item.exame.strip(), "analise": item.analise.strip()}
+        for item in itens
+        if item.exame.strip() or item.analise.strip()
+    ]
+    return json.dumps(dados, ensure_ascii=False)
+
+
 def _anamnese_payload(registro: ConsultaAnamnese) -> tuple[AnamneseClinicaPayload, AnamneseAlimentacaoPayload, AnamneseHabitosPayload]:
     clinica = AnamneseClinicaPayload(
         queixa_principal=_texto(registro.clinica_queixa_principal),
@@ -663,8 +845,10 @@ def _anamnese_payload(registro: ConsultaAnamnese) -> tuple[AnamneseClinicaPayloa
         interrogatorio_sistema_nervoso=_texto(registro.clinica_interrogatorio_sistema_nervoso),
         sistemas_interrogatorio_alterados=_carregar_lista_json(registro.clinica_sistemas_interrogatorio_alterados),
         medicacoes_rotina=_texto(registro.clinica_medicacoes_rotina),
-        exames_complementares=_texto(registro.clinica_exames_complementares),
         antecedentes_doencas=_texto(registro.clinica_antecedentes_doencas),
+        acompanhamentos=_texto(registro.clinica_acompanhamentos),
+        antecedentes_perinatais=_antecedentes_perinatais_payload(registro.clinica_antecedentes_perinatais),
+        exames_trazidos=_exames_trazidos_payload(registro.clinica_exames_trazidos),
     )
     alimentacao = AnamneseAlimentacaoPayload(
         tipo_aleitamento=_texto(registro.alimentacao_tipo_aleitamento),
@@ -684,7 +868,6 @@ def _anamnese_payload(registro: ConsultaAnamnese) -> tuple[AnamneseClinicaPayloa
         sono_alteracoes=_texto(registro.habitos_sono_alteracoes),
         telas_dispositivos=_carregar_lista_json(registro.habitos_telas_dispositivos),
         telas_tempo_diario=_texto(registro.habitos_telas_tempo_diario),
-        telas_frequencia=_texto(registro.habitos_telas_frequencia),
         chupeta_chupa_dedo=_texto(registro.habitos_chupeta_chupa_dedo),
         higiene_dentaria=_texto(registro.habitos_higiene_dentaria),
         atividades_recreativas=_texto(registro.habitos_atividades_recreativas),
@@ -823,7 +1006,6 @@ def _triagem_neonatal_response(registro: ConsultaTriagemNeonatal | None) -> Tria
     return TriagemNeonatalResponse(
         id=registro.id,
         consulta_id=registro.consulta_id,
-        idade_gestacional_semanas=registro.idade_gestacional_semanas,
         peso_nascimento_gramas=registro.peso_nascimento_gramas,
         hipoteses_diagnosticas_anteriores=_texto(registro.hipoteses_diagnosticas_anteriores),
         teste_pezinho_coletas=_carregar_coletas_triagem(
@@ -866,7 +1048,6 @@ def _triagem_neonatal_possui_conteudo(registro: ConsultaTriagemNeonatal | None) 
     return any(
         _possui_conteudo(valor)
         for valor in [
-            response.idade_gestacional_semanas,
             response.peso_nascimento_gramas,
             response.hipoteses_diagnosticas_anteriores,
             response.teste_pezinho_coletas,
@@ -2166,8 +2347,10 @@ async def salvar_anamnese(
     registro.clinica_interrogatorio_sistema_nervoso = clinica.interrogatorio_sistema_nervoso.strip()
     registro.clinica_sistemas_interrogatorio_alterados = _salvar_lista_json(clinica.sistemas_interrogatorio_alterados)
     registro.clinica_medicacoes_rotina = clinica.medicacoes_rotina.strip()
-    registro.clinica_exames_complementares = clinica.exames_complementares.strip()
     registro.clinica_antecedentes_doencas = clinica.antecedentes_doencas.strip()
+    registro.clinica_acompanhamentos = clinica.acompanhamentos.strip()
+    registro.clinica_antecedentes_perinatais = _antecedentes_perinatais_para_json(clinica.antecedentes_perinatais)
+    registro.clinica_exames_trazidos = _exames_trazidos_para_json(clinica.exames_trazidos)
 
     alimentacao = body.alimentacao
     registro.alimentacao_tipo_aleitamento = alimentacao.tipo_aleitamento.strip()
@@ -2187,7 +2370,6 @@ async def salvar_anamnese(
     registro.habitos_sono_alteracoes = habitos.sono_alteracoes.strip()
     registro.habitos_telas_dispositivos = _salvar_lista_json(habitos.telas_dispositivos)
     registro.habitos_telas_tempo_diario = habitos.telas_tempo_diario.strip()
-    registro.habitos_telas_frequencia = habitos.telas_frequencia.strip()
     registro.habitos_chupeta_chupa_dedo = habitos.chupeta_chupa_dedo.strip()
     registro.habitos_higiene_dentaria = habitos.higiene_dentaria.strip()
     registro.habitos_atividades_recreativas = habitos.atividades_recreativas.strip()
@@ -2261,7 +2443,6 @@ async def salvar_triagem_neonatal(
         registro = ConsultaTriagemNeonatal(consulta_id=consulta.id)
         db.add(registro)
 
-    registro.idade_gestacional_semanas = body.idade_gestacional_semanas
     registro.peso_nascimento_gramas = body.peso_nascimento_gramas
     registro.hipoteses_diagnosticas_anteriores = body.hipoteses_diagnosticas_anteriores.strip()
 

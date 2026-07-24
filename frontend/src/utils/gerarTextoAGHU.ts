@@ -103,6 +103,10 @@ export function gerarTextoAGHU(p: ParamsGerarTextoAGHU): string {
     ? `${p.antropometria.pressaoSistolicaMmHg}/${p.antropometria.pressaoDiastolicaMmHg} mmHg`
     : 'nao aferida'
 
+  const examesTrazidosTexto = p.anamnese.clinica.examesTrazidos.length > 0
+    ? `Exames trazidos pelo paciente:\n${p.anamnese.clinica.examesTrazidos.map(item => `  - ${v(item.exame)}: ${v(item.analise)}`).join('\n')}`
+    : ''
+
   let texto = `================================================
    ATENDIMENTO PEDIATRICO - HC/UFPE
 ================================================
@@ -126,8 +130,15 @@ ${pad('IMC')}  : ${p.antropometria.imc ? `${p.antropometria.imc} kg/m2` : '—'}
 Queixa principal: ${v(p.anamnese.clinica.queixaPrincipal)}
 ${p.anamnese.clinica.historiaDoencaAtual ? `\nHDA:\n${p.anamnese.clinica.historiaDoencaAtual}\n` : ''}
 ${p.anamnese.clinica.medicacoesRotina ? `Medicacoes de rotina: ${p.anamnese.clinica.medicacoesRotina}` : ''}
-${p.anamnese.clinica.examesComplementares ? `Exames complementares: ${p.anamnese.clinica.examesComplementares}` : ''}
+${examesTrazidosTexto}
 ${p.anamnese.clinica.antecedentesDoencas ? `Antecedentes pessoais: ${p.anamnese.clinica.antecedentesDoencas}` : ''}
+
+--- ANTECEDENTES GESTACIONAIS E PERINATAIS ----------
+${pad('IG ao nascer')}  : ${p.anamnese.clinica.antecedentesPerinatais.periNeonatal.idadeGestacionalSemanas ? `${p.anamnese.clinica.antecedentesPerinatais.periNeonatal.idadeGestacionalSemanas} semanas` : '—'}
+${pad('Tipo de parto')}  : ${v(p.anamnese.clinica.antecedentesPerinatais.periNeonatal.tipoParto)}
+${pad('Apgar')}  : ${v(p.anamnese.clinica.antecedentesPerinatais.periNeonatal.apgar)}
+${pad('Peso nasc.')}  : ${p.anamnese.clinica.antecedentesPerinatais.periNeonatal.pesoNascimentoGramas ? `${p.anamnese.clinica.antecedentesPerinatais.periNeonatal.pesoNascimentoGramas} g` : '—'}
+${pad('Classificacao')}  : ${v(p.anamnese.clinica.antecedentesPerinatais.periNeonatal.classificacaoPesoNascimento.toUpperCase(), 'Nao classificado')}
 
 --- ALIMENTACAO -------------------------------------
 Tipo: ${v(p.anamnese.alimentacao.tipoAleitamento)}
@@ -150,7 +161,6 @@ Sono:
 Telas:
   Dispositivos: ${p.anamnese.habitos.telasDispositivos.length > 0 ? p.anamnese.habitos.telasDispositivos.join(', ') : '—'}
   Tempo diario: ${v(p.anamnese.habitos.telasTempoDiario)}
-  Frequencia: ${v(p.anamnese.habitos.telasFrequencia)}
 
 Outros:
   Chupeta/chupa-dedo: ${v(p.anamnese.habitos.chupetaChupaDedo)}
@@ -165,7 +175,6 @@ ${v(p.imunizacoes.statusVacinal, 'Nao informado')}
     const tn = p.triagemNeonatal
     texto += `
 --- TRIAGEM NEONATAL --------------------------------
-${pad('IG ao nascer')}  : ${tn.idadeGestacionalSemanas ? `${tn.idadeGestacionalSemanas} semanas` : '—'}
 ${pad('Peso nasc.')}  : ${tn.pesoNascimentoGramas ? `${tn.pesoNascimentoGramas} g` : '—'}
 ${tn.hipotesesDiagnosticasAnteriores ? `Hipoteses diagnosticas anteriores: ${tn.hipotesesDiagnosticasAnteriores}\n` : ''}${coletasTexto('Teste do Pezinho', tn.testePezinho)}${coletasTexto('Teste da Orelhinha', tn.testeOrelhinha)}Teste do Olhinho     : ${v(tn.testeOlhinho.resultado)} ${tn.testeOlhinho.data ? `(${tn.testeOlhinho.data})` : ''} ${v(tn.testeOlhinho.descricao, '')}
 Fundo de olho        : ${v(tn.testeFundoDeOlho.resultado)} ${tn.testeFundoDeOlho.data ? `(${tn.testeFundoDeOlho.data})` : ''} ${v(tn.testeFundoDeOlho.descricao, '')}

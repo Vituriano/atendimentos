@@ -41,7 +41,58 @@ export interface Secao {
 
 export type AbaAnamnese = 'clinica' | 'alimentacao' | 'habitos'
 
-export type ValorCampoAnamnese = string | boolean | string[]
+export interface SorologiaGestacional {
+  vdrl: string
+  hiv: string
+  hepatiteB: string
+  hepatiteC: string
+  toxoplasmose: string
+  cmv: string
+}
+
+export interface AntecedentesGestacionais {
+  gravidezPlanejada: boolean | null
+  preNatalLocalConsultas: string
+  medicacoes: string
+  comorbidadesGestacao: string
+  tabagismoMaterno: string
+  etilismoMaterno: string
+  outrasDrogas: string
+  sorologias: SorologiaGestacional
+}
+
+export type ClassificacaoPesoNascimento = 'aig' | 'pig' | 'gig' | ''
+
+export interface AntecedentesPeriNeonatal {
+  tipoParto: string
+  necessidadeReanimacao: boolean | null
+  reanimacaoDetalhe: string
+  apgar: string
+  idadeGestacionalSemanas: number | null
+  pesoNascimentoGramas: number | null
+  comprimentoNascimentoCm: number | null
+  perimetroCefalicoCm: number | null
+  ortolani: string
+  exames: string
+  tipagemSanguineaMaterna: string
+  tipagemSanguineaPaciente: string
+  vdrlNeonatal: string
+  hivNeonatal: string
+  classificacaoPesoNascimento: ClassificacaoPesoNascimento
+}
+
+export interface AntecedentesPerinataisConsulta {
+  gestacional: AntecedentesGestacionais
+  periNeonatal: AntecedentesPeriNeonatal
+}
+
+export interface ExameTrazido {
+  localId: string
+  exame: string
+  analise: string
+}
+
+export type ValorCampoAnamnese = string | boolean | string[] | AntecedentesPerinataisConsulta | ExameTrazido[]
 
 export interface AnamneseClinica {
   queixaPrincipal: string
@@ -59,8 +110,10 @@ export interface AnamneseClinica {
   interrogatorioSistemaNervoso: string
   sistemasInterrogatorioAlterados: string[]
   medicacoesRotina: string
-  examesComplementares: string
   antecedentesDoencas: string
+  acompanhamentos: string
+  antecedentesPerinatais: AntecedentesPerinataisConsulta
+  examesTrazidos: ExameTrazido[]
 }
 
 export interface AnamneseAlimentacao {
@@ -82,7 +135,6 @@ export interface AnamneseHabitos {
   sonoAlteracoes: string
   telasDispositivos: string[]
   telasTempoDiario: string
-  telasFrequencia: string
   chupetaChupaDedo: string
   higieneDentaria: string
   atividadesRecreativas: string
@@ -96,6 +148,54 @@ export interface DadosAnamneseConsulta {
 }
 
 export type DadosAnamnesePayload = Omit<DadosAnamneseConsulta, 'atualizadoEm'>
+
+interface SorologiaGestacionalApiPayload {
+  vdrl: string
+  hiv: string
+  hepatite_b: string
+  hepatite_c: string
+  toxoplasmose: string
+  cmv: string
+}
+
+interface AntecedentesGestacionaisApiPayload {
+  gravidez_planejada: boolean | null
+  pre_natal_local_consultas: string
+  medicacoes: string
+  comorbidades_gestacao: string
+  tabagismo_materno: string
+  etilismo_materno: string
+  outras_drogas: string
+  sorologias: SorologiaGestacionalApiPayload
+}
+
+interface AntecedentesPeriNeonataisApiPayload {
+  tipo_parto: string
+  necessidade_reanimacao: boolean | null
+  reanimacao_detalhe: string
+  apgar: string
+  idade_gestacional_semanas: number | null
+  peso_nascimento_gramas: number | null
+  comprimento_nascimento_cm: number | null
+  perimetro_cefalico_cm: number | null
+  ortolani: string
+  exames: string
+  tipagem_sanguinea_materna: string
+  tipagem_sanguinea_paciente: string
+  vdrl_neonatal: string
+  hiv_neonatal: string
+  classificacao_peso_nascimento: string
+}
+
+interface AntecedentesPerinataisApiPayload {
+  gestacional: AntecedentesGestacionaisApiPayload
+  peri_neonatal: AntecedentesPeriNeonataisApiPayload
+}
+
+interface ExameTrazidoApiPayload {
+  exame: string
+  analise: string
+}
 
 interface AnamneseClinicaApiPayload {
   queixa_principal: string
@@ -113,8 +213,10 @@ interface AnamneseClinicaApiPayload {
   interrogatorio_sistema_nervoso: string
   sistemas_interrogatorio_alterados: string[]
   medicacoes_rotina: string
-  exames_complementares: string
   antecedentes_doencas: string
+  acompanhamentos: string
+  antecedentes_perinatais: AntecedentesPerinataisApiPayload
+  exames_trazidos: ExameTrazidoApiPayload[]
 }
 
 interface AnamneseAlimentacaoApiPayload {
@@ -136,7 +238,6 @@ interface AnamneseHabitosApiPayload {
   sono_alteracoes: string
   telas_dispositivos: string[]
   telas_tempo_diario: string
-  telas_frequencia: string
   chupeta_chupa_dedo: string
   higiene_dentaria: string
   atividades_recreativas: string
@@ -266,7 +367,6 @@ export interface TesteTriagemNeonatal {
 }
 
 export interface DadosTriagemNeonatalConsulta {
-  idadeGestacionalSemanas: number | null
   pesoNascimentoGramas: number | null
   hipotesesDiagnosticasAnteriores: string
   testePezinho: TesteTriagemNeonatal[]
@@ -286,7 +386,6 @@ interface TesteTriagemNeonatalApiPayload {
 interface TriagemNeonatalApiResponse {
   id: number
   consulta_id: number
-  idade_gestacional_semanas: number | null
   peso_nascimento_gramas: number | null
   hipoteses_diagnosticas_anteriores: string
   teste_pezinho_coletas: TesteTriagemNeonatalApiPayload[]
@@ -481,7 +580,6 @@ function criarTesteTriagemNeonatalVazio(): TesteTriagemNeonatal {
 
 function criarTriagemNeonatalVazia(): DadosTriagemNeonatalConsulta {
   return {
-    idadeGestacionalSemanas: null,
     pesoNascimentoGramas: null,
     hipotesesDiagnosticasAnteriores: '',
     testePezinho: [criarTesteTriagemNeonatalVazio()],
@@ -509,7 +607,6 @@ function coletasApiParaStore(coletas: TesteTriagemNeonatalApiPayload[] | undefin
 
 function triagemNeonatalApiParaStore(apiData: TriagemNeonatalApiResponse): DadosTriagemNeonatalConsulta {
   return {
-    idadeGestacionalSemanas: apiData.idade_gestacional_semanas,
     pesoNascimentoGramas: apiData.peso_nascimento_gramas,
     hipotesesDiagnosticasAnteriores: apiData.hipoteses_diagnosticas_anteriores ?? '',
     testePezinho: coletasApiParaStore(apiData.teste_pezinho_coletas),
@@ -527,7 +624,6 @@ function coletaStoreParaApi(coleta: TesteTriagemNeonatal) {
 
 function triagemNeonatalStoreParaApi(dados: DadosTriagemNeonatalConsulta) {
   return {
-    idade_gestacional_semanas: dados.idadeGestacionalSemanas,
     peso_nascimento_gramas: dados.pesoNascimentoGramas,
     hipoteses_diagnosticas_anteriores: dados.hipotesesDiagnosticasAnteriores,
     teste_pezinho_coletas: dados.testePezinho.map(coletaStoreParaApi),
@@ -540,7 +636,6 @@ function triagemNeonatalStoreParaApi(dados: DadosTriagemNeonatalConsulta) {
 
 function clonarTriagemNeonatal(dados: DadosTriagemNeonatalConsulta): DadosTriagemNeonatalConsulta {
   return {
-    idadeGestacionalSemanas: dados.idadeGestacionalSemanas,
     pesoNascimentoGramas: dados.pesoNascimentoGramas,
     hipotesesDiagnosticasAnteriores: dados.hipotesesDiagnosticasAnteriores,
     testePezinho: dados.testePezinho.map(coleta => ({ ...coleta })),
@@ -928,6 +1023,67 @@ function historicoImunizacoesApiParaStore(apiData: HistoricoImunizacoesApiRespon
   }
 }
 
+function criarSorologiaGestacionalVazia(): SorologiaGestacional {
+  return {
+    vdrl: '',
+    hiv: '',
+    hepatiteB: '',
+    hepatiteC: '',
+    toxoplasmose: '',
+    cmv: '',
+  }
+}
+
+function criarAntecedentesGestacionaisVazio(): AntecedentesGestacionais {
+  return {
+    gravidezPlanejada: null,
+    preNatalLocalConsultas: '',
+    medicacoes: '',
+    comorbidadesGestacao: '',
+    tabagismoMaterno: '',
+    etilismoMaterno: '',
+    outrasDrogas: '',
+    sorologias: criarSorologiaGestacionalVazia(),
+  }
+}
+
+function criarAntecedentesPeriNeonatalVazio(): AntecedentesPeriNeonatal {
+  return {
+    tipoParto: '',
+    necessidadeReanimacao: null,
+    reanimacaoDetalhe: '',
+    apgar: '',
+    idadeGestacionalSemanas: null,
+    pesoNascimentoGramas: null,
+    comprimentoNascimentoCm: null,
+    perimetroCefalicoCm: null,
+    ortolani: '',
+    exames: '',
+    tipagemSanguineaMaterna: '',
+    tipagemSanguineaPaciente: '',
+    vdrlNeonatal: '',
+    hivNeonatal: '',
+    classificacaoPesoNascimento: '',
+  }
+}
+
+function criarAntecedentesPerinataisVazio(): AntecedentesPerinataisConsulta {
+  return {
+    gestacional: criarAntecedentesGestacionaisVazio(),
+    periNeonatal: criarAntecedentesPeriNeonatalVazio(),
+  }
+}
+
+function clonarAntecedentesPerinatais(dados: AntecedentesPerinataisConsulta): AntecedentesPerinataisConsulta {
+  return {
+    gestacional: {
+      ...dados.gestacional,
+      sorologias: { ...dados.gestacional.sorologias },
+    },
+    periNeonatal: { ...dados.periNeonatal },
+  }
+}
+
 function criarAnamneseVazia(): DadosAnamneseConsulta {
   return {
     clinica: {
@@ -946,8 +1102,10 @@ function criarAnamneseVazia(): DadosAnamneseConsulta {
       interrogatorioSistemaNervoso: '',
       sistemasInterrogatorioAlterados: [],
       medicacoesRotina: '',
-      examesComplementares: '',
       antecedentesDoencas: '',
+      acompanhamentos: '',
+      antecedentesPerinatais: criarAntecedentesPerinataisVazio(),
+      examesTrazidos: [],
     },
     alimentacao: {
       tipoAleitamento: '',
@@ -967,7 +1125,6 @@ function criarAnamneseVazia(): DadosAnamneseConsulta {
       sonoAlteracoes: '',
       telasDispositivos: [],
       telasTempoDiario: '',
-      telasFrequencia: '',
       chupetaChupaDedo: '',
       higieneDentaria: '',
       atividadesRecreativas: '',
@@ -982,6 +1139,8 @@ function clonarAnamnese(dados: DadosAnamneseConsulta): DadosAnamneseConsulta {
     clinica: {
       ...dados.clinica,
       sistemasInterrogatorioAlterados: [...dados.clinica.sistemasInterrogatorioAlterados],
+      antecedentesPerinatais: clonarAntecedentesPerinatais(dados.clinica.antecedentesPerinatais),
+      examesTrazidos: dados.clinica.examesTrazidos.map(item => ({ ...item })),
     },
     alimentacao: { ...dados.alimentacao },
     habitos: {
@@ -1127,6 +1286,86 @@ function cadernetaApiParaStore(apiData: CadernetaDigitalApiResponse): CadernetaD
   }
 }
 
+function antecedentesPerinataisApiParaStore(apiData: AntecedentesPerinataisApiPayload): AntecedentesPerinataisConsulta {
+  const gestacional = apiData.gestacional
+  const periNeonatal = apiData.peri_neonatal
+  return {
+    gestacional: {
+      gravidezPlanejada: gestacional.gravidez_planejada,
+      preNatalLocalConsultas: gestacional.pre_natal_local_consultas ?? '',
+      medicacoes: gestacional.medicacoes ?? '',
+      comorbidadesGestacao: gestacional.comorbidades_gestacao ?? '',
+      tabagismoMaterno: gestacional.tabagismo_materno ?? '',
+      etilismoMaterno: gestacional.etilismo_materno ?? '',
+      outrasDrogas: gestacional.outras_drogas ?? '',
+      sorologias: {
+        vdrl: gestacional.sorologias.vdrl ?? '',
+        hiv: gestacional.sorologias.hiv ?? '',
+        hepatiteB: gestacional.sorologias.hepatite_b ?? '',
+        hepatiteC: gestacional.sorologias.hepatite_c ?? '',
+        toxoplasmose: gestacional.sorologias.toxoplasmose ?? '',
+        cmv: gestacional.sorologias.cmv ?? '',
+      },
+    },
+    periNeonatal: {
+      tipoParto: periNeonatal.tipo_parto ?? '',
+      necessidadeReanimacao: periNeonatal.necessidade_reanimacao,
+      reanimacaoDetalhe: periNeonatal.reanimacao_detalhe ?? '',
+      apgar: periNeonatal.apgar ?? '',
+      idadeGestacionalSemanas: periNeonatal.idade_gestacional_semanas,
+      pesoNascimentoGramas: periNeonatal.peso_nascimento_gramas,
+      comprimentoNascimentoCm: periNeonatal.comprimento_nascimento_cm,
+      perimetroCefalicoCm: periNeonatal.perimetro_cefalico_cm,
+      ortolani: periNeonatal.ortolani ?? '',
+      exames: periNeonatal.exames ?? '',
+      tipagemSanguineaMaterna: periNeonatal.tipagem_sanguinea_materna ?? '',
+      tipagemSanguineaPaciente: periNeonatal.tipagem_sanguinea_paciente ?? '',
+      vdrlNeonatal: periNeonatal.vdrl_neonatal ?? '',
+      hivNeonatal: periNeonatal.hiv_neonatal ?? '',
+      classificacaoPesoNascimento: (periNeonatal.classificacao_peso_nascimento ?? '') as ClassificacaoPesoNascimento,
+    },
+  }
+}
+
+function antecedentesPerinataisStoreParaApi(dados: AntecedentesPerinataisConsulta) {
+  return {
+    gestacional: {
+      gravidez_planejada: dados.gestacional.gravidezPlanejada,
+      pre_natal_local_consultas: dados.gestacional.preNatalLocalConsultas,
+      medicacoes: dados.gestacional.medicacoes,
+      comorbidades_gestacao: dados.gestacional.comorbidadesGestacao,
+      tabagismo_materno: dados.gestacional.tabagismoMaterno,
+      etilismo_materno: dados.gestacional.etilismoMaterno,
+      outras_drogas: dados.gestacional.outrasDrogas,
+      sorologias: {
+        vdrl: dados.gestacional.sorologias.vdrl,
+        hiv: dados.gestacional.sorologias.hiv,
+        hepatite_b: dados.gestacional.sorologias.hepatiteB,
+        hepatite_c: dados.gestacional.sorologias.hepatiteC,
+        toxoplasmose: dados.gestacional.sorologias.toxoplasmose,
+        cmv: dados.gestacional.sorologias.cmv,
+      },
+    },
+    peri_neonatal: {
+      tipo_parto: dados.periNeonatal.tipoParto,
+      necessidade_reanimacao: dados.periNeonatal.necessidadeReanimacao,
+      reanimacao_detalhe: dados.periNeonatal.reanimacaoDetalhe,
+      apgar: dados.periNeonatal.apgar,
+      idade_gestacional_semanas: dados.periNeonatal.idadeGestacionalSemanas,
+      peso_nascimento_gramas: dados.periNeonatal.pesoNascimentoGramas,
+      comprimento_nascimento_cm: dados.periNeonatal.comprimentoNascimentoCm,
+      perimetro_cefalico_cm: dados.periNeonatal.perimetroCefalicoCm,
+      ortolani: dados.periNeonatal.ortolani,
+      exames: dados.periNeonatal.exames,
+      tipagem_sanguinea_materna: dados.periNeonatal.tipagemSanguineaMaterna,
+      tipagem_sanguinea_paciente: dados.periNeonatal.tipagemSanguineaPaciente,
+      vdrl_neonatal: dados.periNeonatal.vdrlNeonatal,
+      hiv_neonatal: dados.periNeonatal.hivNeonatal,
+      classificacao_peso_nascimento: dados.periNeonatal.classificacaoPesoNascimento,
+    },
+  }
+}
+
 function anamneseApiParaStore(apiData: AnamneseApiResponse): DadosAnamneseConsulta {
   return {
     clinica: {
@@ -1145,8 +1384,14 @@ function anamneseApiParaStore(apiData: AnamneseApiResponse): DadosAnamneseConsul
       interrogatorioSistemaNervoso: apiData.clinica.interrogatorio_sistema_nervoso ?? '',
       sistemasInterrogatorioAlterados: [...(apiData.clinica.sistemas_interrogatorio_alterados ?? [])],
       medicacoesRotina: apiData.clinica.medicacoes_rotina ?? '',
-      examesComplementares: apiData.clinica.exames_complementares ?? '',
       antecedentesDoencas: apiData.clinica.antecedentes_doencas ?? '',
+      acompanhamentos: apiData.clinica.acompanhamentos ?? '',
+      antecedentesPerinatais: antecedentesPerinataisApiParaStore(apiData.clinica.antecedentes_perinatais),
+      examesTrazidos: (apiData.clinica.exames_trazidos ?? []).map((item, index) => ({
+        localId: `exame-db-${index}`,
+        exame: item.exame ?? '',
+        analise: item.analise ?? '',
+      })),
     },
     alimentacao: {
       tipoAleitamento: apiData.alimentacao.tipo_aleitamento ?? '',
@@ -1166,7 +1411,6 @@ function anamneseApiParaStore(apiData: AnamneseApiResponse): DadosAnamneseConsul
       sonoAlteracoes: apiData.habitos.sono_alteracoes ?? '',
       telasDispositivos: [...(apiData.habitos.telas_dispositivos ?? [])],
       telasTempoDiario: apiData.habitos.telas_tempo_diario ?? '',
-      telasFrequencia: apiData.habitos.telas_frequencia ?? '',
       chupetaChupaDedo: apiData.habitos.chupeta_chupa_dedo ?? '',
       higieneDentaria: apiData.habitos.higiene_dentaria ?? '',
       atividadesRecreativas: apiData.habitos.atividades_recreativas ?? '',
@@ -1193,8 +1437,10 @@ function anamneseStoreParaApi(dados: DadosAnamneseConsulta | DadosAnamnesePayloa
       interrogatorio_sistema_nervoso: dados.clinica.interrogatorioSistemaNervoso,
       sistemas_interrogatorio_alterados: [...dados.clinica.sistemasInterrogatorioAlterados],
       medicacoes_rotina: dados.clinica.medicacoesRotina,
-      exames_complementares: dados.clinica.examesComplementares,
       antecedentes_doencas: dados.clinica.antecedentesDoencas,
+      acompanhamentos: dados.clinica.acompanhamentos,
+      antecedentes_perinatais: antecedentesPerinataisStoreParaApi(dados.clinica.antecedentesPerinatais),
+      exames_trazidos: dados.clinica.examesTrazidos.map(item => ({ exame: item.exame, analise: item.analise })),
     },
     alimentacao: {
       tipo_aleitamento: dados.alimentacao.tipoAleitamento,
@@ -1214,7 +1460,6 @@ function anamneseStoreParaApi(dados: DadosAnamneseConsulta | DadosAnamnesePayloa
       sono_alteracoes: dados.habitos.sonoAlteracoes,
       telas_dispositivos: [...dados.habitos.telasDispositivos],
       telas_tempo_diario: dados.habitos.telasTempoDiario,
-      telas_frequencia: dados.habitos.telasFrequencia,
       chupeta_chupa_dedo: dados.habitos.chupetaChupaDedo,
       higiene_dentaria: dados.habitos.higieneDentaria,
       atividades_recreativas: dados.habitos.atividadesRecreativas,
@@ -2691,7 +2936,6 @@ export const useConsultaStore = defineStore('consulta', () => {
 
   function triagemNeonatalPossuiConteudo(dados: DadosTriagemNeonatalConsulta): boolean {
     return Boolean(
-      dados.idadeGestacionalSemanas !== null ||
       dados.pesoNascimentoGramas !== null ||
       dados.hipotesesDiagnosticasAnteriores.trim() ||
       dados.testePezinho.some(testeTriagemPossuiConteudo) ||
