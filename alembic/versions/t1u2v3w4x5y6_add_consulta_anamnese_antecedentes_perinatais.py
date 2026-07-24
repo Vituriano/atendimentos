@@ -1,7 +1,7 @@
 """add consulta anamnese antecedentes perinatais
 
-Revision ID: k7l8m9n0o1p2
-Revises: j6k7l8m9n0o1
+Revision ID: t1u2v3w4x5y6
+Revises: n5o6p7q8r9s0
 Create Date: 2026-07-23 00:00:00.000000
 
 """
@@ -11,8 +11,8 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision: str = "k7l8m9n0o1p2"
-down_revision: Union[str, Sequence[str], None] = "j6k7l8m9n0o1"
+revision: str = "t1u2v3w4x5y6"
+down_revision: Union[str, Sequence[str], None] = "n5o6p7q8r9s0"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

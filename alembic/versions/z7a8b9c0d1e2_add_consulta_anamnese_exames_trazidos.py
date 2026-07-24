@@ -1,7 +1,7 @@
 """add consulta anamnese exames trazidos
 
-Revision ID: l8m9n0o1p2q3
-Revises: k7l8m9n0o1p2
+Revision ID: z7a8b9c0d1e2
+Revises: t1u2v3w4x5y6
 Create Date: 2026-07-23 00:00:01.000000
 
 """
@@ -11,8 +11,8 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision: str = "l8m9n0o1p2q3"
-down_revision: Union[str, Sequence[str], None] = "k7l8m9n0o1p2"
+revision: str = "z7a8b9c0d1e2"
+down_revision: Union[str, Sequence[str], None] = "t1u2v3w4x5y6"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
