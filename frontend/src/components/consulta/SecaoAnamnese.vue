@@ -248,7 +248,9 @@ function criarExameTrazidoVazio(): ExameTrazido {
 
 function adicionarExameTrazido() {
   mensagemSalvamento.value = null
-  const lista = [...consultaStore.anamnese.clinica.examesTrazidos, criarExameTrazidoVazio()]
+  // Exame novo entra no topo da lista (diretriz: item digitável recém-adicionado
+  // sempre fica visível em primeiro lugar, sem precisar rolar até o fim).
+  const lista = [criarExameTrazidoVazio(), ...consultaStore.anamnese.clinica.examesTrazidos]
   setClinica('examesTrazidos', lista)
 }
 
