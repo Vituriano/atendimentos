@@ -362,7 +362,6 @@ class DiagnosticoSalvarRequest(BaseModel):
     paciente_id: str = Field(..., min_length=1)
     cid10_principal: str = ""
     cids_secundarios: list[DiagnosticoSecundarioPayload] = Field(default_factory=list)
-    sid: str = ""
 
 
 class DiagnosticoResponse(BaseModel):
@@ -370,7 +369,6 @@ class DiagnosticoResponse(BaseModel):
     consulta_id: int
     cid10_principal: str
     cids_secundarios: list[DiagnosticoSecundarioPayload]
-    sid: str
     atualizado_em: datetime | None
 
 
@@ -1062,7 +1060,6 @@ def _diagnostico_response(registro: ConsultaDiagnostico | None) -> DiagnosticoRe
         consulta_id=registro.consulta_id,
         cid10_principal=_texto(registro.cid10_principal),
         cids_secundarios=secundarios,
-        sid=_texto(registro.sid),
         atualizado_em=registro.updated_at,
     )
 
@@ -1257,7 +1254,6 @@ def _diagnostico_possui_conteudo(registro: ConsultaDiagnostico | None) -> bool:
         return False
     return bool(
         _texto(registro.cid10_principal).strip()
-        or _texto(registro.sid).strip()
         or _diagnostico_secundarios_possuem_conteudo(registro)
     )
 
@@ -2421,7 +2417,6 @@ async def salvar_diagnostico(
 
     registro.cid10_principal = body.cid10_principal.strip()
     registro.cids_secundarios = json.dumps(secundarios, ensure_ascii=False)
-    registro.sid = body.sid.strip()
     registro.updated_at = datetime.utcnow()
 
     await db.flush()

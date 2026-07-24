@@ -77,7 +77,6 @@ export interface CodigoCID {
 
 export interface Diagnostico {
   cids: CodigoCID[]
-  sid: string
 }
 
 export interface Procedimento {
