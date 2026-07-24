@@ -1,15 +1,15 @@
 """triagem neonatal multiplas coletas e separacao fundo de olho
 
-Revision ID: j6k7l8m9n0o1
-Revises: i5j6k7l8m9n0
+Revision ID: p1q2r3s4t5u6
+Revises: j6k7l8m9n0o1
 Create Date: 2026-07-21 09:00:00.000000
 """
 from alembic import op
 import sqlalchemy as sa
 
 
-revision = "j6k7l8m9n0o1"
-down_revision = "i5j6k7l8m9n0"
+revision = "p1q2r3s4t5u6"
+down_revision = "j6k7l8m9n0o1"
 branch_labels = None
 depends_on = None
 
