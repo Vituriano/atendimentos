@@ -6,16 +6,16 @@ import {
   MinusIcon,
   ExclamationTriangleIcon,
 } from '@heroicons/vue/24/solid'
-import { usePacienteStore } from '../../stores/paciente'
 import { useConsultaStore, type ClassificacaoDesenvolvimento } from '../../stores/consulta'
 import { getGrupoAtivo } from '../../data/marcos-desenvolvimento'
 import type { Marco } from '../../types/clinica'
 import type { StatusMarco } from '../../types/clinica'
 
-const pacienteStore = usePacienteStore()
 const consultaStore = useConsultaStore()
 
-const idadeEmMeses = computed(() => pacienteStore.idadeEmMeses)
+// Idade corrigida por prematuridade (quando aplicável) — determina qual faixa etária de
+// marcos fica editável. Ver `calcularIdadeCorrigidaEmMeses` em stores/consulta.ts.
+const idadeEmMeses = computed(() => consultaStore.idadeEmMesesCorrigida)
 const grupoAtivo = computed(() => getGrupoAtivo(idadeEmMeses.value))
 
 function isEditable(faixa: [number, number], coluna: number): boolean {

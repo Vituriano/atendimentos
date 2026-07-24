@@ -9,6 +9,7 @@ import {
   XMarkIcon,
 } from '@heroicons/vue/24/outline'
 import {
+  calcularIdadeCorrigidaEmMeses,
   useConsultaStore,
   type AbaAnamnese,
   type AnamneseAlimentacao,
@@ -318,11 +319,10 @@ const idadeGestacionalInvalida = computed(() => {
 
 const idadeCorrigidaTexto = computed(() => {
   const idadeGestacional = idadeGestacionalSemanas.value
-  const idadeEmMeses = pacienteAtivo.value?.idadeEmMeses ?? 0
   if (!idadeGestacional || idadeGestacional >= 37) return ''
 
-  const mesesParaCorrigir = Math.max(0, (40 - idadeGestacional) / 4.33)
-  const idadeCorrigida = Math.max(0, idadeEmMeses - mesesParaCorrigir)
+  const idadeEmMeses = pacienteAtivo.value?.idadeEmMeses ?? 0
+  const idadeCorrigida = calcularIdadeCorrigidaEmMeses(idadeEmMeses, idadeGestacional)
   return `${idadeCorrigida.toFixed(1).replace('.', ',')} meses`
 })
 

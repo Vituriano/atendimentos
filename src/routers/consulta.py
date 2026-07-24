@@ -268,7 +268,6 @@ class TesteTriagemNeonatalPayload(BaseModel):
 
 class TriagemNeonatalSalvarRequest(BaseModel):
     paciente_id: str = Field(..., min_length=1)
-    peso_nascimento_gramas: int | None = Field(default=None, ge=300, le=7000)
     hipoteses_diagnosticas_anteriores: str = ""
     teste_pezinho_coletas: list[TesteTriagemNeonatalPayload] = Field(default_factory=list, max_length=4)
     teste_orelhinha_coletas: list[TesteTriagemNeonatalPayload] = Field(default_factory=list)
@@ -280,7 +279,6 @@ class TriagemNeonatalSalvarRequest(BaseModel):
 class TriagemNeonatalResponse(BaseModel):
     id: int
     consulta_id: int
-    peso_nascimento_gramas: int | None
     hipoteses_diagnosticas_anteriores: str
     teste_pezinho_coletas: list[TesteTriagemNeonatalPayload]
     teste_orelhinha_coletas: list[TesteTriagemNeonatalPayload]
@@ -1006,7 +1004,6 @@ def _triagem_neonatal_response(registro: ConsultaTriagemNeonatal | None) -> Tria
     return TriagemNeonatalResponse(
         id=registro.id,
         consulta_id=registro.consulta_id,
-        peso_nascimento_gramas=registro.peso_nascimento_gramas,
         hipoteses_diagnosticas_anteriores=_texto(registro.hipoteses_diagnosticas_anteriores),
         teste_pezinho_coletas=_carregar_coletas_triagem(
             registro.teste_pezinho_coletas,
@@ -1048,7 +1045,6 @@ def _triagem_neonatal_possui_conteudo(registro: ConsultaTriagemNeonatal | None) 
     return any(
         _possui_conteudo(valor)
         for valor in [
-            response.peso_nascimento_gramas,
             response.hipoteses_diagnosticas_anteriores,
             response.teste_pezinho_coletas,
             response.teste_orelhinha_coletas,
@@ -2443,7 +2439,6 @@ async def salvar_triagem_neonatal(
         registro = ConsultaTriagemNeonatal(consulta_id=consulta.id)
         db.add(registro)
 
-    registro.peso_nascimento_gramas = body.peso_nascimento_gramas
     registro.hipoteses_diagnosticas_anteriores = body.hipoteses_diagnosticas_anteriores.strip()
 
     pezinho_coletas = [c for c in body.teste_pezinho_coletas if _possui_conteudo(c)][:4]

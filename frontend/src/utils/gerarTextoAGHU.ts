@@ -175,7 +175,6 @@ ${v(p.imunizacoes.statusVacinal, 'Nao informado')}
     const tn = p.triagemNeonatal
     texto += `
 --- TRIAGEM NEONATAL --------------------------------
-${pad('Peso nasc.')}  : ${tn.pesoNascimentoGramas ? `${tn.pesoNascimentoGramas} g` : '—'}
 ${tn.hipotesesDiagnosticasAnteriores ? `Hipoteses diagnosticas anteriores: ${tn.hipotesesDiagnosticasAnteriores}\n` : ''}${coletasTexto('Teste do Pezinho', tn.testePezinho)}${coletasTexto('Teste da Orelhinha', tn.testeOrelhinha)}Teste do Olhinho     : ${v(tn.testeOlhinho.resultado)} ${tn.testeOlhinho.data ? `(${tn.testeOlhinho.data})` : ''} ${v(tn.testeOlhinho.descricao, '')}
 Fundo de olho        : ${v(tn.testeFundoDeOlho.resultado)} ${tn.testeFundoDeOlho.data ? `(${tn.testeFundoDeOlho.data})` : ''} ${v(tn.testeFundoDeOlho.descricao, '')}
 Teste do Coracaozinho: ${v(tn.testeCoracaozinho.resultado)} ${tn.testeCoracaozinho.data ? `(${tn.testeCoracaozinho.data})` : ''} ${v(tn.testeCoracaozinho.descricao, '')}

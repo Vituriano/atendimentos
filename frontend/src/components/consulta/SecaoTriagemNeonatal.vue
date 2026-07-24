@@ -8,22 +8,6 @@
         </div>
       </div>
 
-      <div class="grid gap-4 md:grid-cols-2">
-        <div class="space-y-2">
-          <label class="text-sm font-medium text-slate-700" for="peso-nascimento">Peso ao nascimento (gramas)</label>
-          <input
-            id="peso-nascimento"
-            :value="camposNumericos.pesoNascimentoGramas"
-            type="text"
-            inputmode="numeric"
-            placeholder="Ex: 2450"
-            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 shadow-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-            @input="atualizarNumero('pesoNascimentoGramas', ($event.target as HTMLInputElement).value)"
-          />
-          <p v-if="pesoNascimentoInvalido" class="text-xs text-amber-700">Faixa esperada para triagem: 300 a 7000 gramas.</p>
-        </div>
-      </div>
-
       <div class="mt-4 space-y-2">
         <label class="text-sm font-medium text-slate-700" for="hipoteses-diagnosticas">Hipóteses diagnósticas anteriores</label>
         <textarea
@@ -226,7 +210,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import {
   useConsultaStore,
   type DadosTriagemNeonatalConsulta,
@@ -239,27 +223,12 @@ const mensagemSucesso = ref('')
 
 const PEZINHO_MAX_COLETAS = 4
 
-type CampoNumero = 'pesoNascimentoGramas'
 type CampoTexto = 'hipotesesDiagnosticasAnteriores'
 type ChaveColecao = 'testePezinho' | 'testeOrelhinha'
 type ChaveUnico = 'testeOlhinho' | 'testeFundoDeOlho' | 'testeCoracaozinho'
 type CampoTeste = keyof TesteTriagemNeonatal
 
 const triagem = computed(() => consulta.triagemNeonatal)
-let atualizandoNumeroPelaTela = false
-
-const camposNumericos = reactive({
-  pesoNascimentoGramas: valorInicialNumero(triagem.value.pesoNascimentoGramas),
-})
-
-watch(
-  () => triagem.value.pesoNascimentoGramas,
-  () => {
-    if (atualizandoNumeroPelaTela) return
-
-    camposNumericos.pesoNascimentoGramas = valorInicialNumero(triagem.value.pesoNascimentoGramas)
-  }
-)
 
 const testesColecao = computed(() => [
   { key: 'testePezinho' as const, titulo: 'Teste do Pezinho', max: PEZINHO_MAX_COLETAS, coletas: triagem.value.testePezinho },
@@ -285,7 +254,6 @@ const triagemCompleta = computed(() => totalResultados.value === totalTestes.val
 const triagemIniciada = computed(() => {
   const dados = triagem.value
   return Boolean(
-    dados.pesoNascimentoGramas !== null ||
     dados.hipotesesDiagnosticasAnteriores.trim() ||
     totalResultados.value > 0 ||
     testesColecao.value.some(t => t.coletas.some(c => Boolean(c.data || c.descricao.trim()))) ||
@@ -293,29 +261,12 @@ const triagemIniciada = computed(() => {
   )
 })
 
-const pesoNascimentoInvalido = computed(() => {
-  const valor = triagem.value.pesoNascimentoGramas
-  return valor !== null && (valor < 300 || valor > 7000)
-})
-
-function valorInicialNumero(valor: number | null | undefined): string {
-  return valor === null || valor === undefined ? '' : String(valor).replace('.', ',')
-}
-
-function parseNumeroPtBr(valor: string): number | null {
-  const normalizado = valor.trim().replace(',', '.')
-  if (!normalizado) return null
-  const numero = Number(normalizado)
-  return Number.isFinite(numero) ? numero : null
-}
-
 function criarColetaVazia(): TesteTriagemNeonatal {
   return { resultado: '', data: '', descricao: '' }
 }
 
 function clonarDados(): DadosTriagemNeonatalConsulta {
   return {
-    pesoNascimentoGramas: triagem.value.pesoNascimentoGramas,
     hipotesesDiagnosticasAnteriores: triagem.value.hipotesesDiagnosticasAnteriores,
     testePezinho: triagem.value.testePezinho.map(coleta => ({ ...coleta })),
     testeOrelhinha: triagem.value.testeOrelhinha.map(coleta => ({ ...coleta })),
@@ -324,20 +275,6 @@ function clonarDados(): DadosTriagemNeonatalConsulta {
     testeCoracaozinho: { ...triagem.value.testeCoracaozinho },
     atualizadoEm: triagem.value.atualizadoEm,
   }
-}
-
-function atualizarNumero(campo: CampoNumero, valor: string) {
-  mensagemSucesso.value = ''
-  camposNumericos[campo] = valor
-
-  const dados = clonarDados()
-  dados[campo] = parseNumeroPtBr(valor)
-
-  atualizandoNumeroPelaTela = true
-  consulta.atualizarTriagemNeonatal(dados)
-  queueMicrotask(() => {
-    atualizandoNumeroPelaTela = false
-  })
 }
 
 function atualizarTexto(campo: CampoTexto, valor: string) {
