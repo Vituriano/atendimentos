@@ -315,7 +315,9 @@ interface MarcoDesenvolvimentoApiResponse {
   status: StatusMarco
   observacao: string
   observacao_geral: string
+  criado_em: string | null
   atualizado_em: string | null
+  alterado_apos_registro_original: boolean
 }
 
 export interface CadernetaAntropometriaItem {
@@ -397,9 +399,9 @@ export interface DadosTriagemNeonatalConsulta {
   hipotesesDiagnosticasAnteriores: string
   testePezinho: TesteTriagemNeonatal[]
   testeOrelhinha: TesteTriagemNeonatal[]
-  testeOlhinho: TesteTriagemNeonatal
-  testeFundoDeOlho: TesteTriagemNeonatal
-  testeCoracaozinho: TesteTriagemNeonatal
+  testeOlhinho: TesteTriagemNeonatal[]
+  testeFundoDeOlho: TesteTriagemNeonatal[]
+  testeCoracaozinho: TesteTriagemNeonatal[]
   atualizadoEm: string | null
 }
 
@@ -415,9 +417,9 @@ interface TriagemNeonatalApiResponse {
   hipoteses_diagnosticas_anteriores: string
   teste_pezinho_coletas: TesteTriagemNeonatalApiPayload[]
   teste_orelhinha_coletas: TesteTriagemNeonatalApiPayload[]
-  teste_olhinho: TesteTriagemNeonatalApiPayload
-  teste_fundo_olho: TesteTriagemNeonatalApiPayload
-  teste_coracaozinho: TesteTriagemNeonatalApiPayload
+  teste_olhinho_coletas: TesteTriagemNeonatalApiPayload[]
+  teste_fundo_olho_coletas: TesteTriagemNeonatalApiPayload[]
+  teste_coracaozinho_coletas: TesteTriagemNeonatalApiPayload[]
   atualizado_em: string | null
 }
 
@@ -453,6 +455,7 @@ export interface DadosHistoriaFamiliarConsulta {
   paternalSaude: string
   paternalOcupacao: string
   coabitacaoPais: string
+  coabitacaoPaisOutros: string
   irmaosSaude: string
   atualizadoEm: string | null
 }
@@ -468,6 +471,7 @@ interface HistoriaFamiliarApiResponse {
   paternal_saude: string
   paternal_ocupacao: string
   coabitacao_pais: string
+  coabitacao_pais_outros: string
   irmaos_saude: string
   atualizado_em: string | null
 }
@@ -608,9 +612,9 @@ function criarTriagemNeonatalVazia(): DadosTriagemNeonatalConsulta {
     hipotesesDiagnosticasAnteriores: '',
     testePezinho: [criarTesteTriagemNeonatalVazio()],
     testeOrelhinha: [criarTesteTriagemNeonatalVazio()],
-    testeOlhinho: criarTesteTriagemNeonatalVazio(),
-    testeFundoDeOlho: criarTesteTriagemNeonatalVazio(),
-    testeCoracaozinho: criarTesteTriagemNeonatalVazio(),
+    testeOlhinho: [criarTesteTriagemNeonatalVazio()],
+    testeFundoDeOlho: [criarTesteTriagemNeonatalVazio()],
+    testeCoracaozinho: [criarTesteTriagemNeonatalVazio()],
     atualizadoEm: null,
   }
 }
@@ -634,9 +638,9 @@ function triagemNeonatalApiParaStore(apiData: TriagemNeonatalApiResponse): Dados
     hipotesesDiagnosticasAnteriores: apiData.hipoteses_diagnosticas_anteriores ?? '',
     testePezinho: coletasApiParaStore(apiData.teste_pezinho_coletas),
     testeOrelhinha: coletasApiParaStore(apiData.teste_orelhinha_coletas),
-    testeOlhinho: testeTriagemApiParaStore(apiData.teste_olhinho),
-    testeFundoDeOlho: testeTriagemApiParaStore(apiData.teste_fundo_olho),
-    testeCoracaozinho: testeTriagemApiParaStore(apiData.teste_coracaozinho),
+    testeOlhinho: coletasApiParaStore(apiData.teste_olhinho_coletas),
+    testeFundoDeOlho: coletasApiParaStore(apiData.teste_fundo_olho_coletas),
+    testeCoracaozinho: coletasApiParaStore(apiData.teste_coracaozinho_coletas),
     atualizadoEm: apiData.atualizado_em,
   }
 }
@@ -650,9 +654,9 @@ function triagemNeonatalStoreParaApi(dados: DadosTriagemNeonatalConsulta) {
     hipoteses_diagnosticas_anteriores: dados.hipotesesDiagnosticasAnteriores,
     teste_pezinho_coletas: dados.testePezinho.map(coletaStoreParaApi),
     teste_orelhinha_coletas: dados.testeOrelhinha.map(coletaStoreParaApi),
-    teste_olhinho: coletaStoreParaApi(dados.testeOlhinho),
-    teste_fundo_olho: coletaStoreParaApi(dados.testeFundoDeOlho),
-    teste_coracaozinho: coletaStoreParaApi(dados.testeCoracaozinho),
+    teste_olhinho_coletas: dados.testeOlhinho.map(coletaStoreParaApi),
+    teste_fundo_olho_coletas: dados.testeFundoDeOlho.map(coletaStoreParaApi),
+    teste_coracaozinho_coletas: dados.testeCoracaozinho.map(coletaStoreParaApi),
   }
 }
 
@@ -661,9 +665,9 @@ function clonarTriagemNeonatal(dados: DadosTriagemNeonatalConsulta): DadosTriage
     hipotesesDiagnosticasAnteriores: dados.hipotesesDiagnosticasAnteriores,
     testePezinho: dados.testePezinho.map(coleta => ({ ...coleta })),
     testeOrelhinha: dados.testeOrelhinha.map(coleta => ({ ...coleta })),
-    testeOlhinho: { ...dados.testeOlhinho },
-    testeFundoDeOlho: { ...dados.testeFundoDeOlho },
-    testeCoracaozinho: { ...dados.testeCoracaozinho },
+    testeOlhinho: dados.testeOlhinho.map(coleta => ({ ...coleta })),
+    testeFundoDeOlho: dados.testeFundoDeOlho.map(coleta => ({ ...coleta })),
+    testeCoracaozinho: dados.testeCoracaozinho.map(coleta => ({ ...coleta })),
     atualizadoEm: dados.atualizadoEm,
   }
 }
@@ -737,6 +741,7 @@ function criarHistoriaFamiliarVazia(): DadosHistoriaFamiliarConsulta {
     paternalSaude: '',
     paternalOcupacao: '',
     coabitacaoPais: '',
+    coabitacaoPaisOutros: '',
     irmaosSaude: '',
     atualizadoEm: null,
   }
@@ -752,6 +757,7 @@ function historiaFamiliarApiParaStore(apiData: HistoriaFamiliarApiResponse): Dad
     paternalSaude: apiData.paternal_saude ?? '',
     paternalOcupacao: apiData.paternal_ocupacao ?? '',
     coabitacaoPais: apiData.coabitacao_pais ?? '',
+    coabitacaoPaisOutros: apiData.coabitacao_pais_outros ?? '',
     irmaosSaude: apiData.irmaos_saude ?? '',
     atualizadoEm: apiData.atualizado_em,
   }
@@ -767,6 +773,7 @@ function historiaFamiliarStoreParaApi(dados: DadosHistoriaFamiliarConsulta) {
     paternal_saude: dados.paternalSaude,
     paternal_ocupacao: dados.paternalOcupacao,
     coabitacao_pais: dados.coabitacaoPais,
+    coabitacao_pais_outros: dados.coabitacaoPaisOutros,
     irmaos_saude: dados.irmaosSaude,
   }
 }
@@ -1646,6 +1653,9 @@ export const useConsultaStore = defineStore('consulta', () => {
   const observacoesMarcos = ref<Record<string, string>>({})
   const observacaoGeralMarcos = ref<string>('')
   const classificacaoDesenvolvimento = ref<ClassificacaoDesenvolvimento | null>(null)
+  // Flag por marca: veio da API marcada como alterada fora da data do registro
+  // original (ver alterado_apos_registro_original no backend).
+  const marcosAlteradosAposRegistro = ref<Record<string, boolean>>({})
 
   type ExameFisicoForm = {
     [K in keyof ExameFisico]: { status: SistemaStatusSelection; descricao: string }
@@ -1784,6 +1794,10 @@ export const useConsultaStore = defineStore('consulta', () => {
     return statusMarcos.value[`${marcoId}-${idadeColuna}`] ?? null
   }
 
+  function getMarcoAlteradoAposRegistro(marcoId: string, idadeColuna: number): boolean {
+    return marcosAlteradosAposRegistro.value[`${marcoId}-${idadeColuna}`] ?? false
+  }
+
   function setObservacaoMarco(marcoId: string, obs: string) {
     observacoesMarcos.value = { ...observacoesMarcos.value, [marcoId]: obs }
   }
@@ -1845,6 +1859,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     observacoesMarcos.value = {}
     observacaoGeralMarcos.value = ''
     classificacaoDesenvolvimento.value = null
+    marcosAlteradosAposRegistro.value = {}
     antropometria.value = criarAntropometriaVazia()
     anamnese.value = criarAnamneseVazia()
     imunizacoes.value = criarImunizacoesVazia()
@@ -1970,6 +1985,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     statusMarcos.value = {}
     observacoesMarcos.value = {}
     observacaoGeralMarcos.value = ''
+    marcosAlteradosAposRegistro.value = {}
     for (const registro of response.marcos_desenvolvimento ?? []) {
       const key = `${registro.marco_id}-${registro.idade_coluna_meses}`
       statusMarcos.value[key] = registro.status
@@ -1978,6 +1994,9 @@ export const useConsultaStore = defineStore('consulta', () => {
       }
       if (registro.observacao_geral?.trim()) {
         observacaoGeralMarcos.value = registro.observacao_geral
+      }
+      if (registro.alterado_apos_registro_original) {
+        marcosAlteradosAposRegistro.value[key] = true
       }
     }
     if (Object.values(statusMarcos.value).some(v => v !== null)) {
@@ -2093,6 +2112,7 @@ export const useConsultaStore = defineStore('consulta', () => {
         paciente_id: pacienteId,
         registros,
         observacao_geral: observacaoGeralMarcos.value,
+        idade_atual_meses: idadeEmMesesCorrigida.value,
       })
 
       aplicarConsultaAtiva(data, pacienteId)
@@ -2785,6 +2805,7 @@ export const useConsultaStore = defineStore('consulta', () => {
           paciente_id: pacienteId,
           registros,
           observacao_geral: observacaoGeralMarcosSnapshot,
+          idade_atual_meses: idadeEmMesesCorrigida.value,
         })
       }
 
@@ -2980,9 +3001,9 @@ export const useConsultaStore = defineStore('consulta', () => {
       dados.hipotesesDiagnosticasAnteriores.trim() ||
       dados.testePezinho.some(testeTriagemPossuiConteudo) ||
       dados.testeOrelhinha.some(testeTriagemPossuiConteudo) ||
-      testeTriagemPossuiConteudo(dados.testeOlhinho) ||
-      testeTriagemPossuiConteudo(dados.testeFundoDeOlho) ||
-      testeTriagemPossuiConteudo(dados.testeCoracaozinho)
+      dados.testeOlhinho.some(testeTriagemPossuiConteudo) ||
+      dados.testeFundoDeOlho.some(testeTriagemPossuiConteudo) ||
+      dados.testeCoracaozinho.some(testeTriagemPossuiConteudo)
     )
   }
 
@@ -2990,9 +3011,9 @@ export const useConsultaStore = defineStore('consulta', () => {
     return Boolean(
       dados.testePezinho.some(coleta => coleta.resultado) &&
       dados.testeOrelhinha.some(coleta => coleta.resultado) &&
-      dados.testeOlhinho.resultado &&
-      dados.testeFundoDeOlho.resultado &&
-      dados.testeCoracaozinho.resultado
+      dados.testeOlhinho.some(coleta => coleta.resultado) &&
+      dados.testeFundoDeOlho.some(coleta => coleta.resultado) &&
+      dados.testeCoracaozinho.some(coleta => coleta.resultado)
     )
   }
 
@@ -3486,6 +3507,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     observacoesMarcos.value = {}
     observacaoGeralMarcos.value = ''
     classificacaoDesenvolvimento.value = null
+    marcosAlteradosAposRegistro.value = {}
     antropometria.value = criarAntropometriaVazia()
     anamnese.value = criarAnamneseVazia()
     imunizacoes.value = criarImunizacoesVazia()
@@ -3564,6 +3586,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     observacoesMarcos,
     observacaoGeralMarcos,
     classificacaoDesenvolvimento,
+    marcosAlteradosAposRegistro,
     totalMarcosRegistrados,
     idadeEmMesesCorrigida,
     iniciarConsulta,
@@ -3622,6 +3645,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     resetConsulta,
     toggleStatusMarco,
     getStatusMarco,
+    getMarcoAlteradoAposRegistro,
     setObservacaoMarco,
     getObservacaoMarco,
     setObservacaoGeralMarcos,

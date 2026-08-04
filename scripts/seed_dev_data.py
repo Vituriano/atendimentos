@@ -32,9 +32,14 @@ Uso:
 Idempotente: para cada paciente, se já existir alguma Consulta ativa
 (deleted_at IS NULL), o paciente é pulado — seguro rodar mais de uma vez.
 
-Este script NÃO faz parte do runtime da aplicação (não é importado por
-main.py/routers) — é uma ferramenta de desenvolvimento local, por isso usa
-DELETE apenas com --reset (nunca em código de produção/runtime).
+Também é chamado a partir do runtime (lifespan em src/main.py), mas só em modo
+padrão (reset=False, reset_all=False) e só quando a env var
+AUTO_SEED_DEMO_DATA=true está setada — usado no deploy demo do Render (free
+tier, disco SQLite efêmero: sem esse hook o banco fica vazio a cada redeploy,
+e o plano free não tem shell/one-off job pra rodar `make seed` manualmente).
+Esse modo é seguro em runtime porque só insere (nunca apaga) dados. As flags
+--reset/--reset-all continuam proibidas de rodar em runtime — apagam dados via
+DELETE e só devem ser usadas manualmente em desenvolvimento local.
 """
 
 import argparse

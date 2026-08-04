@@ -224,14 +224,21 @@ class ConsultaTriagemNeonatal(Base):
     teste_orelhinha_data = Column(Date, nullable=True)
     teste_orelhinha_descricao = Column(Text, nullable=True)
 
+    # Olhinho, fundo de olho e coraçãozinho seguem o mesmo padrão de coletas em
+    # array acima — todos os testes de triagem neonatal aceitam mais de uma
+    # amostra, sem limite. Colunas *_resultado/_data/_descricao legadas
+    # mantidas só para leitura retrocompatível.
+    teste_olhinho_coletas = Column(Text, nullable=False, default="[]")
     teste_olhinho_resultado = Column(String(32), nullable=True)
     teste_olhinho_data = Column(Date, nullable=True)
     teste_olhinho_descricao = Column(Text, nullable=True)
 
+    teste_fundo_olho_coletas = Column(Text, nullable=False, default="[]")
     teste_fundo_olho_resultado = Column(String(32), nullable=True)
     teste_fundo_olho_data = Column(Date, nullable=True)
     teste_fundo_olho_descricao = Column(Text, nullable=True)
 
+    teste_coracaozinho_coletas = Column(Text, nullable=False, default="[]")
     teste_coracaozinho_resultado = Column(String(32), nullable=True)
     teste_coracaozinho_data = Column(Date, nullable=True)
     teste_coracaozinho_descricao = Column(Text, nullable=True)
@@ -277,6 +284,7 @@ class ConsultaHistoriaFamiliar(Base):
     paternal_saude = Column(Text, nullable=True)
     paternal_ocupacao = Column(Text, nullable=True)
     coabitacao_pais = Column(Text, nullable=True)
+    coabitacao_pais_outros = Column(Text, nullable=True)
     irmaos_saude = Column(Text, nullable=True)
 
     created_at = Column(DateTime, nullable=False, server_default=func.now())
@@ -510,6 +518,10 @@ class ConsultaMarcoDesenvolvimento(Base):
     status = Column(String(32), nullable=False)
     observacao = Column(Text, nullable=True)
     observacao_geral = Column(Text, nullable=True)
+    # True quando esta marca (de uma coluna de idade já passada) foi alterada
+    # depois do registro original — ver upsert em salvar_marcos_desenvolvimento.
+    # Uma vez True, permanece True (não é limpo por saves subsequentes).
+    alterado_apos_registro_original = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
     deleted_at = Column(DateTime, nullable=True)

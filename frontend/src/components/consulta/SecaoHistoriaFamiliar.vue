@@ -120,7 +120,7 @@
 
         <div class="grid gap-4 md:grid-cols-2">
           <label class="space-y-2">
-            <span class="text-sm font-medium text-slate-900">Coabitação dos pais</span>
+            <span class="text-sm font-medium text-slate-900">Condição de coabitação dos pais</span>
             <select
               class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
               :value="historia.coabitacaoPais"
@@ -132,7 +132,18 @@
               <option value="falecido-mae">Mãe falecida</option>
               <option value="falecido-pai">Pai falecido</option>
               <option value="desconhecido">Pai desconhecido</option>
+              <option value="outros">Outros</option>
             </select>
+            <label v-if="historia.coabitacaoPais === 'outros'" class="block space-y-2">
+              <span class="text-sm font-medium text-slate-900">Descreva "Outros"</span>
+              <input
+                type="text"
+                class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                placeholder="Descreva a condição de coabitação dos pais"
+                :value="historia.coabitacaoPaisOutros"
+                @input="atualizarCampo('coabitacaoPaisOutros', ($event.target as HTMLInputElement).value)"
+              />
+            </label>
           </label>
 
           <label class="space-y-2">

@@ -15,6 +15,12 @@ services:
       # efêmero: os dados do SQLite reiniciam a cada deploy. OK para demo.
       - key: SQLITE_DSN
         value: sqlite+aiosqlite:///app.db
+      # Popula os 10 pacientes de demonstração no boot (aditivo/idempotente —
+      # ver scripts/seed_dev_data.py). Sem isso o disco efêmero acima fica
+      # vazio a cada redeploy; o plano free não dá acesso a shell/one-off job
+      # pra rodar `make seed` manualmente.
+      - key: AUTO_SEED_DEMO_DATA
+        value: "true"
       # Segredo JWT gerado automaticamente pelo Render
       - key: JWT_SECRET
         generateValue: true

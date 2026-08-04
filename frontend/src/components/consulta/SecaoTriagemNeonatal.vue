@@ -43,7 +43,7 @@
       </p>
 
       <div class="grid gap-4 md:grid-cols-2">
-        <!-- Testes com múltiplas coletas (pezinho, orelhinha) -->
+        <!-- Todos os testes aceitam múltiplas coletas, sem limite. -->
         <article
           v-for="teste in testesColecao"
           :key="teste.key"
@@ -53,8 +53,7 @@
             <h4 class="text-sm font-semibold text-slate-800">{{ teste.titulo }}</h4>
             <button
               type="button"
-              class="rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-700 transition hover:bg-teal-100 disabled:cursor-not-allowed disabled:opacity-50"
-              :disabled="teste.max !== null && teste.coletas.length >= teste.max"
+              class="rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-700 transition hover:bg-teal-100"
               @click="adicionarColeta(teste.key)"
             >
               + Adicionar coleta
@@ -129,63 +128,6 @@
             </div>
           </div>
         </article>
-
-        <!-- Testes de coleta única (olhinho, fundo de olho, coraçãozinho) -->
-        <article
-          v-for="teste in testesUnicos"
-          :key="teste.key"
-          class="rounded-lg border p-4 transition-colors"
-          :class="classeCard(teste.valor.resultado)"
-        >
-          <div class="mb-3 flex items-center justify-between gap-3">
-            <h4 class="text-sm font-semibold text-slate-800">{{ teste.titulo }}</h4>
-            <span
-              v-if="teste.valor.resultado"
-              class="rounded-full px-2.5 py-1 text-xs font-medium"
-              :class="classeBadge(teste.valor.resultado)"
-            >
-              {{ labelResultado(teste.valor.resultado) }}
-            </span>
-          </div>
-
-          <div class="space-y-3">
-            <div class="space-y-1.5">
-              <label class="text-xs font-medium text-slate-700">Resultado</label>
-              <select
-                :value="teste.valor.resultado"
-                class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-                @change="atualizarTesteUnico(teste.key, 'resultado', ($event.target as HTMLSelectElement).value as ResultadoTriagemNeonatal)"
-              >
-                <option value="">Selecione</option>
-                <option value="normal">Normal</option>
-                <option value="alterado">Alterado</option>
-                <option value="nao-realizado">Não realizado</option>
-                <option value="pendente">Pendente</option>
-              </select>
-            </div>
-
-            <div class="space-y-1.5">
-              <label class="text-xs font-medium text-slate-700">Data</label>
-              <input
-                :value="teste.valor.data"
-                type="date"
-                class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-                @input="atualizarTesteUnico(teste.key, 'data', ($event.target as HTMLInputElement).value)"
-              />
-            </div>
-
-            <div class="space-y-1.5">
-              <label class="text-xs font-medium text-slate-700">Observação / conduta</label>
-              <textarea
-                :value="teste.valor.descricao"
-                rows="2"
-                placeholder="Descreva o resultado, encaminhamento ou orientação..."
-                class="w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-                @input="atualizarTesteUnico(teste.key, 'descricao', ($event.target as HTMLTextAreaElement).value)"
-              />
-            </div>
-          </div>
-        </article>
       </div>
     </section>
 
@@ -221,33 +163,23 @@ import {
 const consulta = useConsultaStore()
 const mensagemSucesso = ref('')
 
-const PEZINHO_MAX_COLETAS = 4
-
 type CampoTexto = 'hipotesesDiagnosticasAnteriores'
-type ChaveColecao = 'testePezinho' | 'testeOrelhinha'
-type ChaveUnico = 'testeOlhinho' | 'testeFundoDeOlho' | 'testeCoracaozinho'
+type ChaveColecao = 'testePezinho' | 'testeOrelhinha' | 'testeOlhinho' | 'testeFundoDeOlho' | 'testeCoracaozinho'
 type CampoTeste = keyof TesteTriagemNeonatal
 
 const triagem = computed(() => consulta.triagemNeonatal)
 
 const testesColecao = computed(() => [
-  { key: 'testePezinho' as const, titulo: 'Teste do Pezinho', max: PEZINHO_MAX_COLETAS, coletas: triagem.value.testePezinho },
-  { key: 'testeOrelhinha' as const, titulo: 'Teste da Orelhinha', max: null, coletas: triagem.value.testeOrelhinha },
+  { key: 'testePezinho' as const, titulo: 'Teste do Pezinho', coletas: triagem.value.testePezinho },
+  { key: 'testeOrelhinha' as const, titulo: 'Teste da Orelhinha', coletas: triagem.value.testeOrelhinha },
+  { key: 'testeOlhinho' as const, titulo: 'Teste do Olhinho', coletas: triagem.value.testeOlhinho },
+  { key: 'testeFundoDeOlho' as const, titulo: 'Fundo de olho', coletas: triagem.value.testeFundoDeOlho },
+  { key: 'testeCoracaozinho' as const, titulo: 'Teste do Coraçãozinho (Oximetria)', coletas: triagem.value.testeCoracaozinho },
 ])
 
-const testesUnicos = computed(() => [
-  { key: 'testeOlhinho' as const, titulo: 'Teste do Olhinho', valor: triagem.value.testeOlhinho },
-  { key: 'testeFundoDeOlho' as const, titulo: 'Fundo de olho', valor: triagem.value.testeFundoDeOlho },
-  { key: 'testeCoracaozinho' as const, titulo: 'Teste do Coraçãozinho (Oximetria)', valor: triagem.value.testeCoracaozinho },
-])
+const totalTestes = computed(() => testesColecao.value.length)
 
-const totalTestes = computed(() => testesColecao.value.length + testesUnicos.value.length)
-
-const totalResultados = computed(() => {
-  const colecaoComResultado = testesColecao.value.filter(t => t.coletas.some(c => Boolean(c.resultado))).length
-  const unicoComResultado = testesUnicos.value.filter(t => Boolean(t.valor.resultado)).length
-  return colecaoComResultado + unicoComResultado
-})
+const totalResultados = computed(() => testesColecao.value.filter(t => t.coletas.some(c => Boolean(c.resultado))).length)
 
 const triagemCompleta = computed(() => totalResultados.value === totalTestes.value)
 
@@ -256,8 +188,7 @@ const triagemIniciada = computed(() => {
   return Boolean(
     dados.hipotesesDiagnosticasAnteriores.trim() ||
     totalResultados.value > 0 ||
-    testesColecao.value.some(t => t.coletas.some(c => Boolean(c.data || c.descricao.trim()))) ||
-    testesUnicos.value.some(t => Boolean(t.valor.data || t.valor.descricao.trim()))
+    testesColecao.value.some(t => t.coletas.some(c => Boolean(c.data || c.descricao.trim())))
   )
 })
 
@@ -270,9 +201,9 @@ function clonarDados(): DadosTriagemNeonatalConsulta {
     hipotesesDiagnosticasAnteriores: triagem.value.hipotesesDiagnosticasAnteriores,
     testePezinho: triagem.value.testePezinho.map(coleta => ({ ...coleta })),
     testeOrelhinha: triagem.value.testeOrelhinha.map(coleta => ({ ...coleta })),
-    testeOlhinho: { ...triagem.value.testeOlhinho },
-    testeFundoDeOlho: { ...triagem.value.testeFundoDeOlho },
-    testeCoracaozinho: { ...triagem.value.testeCoracaozinho },
+    testeOlhinho: triagem.value.testeOlhinho.map(coleta => ({ ...coleta })),
+    testeFundoDeOlho: triagem.value.testeFundoDeOlho.map(coleta => ({ ...coleta })),
+    testeCoracaozinho: triagem.value.testeCoracaozinho.map(coleta => ({ ...coleta })),
     atualizadoEm: triagem.value.atualizadoEm,
   }
 }
@@ -296,8 +227,9 @@ function atualizarColeta(chave: ChaveColecao, index: number, campo: CampoTeste, 
 function adicionarColeta(chave: ChaveColecao) {
   mensagemSucesso.value = ''
   const dados = clonarDados()
-  if (chave === 'testePezinho' && dados.testePezinho.length >= PEZINHO_MAX_COLETAS) return
-  dados[chave] = [...dados[chave], criarColetaVazia()]
+  // Nova coleta entra no topo da lista (fica como "Coleta 1"), conforme
+  // diretriz de trazer o item recém-adicionado pra cima em vez de pra baixo.
+  dados[chave] = [criarColetaVazia(), ...dados[chave]]
   consulta.atualizarTriagemNeonatal(dados)
 }
 
@@ -306,16 +238,6 @@ function removerColeta(chave: ChaveColecao, index: number) {
   const dados = clonarDados()
   if (dados[chave].length <= 1) return
   dados[chave] = dados[chave].filter((_, i) => i !== index)
-  consulta.atualizarTriagemNeonatal(dados)
-}
-
-function atualizarTesteUnico(chave: ChaveUnico, campo: CampoTeste, valor: string | ResultadoTriagemNeonatal) {
-  mensagemSucesso.value = ''
-  const dados = clonarDados()
-  dados[chave] = {
-    ...dados[chave],
-    [campo]: valor,
-  }
   consulta.atualizarTriagemNeonatal(dados)
 }
 

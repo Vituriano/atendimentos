@@ -39,6 +39,16 @@ async def lifespan(app: FastAPI):
     await ensure_local_dev_schema(app.state.app_db.engine)
     print("App SQLite tables checked/created.")
 
+    # Popula a base com os 10 pacientes de demonstração no boot, só quando
+    # explicitamente habilitado (deploy demo no Render free tier: disco
+    # efêmero, sem shell/one-off job disponível pra rodar `make seed` manual).
+    # Roda sempre em modo padrão (sem --reset/--reset-all) — aditivo e
+    # idempotente, nunca apaga dados existentes.
+    if os.getenv("AUTO_SEED_DEMO_DATA") == "true":
+        from scripts.seed_dev_data import main as seed_dev_data
+        print("AUTO_SEED_DEMO_DATA=true — populando pacientes de demonstração...")
+        await seed_dev_data(reset=False, reset_all=False)
+
     yield
 
     # Shutdown

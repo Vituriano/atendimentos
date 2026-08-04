@@ -17,17 +17,19 @@ const consultaStore = useConsultaStore()
 // marcos fica editável. Ver `calcularIdadeCorrigidaEmMeses` em stores/consulta.ts.
 const idadeEmMeses = computed(() => consultaStore.idadeEmMesesCorrigida)
 const grupoAtivo = computed(() => getGrupoAtivo(idadeEmMeses.value))
+// Colunas de idade que a criança ainda não atingiu não aparecem na tabela.
+const colunasVisiveis = computed(() => grupoAtivo.value.colunas.filter(col => col <= idadeEmMeses.value))
 
 function isEditable(faixa: [number, number], coluna: number): boolean {
   return coluna >= faixa[0] && coluna <= faixa[1] && coluna <= idadeEmMeses.value
 }
 
-function isFuture(coluna: number): boolean {
-  return coluna > idadeEmMeses.value
-}
-
 function isColunaAtual(coluna: number): boolean {
   return coluna === idadeEmMeses.value
+}
+
+function isPassado(faixa: [number, number], coluna: number): boolean {
+  return isEditable(faixa, coluna) && !isColunaAtual(coluna)
 }
 
 function getStatus(marcoId: string, coluna: number): StatusMarco | null {
@@ -38,14 +40,18 @@ function toggleStatus(marcoId: string, coluna: number, status: StatusMarco) {
   consultaStore.toggleStatusMarco(marcoId, coluna, status)
 }
 
+function foiAlteradoAposRegistro(marcoId: string, coluna: number): boolean {
+  return consultaStore.getMarcoAlteradoAposRegistro(marcoId, coluna)
+}
+
 function marcoTemAlerta(marco: Marco): boolean {
-  return grupoAtivo.value.colunas.some(
+  return colunasVisiveis.value.some(
     col => isEditable(marco.faixaEtariaMeses, col) && getStatus(marco.id, col) === 'not-achieved'
   )
 }
 
 function marcoTemQualquerStatus(marco: Marco): boolean {
-  return grupoAtivo.value.colunas.some(col => {
+  return colunasVisiveis.value.some(col => {
     const s = getStatus(marco.id, col)
     return s !== null && s !== undefined
   })
@@ -123,7 +129,7 @@ async function salvarSecao() {
               Como pesquisar
             </th>
             <th
-              v-for="col in grupoAtivo.colunas"
+              v-for="col in colunasVisiveis"
               :key="col"
               class="text-center font-medium p-2 min-w-[52px] border-r last:border-r-0 text-xs"
               :class="isColunaAtual(col) ? 'bg-teal-100 text-teal-800' : ''"
@@ -171,15 +177,24 @@ async function salvarSecao() {
 
             <!-- Células por coluna de idade -->
             <td
-              v-for="col in grupoAtivo.colunas"
+              v-for="col in colunasVisiveis"
               :key="col"
-              class="p-2 text-center border-r last:border-r-0 align-middle"
+              class="relative p-2 text-center border-r last:border-r-0 align-middle"
               :class="{
-                'bg-teal-50': isEditable(marco.faixaEtariaMeses, col),
-                'bg-slate-100 opacity-40': isFuture(col),
-                'bg-slate-50': !isEditable(marco.faixaEtariaMeses, col) && !isFuture(col),
+                'bg-teal-100': isColunaAtual(col) && isEditable(marco.faixaEtariaMeses, col),
+                'bg-white': isPassado(marco.faixaEtariaMeses, col),
+                'bg-slate-50': !isEditable(marco.faixaEtariaMeses, col),
               }"
             >
+              <!-- Marca de coluna passada editada fora da data do registro original -->
+              <span
+                v-if="isPassado(marco.faixaEtariaMeses, col) && foiAlteradoAposRegistro(marco.id, col)"
+                class="absolute top-0.5 right-0.5"
+                title="Editado fora da data do registro original"
+              >
+                <ExclamationTriangleIcon class="h-3 w-3 text-amber-500" />
+              </span>
+
               <!-- Célula editável: botões de toggle -->
               <div
                 v-if="isEditable(marco.faixaEtariaMeses, col)"
@@ -216,9 +231,6 @@ async function salvarSecao() {
                   <span class="text-[10px] font-bold leading-none">NV</span>
                 </button>
               </div>
-
-              <!-- Célula futura -->
-              <span v-else-if="isFuture(col)" class="text-slate-300 text-xs">—</span>
 
               <!-- Célula fora da janela do marco -->
               <MinusIcon v-else class="h-4 w-4 text-slate-200 mx-auto" />
