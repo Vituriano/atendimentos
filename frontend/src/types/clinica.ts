@@ -162,10 +162,13 @@ export interface Marco {
 }
 
 export interface RegistroMarco {
-  marcoId: string
-  dataConsulta: string
   status: StatusMarco
-  deletedAt?: string
+  criadoEm: string | null
+  atualizadoEm: string | null
+  // True quando esta marca (de uma coluna de idade já passada) foi editada
+  // depois do registro original — ver upsert em salvar_marcos_desenvolvimento
+  // no backend. Uma vez true, permanece true.
+  alteradoAposRegistroOriginal: boolean
 }
 
 export interface PerguntaMCHAT {

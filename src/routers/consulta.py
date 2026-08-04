@@ -269,11 +269,12 @@ class TesteTriagemNeonatalPayload(BaseModel):
 class TriagemNeonatalSalvarRequest(BaseModel):
     paciente_id: str = Field(..., min_length=1)
     hipoteses_diagnosticas_anteriores: str = ""
-    teste_pezinho_coletas: list[TesteTriagemNeonatalPayload] = Field(default_factory=list, max_length=4)
+    # Todos os testes de triagem neonatal aceitam múltiplas coletas, sem limite.
+    teste_pezinho_coletas: list[TesteTriagemNeonatalPayload] = Field(default_factory=list)
     teste_orelhinha_coletas: list[TesteTriagemNeonatalPayload] = Field(default_factory=list)
-    teste_olhinho: TesteTriagemNeonatalPayload = Field(default_factory=TesteTriagemNeonatalPayload)
-    teste_fundo_olho: TesteTriagemNeonatalPayload = Field(default_factory=TesteTriagemNeonatalPayload)
-    teste_coracaozinho: TesteTriagemNeonatalPayload = Field(default_factory=TesteTriagemNeonatalPayload)
+    teste_olhinho_coletas: list[TesteTriagemNeonatalPayload] = Field(default_factory=list)
+    teste_fundo_olho_coletas: list[TesteTriagemNeonatalPayload] = Field(default_factory=list)
+    teste_coracaozinho_coletas: list[TesteTriagemNeonatalPayload] = Field(default_factory=list)
 
 
 class TriagemNeonatalResponse(BaseModel):
@@ -282,9 +283,9 @@ class TriagemNeonatalResponse(BaseModel):
     hipoteses_diagnosticas_anteriores: str
     teste_pezinho_coletas: list[TesteTriagemNeonatalPayload]
     teste_orelhinha_coletas: list[TesteTriagemNeonatalPayload]
-    teste_olhinho: TesteTriagemNeonatalPayload
-    teste_fundo_olho: TesteTriagemNeonatalPayload
-    teste_coracaozinho: TesteTriagemNeonatalPayload
+    teste_olhinho_coletas: list[TesteTriagemNeonatalPayload]
+    teste_fundo_olho_coletas: list[TesteTriagemNeonatalPayload]
+    teste_coracaozinho_coletas: list[TesteTriagemNeonatalPayload]
     atualizado_em: datetime | None
 
 
@@ -322,6 +323,7 @@ class HistoriaFamiliarSalvarRequest(BaseModel):
     paternal_saude: str = ""
     paternal_ocupacao: str = ""
     coabitacao_pais: str = ""
+    coabitacao_pais_outros: str = ""
     irmaos_saude: str = ""
 
 
@@ -336,6 +338,7 @@ class HistoriaFamiliarResponse(BaseModel):
     paternal_saude: str
     paternal_ocupacao: str
     coabitacao_pais: str
+    coabitacao_pais_outros: str
     irmaos_saude: str
     atualizado_em: datetime | None
 
@@ -499,6 +502,11 @@ class MarcosDesenvolvimentoSalvarRequest(BaseModel):
     paciente_id: str = Field(..., min_length=1)
     registros: list[MarcoDesenvolvimentoPayload] = Field(default_factory=list)
     observacao_geral: str = ""
+    # Idade corrigida atual da criança (em meses), calculada pelo frontend no
+    # momento do save — usada só para decidir se uma coluna editada é "passado"
+    # (idade_coluna_meses menor que este valor), disparando o flag de alteração
+    # retroativa. Não é persistida por marca, só usada na comparação do save.
+    idade_atual_meses: int = Field(..., ge=0, le=240)
 
 
 class MarcoDesenvolvimentoResponse(BaseModel):
@@ -509,7 +517,9 @@ class MarcoDesenvolvimentoResponse(BaseModel):
     status: str
     observacao: str
     observacao_geral: str = ""
+    criado_em: datetime | None
     atualizado_em: datetime | None
+    alterado_apos_registro_original: bool = False
 
 
 class ExameFisicoSistemaPayload(BaseModel):
@@ -1017,17 +1027,20 @@ def _triagem_neonatal_response(registro: ConsultaTriagemNeonatal | None) -> Tria
             registro.teste_orelhinha_data,
             registro.teste_orelhinha_descricao,
         ),
-        teste_olhinho=_teste_triagem_payload(
+        teste_olhinho_coletas=_carregar_coletas_triagem(
+            registro.teste_olhinho_coletas,
             registro.teste_olhinho_resultado,
             registro.teste_olhinho_data,
             registro.teste_olhinho_descricao,
         ),
-        teste_fundo_olho=_teste_triagem_payload(
+        teste_fundo_olho_coletas=_carregar_coletas_triagem(
+            registro.teste_fundo_olho_coletas,
             registro.teste_fundo_olho_resultado,
             registro.teste_fundo_olho_data,
             registro.teste_fundo_olho_descricao,
         ),
-        teste_coracaozinho=_teste_triagem_payload(
+        teste_coracaozinho_coletas=_carregar_coletas_triagem(
+            registro.teste_coracaozinho_coletas,
             registro.teste_coracaozinho_resultado,
             registro.teste_coracaozinho_data,
             registro.teste_coracaozinho_descricao,
@@ -1048,9 +1061,9 @@ def _triagem_neonatal_possui_conteudo(registro: ConsultaTriagemNeonatal | None) 
             response.hipoteses_diagnosticas_anteriores,
             response.teste_pezinho_coletas,
             response.teste_orelhinha_coletas,
-            response.teste_olhinho,
-            response.teste_fundo_olho,
-            response.teste_coracaozinho,
+            response.teste_olhinho_coletas,
+            response.teste_fundo_olho_coletas,
+            response.teste_coracaozinho_coletas,
         ]
     )
 
@@ -1064,13 +1077,11 @@ def _triagem_neonatal_completa(registro: ConsultaTriagemNeonatal | None) -> bool
     coletas_com_resultado = [
         any(_texto(coleta.resultado).strip() for coleta in response.teste_pezinho_coletas),
         any(_texto(coleta.resultado).strip() for coleta in response.teste_orelhinha_coletas),
+        any(_texto(coleta.resultado).strip() for coleta in response.teste_olhinho_coletas),
+        any(_texto(coleta.resultado).strip() for coleta in response.teste_fundo_olho_coletas),
+        any(_texto(coleta.resultado).strip() for coleta in response.teste_coracaozinho_coletas),
     ]
-    unicos_com_resultado = [
-        bool(_texto(response.teste_olhinho.resultado).strip()),
-        bool(_texto(response.teste_fundo_olho.resultado).strip()),
-        bool(_texto(response.teste_coracaozinho.resultado).strip()),
-    ]
-    return all(coletas_com_resultado + unicos_com_resultado)
+    return all(coletas_com_resultado)
 
 
 def _encaminhamento_response(registro: ConsultaEncaminhamento) -> EncaminhamentoResponse:
@@ -1131,6 +1142,7 @@ def _historia_familiar_response(registro: ConsultaHistoriaFamiliar | None) -> Hi
         paternal_saude=_texto(registro.paternal_saude),
         paternal_ocupacao=_texto(registro.paternal_ocupacao),
         coabitacao_pais=_texto(registro.coabitacao_pais),
+        coabitacao_pais_outros=_texto(registro.coabitacao_pais_outros),
         irmaos_saude=_texto(registro.irmaos_saude),
         atualizado_em=registro.updated_at,
     )
@@ -1859,7 +1871,9 @@ def _marco_desenvolvimento_response(registro: ConsultaMarcoDesenvolvimento) -> M
         status=_texto(registro.status),
         observacao=_texto(registro.observacao),
         observacao_geral=_texto(registro.observacao_geral),
+        criado_em=registro.created_at,
         atualizado_em=registro.updated_at,
+        alterado_apos_registro_original=bool(registro.alterado_apos_registro_original),
     )
 
 
@@ -2077,34 +2091,63 @@ async def salvar_marcos_desenvolvimento(
     medico_username = current_user.get("username") or current_user.get("sub") or "usuario"
     consulta = await _obter_ou_criar_consulta_ativa(db, body.paciente_id, medico_username)
 
-    # Os marcos funcionam como um snapshot da avaliação da consulta atual.
-    # A versão anterior apenas marcava os registros antigos com deleted_at e depois
-    # inseria novos registros com a mesma chave (consulta_id, marco_id, idade).
-    # Como existe uma constraint única nessa chave, o SQLite gerava IntegrityError
-    # em salvamentos subsequentes e a API retornava 500.
-    # Aqui removemos fisicamente o snapshot anterior desta consulta antes de gravar
-    # o novo conjunto de respostas. Isso evita conflito e mantém somente o estado
-    # mais recente da consulta.
-    await db.execute(
-        delete(ConsultaMarcoDesenvolvimento).where(
+    # Upsert por chave natural (consulta_id, marco_id, idade_coluna_meses), em vez
+    # do delete-all+reinsert anterior — aquela abordagem apagava e recriava toda
+    # marca a cada save, então created_at nunca sobrevivia entre saves e não dava
+    # pra saber se uma marca de coluna passada tinha sido alterada fora da hora.
+    # Busca inclui registros já soft-deletados: a unique constraint (consulta_id,
+    # marco_id, idade_coluna_meses) vale pra eles também, então uma marca que
+    # volta a aparecer no payload precisa reaproveitar a linha existente (só
+    # limpando deleted_at) em vez de inserir uma linha nova com a mesma chave.
+    result = await db.execute(
+        select(ConsultaMarcoDesenvolvimento).where(
             ConsultaMarcoDesenvolvimento.consulta_id == consulta.id
         )
     )
-    await db.flush()
+    existentes = {
+        (registro.marco_id, registro.idade_coluna_meses): registro
+        for registro in result.scalars().all()
+    }
+
+    chaves_no_payload: set[tuple[str, int]] = set()
 
     for item in body.registros:
         if item.status == "not-evaluated":
             continue
-        db.add(
-            ConsultaMarcoDesenvolvimento(
-                consulta_id=consulta.id,
-                marco_id=item.marco_id,
-                idade_coluna_meses=item.idade_coluna_meses,
-                status=item.status,
-                observacao=item.observacao,
-                observacao_geral=body.observacao_geral,
+
+        chave = (item.marco_id, item.idade_coluna_meses)
+        chaves_no_payload.add(chave)
+        registro = existentes.get(chave)
+
+        if registro is None:
+            db.add(
+                ConsultaMarcoDesenvolvimento(
+                    consulta_id=consulta.id,
+                    marco_id=item.marco_id,
+                    idade_coluna_meses=item.idade_coluna_meses,
+                    status=item.status,
+                    observacao=item.observacao,
+                    observacao_geral=body.observacao_geral,
+                )
             )
-        )
+            continue
+
+        mudou = registro.status != item.status or _texto(registro.observacao) != item.observacao
+        era_coluna_passada = item.idade_coluna_meses < body.idade_atual_meses
+        if mudou and era_coluna_passada:
+            registro.alterado_apos_registro_original = True
+
+        registro.status = item.status
+        registro.observacao = item.observacao
+        registro.observacao_geral = body.observacao_geral
+        registro.deleted_at = None
+
+    # Marcas que existiam mas não vieram no payload (removidas ou voltaram pra
+    # "not-evaluated") são soft-deletadas — preserva histórico/created_at em vez
+    # de apagar fisicamente.
+    for chave, registro in existentes.items():
+        if chave not in chaves_no_payload and registro.deleted_at is None:
+            registro.deleted_at = datetime.utcnow()
 
     await db.commit()
     consulta = await _obter_consulta_ativa(db, body.paciente_id, medico_username)
@@ -2441,10 +2484,17 @@ async def salvar_triagem_neonatal(
 
     registro.hipoteses_diagnosticas_anteriores = body.hipoteses_diagnosticas_anteriores.strip()
 
-    pezinho_coletas = [c for c in body.teste_pezinho_coletas if _possui_conteudo(c)][:4]
+    # Todos os 5 testes aceitam múltiplas coletas, sem limite.
+    pezinho_coletas = [c for c in body.teste_pezinho_coletas if _possui_conteudo(c)]
     orelhinha_coletas = [c for c in body.teste_orelhinha_coletas if _possui_conteudo(c)]
+    olhinho_coletas = [c for c in body.teste_olhinho_coletas if _possui_conteudo(c)]
+    fundo_olho_coletas = [c for c in body.teste_fundo_olho_coletas if _possui_conteudo(c)]
+    coracaozinho_coletas = [c for c in body.teste_coracaozinho_coletas if _possui_conteudo(c)]
     registro.teste_pezinho_coletas = _coletas_triagem_para_json(pezinho_coletas)
     registro.teste_orelhinha_coletas = _coletas_triagem_para_json(orelhinha_coletas)
+    registro.teste_olhinho_coletas = _coletas_triagem_para_json(olhinho_coletas)
+    registro.teste_fundo_olho_coletas = _coletas_triagem_para_json(fundo_olho_coletas)
+    registro.teste_coracaozinho_coletas = _coletas_triagem_para_json(coracaozinho_coletas)
     # Zera as colunas escalares legadas: a fonte de verdade agora é o array JSON.
     registro.teste_pezinho_resultado = None
     registro.teste_pezinho_data = None
@@ -2452,18 +2502,15 @@ async def salvar_triagem_neonatal(
     registro.teste_orelhinha_resultado = None
     registro.teste_orelhinha_data = None
     registro.teste_orelhinha_descricao = None
-
-    registro.teste_olhinho_resultado = body.teste_olhinho.resultado.strip()
-    registro.teste_olhinho_data = body.teste_olhinho.data
-    registro.teste_olhinho_descricao = body.teste_olhinho.descricao.strip()
-
-    registro.teste_fundo_olho_resultado = body.teste_fundo_olho.resultado.strip()
-    registro.teste_fundo_olho_data = body.teste_fundo_olho.data
-    registro.teste_fundo_olho_descricao = body.teste_fundo_olho.descricao.strip()
-
-    registro.teste_coracaozinho_resultado = body.teste_coracaozinho.resultado.strip()
-    registro.teste_coracaozinho_data = body.teste_coracaozinho.data
-    registro.teste_coracaozinho_descricao = body.teste_coracaozinho.descricao.strip()
+    registro.teste_olhinho_resultado = None
+    registro.teste_olhinho_data = None
+    registro.teste_olhinho_descricao = None
+    registro.teste_fundo_olho_resultado = None
+    registro.teste_fundo_olho_data = None
+    registro.teste_fundo_olho_descricao = None
+    registro.teste_coracaozinho_resultado = None
+    registro.teste_coracaozinho_data = None
+    registro.teste_coracaozinho_descricao = None
     registro.updated_at = datetime.utcnow()
 
     await db.flush()
@@ -2555,6 +2602,7 @@ async def salvar_historia_familiar(
     registro.paternal_saude = body.paternal_saude.strip()
     registro.paternal_ocupacao = body.paternal_ocupacao.strip()
     registro.coabitacao_pais = body.coabitacao_pais.strip()
+    registro.coabitacao_pais_outros = body.coabitacao_pais_outros.strip()
     registro.irmaos_saude = body.irmaos_saude.strip()
     registro.updated_at = datetime.utcnow()
 
