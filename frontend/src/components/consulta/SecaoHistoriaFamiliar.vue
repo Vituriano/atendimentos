@@ -177,15 +177,6 @@
         </p>
         <p v-if="mensagemSucesso" class="mt-1 text-sm text-teal-700">{{ mensagemSucesso }}</p>
       </div>
-      <button
-        v-if="false"
-        type="button"
-        class="rounded-lg bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
-        :disabled="consulta.salvandoHistoriaFamiliar"
-        @click="salvar"
-      >
-        {{ consulta.salvandoHistoriaFamiliar ? 'Salvando...' : 'Salvar seção' }}
-      </button>
     </section>
   </div>
 </template>
@@ -211,9 +202,4 @@ function atualizarCampo<K extends keyof DadosHistoriaFamiliarConsulta>(
   consulta.atualizarCampoHistoriaFamiliar(campo, valor)
 }
 
-async function salvar() {
-  mensagemSucesso.value = ''
-  await consulta.salvarHistoriaFamiliar()
-  mensagemSucesso.value = 'História familiar salva no banco.'
-}
 </script>

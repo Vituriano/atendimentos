@@ -153,7 +153,7 @@ const alertas = computed(() => {
 function atualizarRascunhoAntropometria() {
   atualizandoRascunhoPelaTela = true
 
-  consultaStore.antropometria = {
+  consultaStore.atualizarAntropometria({
     pesoKg: peso.value,
     alturaCm: altura.value,
     perimetroCefalicoCm: perimetroCefalico.value,
@@ -161,8 +161,7 @@ function atualizarRascunhoAntropometria() {
     pressaoDiastolicaMmHg: pressaoDiastolica.value,
     imc: imc.value,
     classificacaoImc: classificacaoImc.value,
-    atualizadoEm: consultaStore.antropometria.atualizadoEm,
-  }
+  })
 
   const possuiAlgumDado = [
     peso.value,
@@ -188,19 +187,6 @@ watch(
   { immediate: true }
 )
 
-async function salvarSecao() {
-  if (!camposObrigatoriosPreenchidos.value || consultaStore.salvandoAntropometria) return
-
-  await consultaStore.salvarAntropometria({
-    pesoKg: peso.value,
-    alturaCm: altura.value,
-    perimetroCefalicoCm: perimetroCefalico.value,
-    pressaoSistolicaMmHg: pressaoSistolica.value,
-    pressaoDiastolicaMmHg: pressaoDiastolica.value,
-    imc: imc.value,
-    classificacaoImc: classificacaoImc.value,
-  })
-}
 </script>
 
 <template>
@@ -359,16 +345,6 @@ async function salvarSecao() {
           <p v-else-if="secaoCompleta" class="mt-1 text-xs text-slate-400">Seção salva no banco e marcada como completa.</p>
         </div>
       </div>
-
-      <button
-        v-if="false"
-        class="rounded-lg px-5 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-slate-300"
-        :class="camposObrigatoriosPreenchidos ? 'bg-teal-600 hover:bg-teal-700' : 'bg-slate-300'"
-        :disabled="!camposObrigatoriosPreenchidos || consultaStore.salvandoAntropometria"
-        @click="salvarSecao"
-      >
-        {{ consultaStore.salvandoAntropometria ? 'Salvando...' : 'Salvar seção' }}
-      </button>
     </section>
   </div>
 </template>

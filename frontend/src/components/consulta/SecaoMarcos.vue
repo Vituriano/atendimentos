@@ -96,10 +96,6 @@ const classificacaoOpcoes: Array<{
   },
 ]
 
-async function salvarSecao() {
-  await consultaStore.salvarMarcosDesenvolvimento()
-}
-
 </script>
 
 <template>
@@ -314,15 +310,6 @@ async function salvarSecao() {
         <p class="text-xs text-slate-500">Os registros salvos aparecem na Caderneta Digital do paciente.</p>
         <p v-if="consultaStore.erroSalvamentoMarcos" class="mt-1 text-xs text-red-600">{{ consultaStore.erroSalvamentoMarcos }}</p>
       </div>
-      <button
-        v-if="false"
-        type="button"
-        @click="salvarSecao"
-        :disabled="consultaStore.salvandoMarcos"
-        class="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {{ consultaStore.salvandoMarcos ? 'Salvando...' : 'Salvar seção' }}
-      </button>
     </div>
 
 

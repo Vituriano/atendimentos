@@ -352,17 +352,7 @@ function toggleDispositivo(dispositivo: string) {
   setHabitos('telasDispositivos', Array.from(dispositivos))
 }
 
-async function salvarSecao() {
-  if (consultaStore.salvandoAnamnese) return
 
-  mensagemSalvamento.value = null
-  try {
-    await consultaStore.salvarAnamnese()
-    mensagemSalvamento.value = 'Anamnese salva no banco para este paciente.'
-  } catch {
-    mensagemSalvamento.value = consultaStore.erroSalvamentoAnamnese ?? 'Não foi possível salvar a anamnese no banco.'
-  }
-}
 </script>
 
 <template>
@@ -1182,15 +1172,6 @@ async function salvarSecao() {
       </div>
 
       <div class="flex flex-col items-stretch gap-2 md:items-end">
-        <button
-          v-if="false"
-          class="rounded-lg px-5 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-slate-300"
-          :class="secaoIniciada ? 'bg-teal-600 hover:bg-teal-700' : 'bg-slate-300'"
-          :disabled="!secaoIniciada || consultaStore.salvandoAnamnese"
-          @click="salvarSecao"
-        >
-          {{ consultaStore.salvandoAnamnese ? 'Salvando...' : 'Salvar seção' }}
-        </button>
         <p v-if="consultaStore.erroSalvamentoAnamnese" class="text-xs text-red-600">
           {{ consultaStore.erroSalvamentoAnamnese }}
         </p>

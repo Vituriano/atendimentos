@@ -1580,6 +1580,17 @@ export const useConsultaStore = defineStore('consulta', () => {
   const procedimentos = ref<DadosProcedimentosConsulta>(criarProcedimentosVazio())
   const historicoImunizacoes = ref<HistoricoImunizacoesItem[]>([])
 
+  // Rastreio de seções com edição do usuário pendente de salvar — alimenta o
+  // salvamento automático (ver Consulta.vue). Só as próprias ações de cada
+  // seção marcam aqui; carregar/aplicar dados do servidor (aplicarConsultaAtiva,
+  // carregarConsultaAtiva, resetConsulta) nunca chama isso, para não reacender
+  // o ciclo de salvamento sozinho.
+  const secoesAlteradas = ref<Set<SecaoId>>(new Set())
+
+  function marcarSecaoAlterada(id: SecaoId) {
+    secoesAlteradas.value = new Set([...secoesAlteradas.value, id])
+  }
+
   const idadeEmMeses = computed(() => pacienteStore.pacienteAtivo?.idadeEmMeses ?? 0)
   const is0to2 = computed(() => idadeEmMeses.value <= 24)
   const is3to9 = computed(() => idadeEmMeses.value >= 36 && idadeEmMeses.value <= 108)
@@ -1751,10 +1762,12 @@ export const useConsultaStore = defineStore('consulta', () => {
   function updateSistemaStatus(id: keyof ExameFisico, status: SistemaStatusSelection) {
     exameFisico.value[id].status = status
     atualizarStatusExameFisico()
+    marcarSecaoAlterada('clinical')
   }
   function updateSistemaDescricao(id: keyof ExameFisico, descricao: string) {
     exameFisico.value[id].descricao = descricao
     atualizarStatusExameFisico()
+    marcarSecaoAlterada('clinical')
   }
 
   const totalMarcosRegistrados = computed(
@@ -1780,6 +1793,7 @@ export const useConsultaStore = defineStore('consulta', () => {
       ...statusMarcos.value,
       [key]: atual === status ? null : status,
     }
+    marcarSecaoAlterada('milestones')
   }
 
   function updateMchatAnswer(questionId: number, answer: 'yes' | 'no') {
@@ -1788,6 +1802,7 @@ export const useConsultaStore = defineStore('consulta', () => {
       [questionId]: answer,
     }
     atualizarStatusMchat()
+    marcarSecaoAlterada('mchat')
   }
 
   function getStatusMarco(marcoId: string, idadeColuna: number): StatusMarco | null {
@@ -1800,6 +1815,7 @@ export const useConsultaStore = defineStore('consulta', () => {
 
   function setObservacaoMarco(marcoId: string, obs: string) {
     observacoesMarcos.value = { ...observacoesMarcos.value, [marcoId]: obs }
+    marcarSecaoAlterada('milestones')
   }
 
   function getObservacaoMarco(marcoId: string): string {
@@ -1808,10 +1824,12 @@ export const useConsultaStore = defineStore('consulta', () => {
 
   function setObservacaoGeralMarcos(obs: string) {
     observacaoGeralMarcos.value = obs
+    marcarSecaoAlterada('milestones')
   }
 
   function setClassificacao(classificacao: ClassificacaoDesenvolvimento | null) {
     classificacaoDesenvolvimento.value = classificacao
+    marcarSecaoAlterada('milestones')
   }
 
   function limparDadosDaConsultaAtual() {
@@ -1923,26 +1941,40 @@ export const useConsultaStore = defineStore('consulta', () => {
     completedSections.value = secoes
   }
 
-  function aplicarConsultaAtiva(response: ConsultaAtivaApiResponse | null, pacienteIdFallback?: string) {
+  // secoesParaAplicar: quando omitido, aplica a resposta inteira (comportamento
+  // de sempre — carregarConsultaAtiva e os salvarX() isolados usam esse modo).
+  // O orquestrador de autosave (salvarSecoes) passa uma lista restrita às
+  // seções que acabaram de ser salvas com sucesso e não voltaram a ficar sujas
+  // durante o POST — as demais seções mantêm seu estado local (mais novo que
+  // essa resposta) intocado. As chamadas de atualizarStatusX() continuam
+  // incondicionais: são derivação pura sobre o estado local atual, não
+  // sobrescrita de dado, então rodar pra todas as seções sempre é seguro.
+  function aplicarConsultaAtiva(
+    response: ConsultaAtivaApiResponse | null,
+    pacienteIdFallback?: string,
+    secoesParaAplicar?: SecaoId[],
+  ) {
+    const aplicar = (id: SecaoId) => !secoesParaAplicar || secoesParaAplicar.includes(id)
+
     if (!response) {
       consultaAtivaId.value = null
       completedSections.value = new Set()
       startedSections.value = new Set()
-      antropometria.value = criarAntropometriaVazia()
-      anamnese.value = criarAnamneseVazia()
-      imunizacoes.value = criarImunizacoesVazia()
-      escolaridade.value = criarEscolaridadeVazia()
-      triagemNeonatal.value = criarTriagemNeonatalVazia()
-      encaminhamentos.value = []
-      historiaFamiliar.value = criarHistoriaFamiliarVazia()
-      dinamicaFamiliar.value = criarDinamicaFamiliarVazia()
-      condicoesSocioeconomicas.value = criarCondicoesSocioeconomicasVazia()
-      diagnostico.value = criarDiagnosticoVazio()
-      hipotesesCondutas.value = criarHipotesesCondutasVazia()
-      procedimentos.value = criarProcedimentosVazio()
-      historicoImunizacoes.value = []
-      exameFisico.value = criarExameFisicoVazio()
-      mchatAnswers.value = {}
+      if (aplicar('anthropometric')) antropometria.value = criarAntropometriaVazia()
+      if (aplicar('anamnesis')) anamnese.value = criarAnamneseVazia()
+      if (aplicar('imunizacoes')) imunizacoes.value = criarImunizacoesVazia()
+      if (aplicar('escolaridade')) escolaridade.value = criarEscolaridadeVazia()
+      if (aplicar('triagemNeonatal')) triagemNeonatal.value = criarTriagemNeonatalVazia()
+      if (aplicar('referral')) encaminhamentos.value = []
+      if (aplicar('historiaFamiliar')) historiaFamiliar.value = criarHistoriaFamiliarVazia()
+      if (aplicar('dinamicaFamiliar')) dinamicaFamiliar.value = criarDinamicaFamiliarVazia()
+      if (aplicar('socioeconomico')) condicoesSocioeconomicas.value = criarCondicoesSocioeconomicasVazia()
+      if (aplicar('diagnostico')) diagnostico.value = criarDiagnosticoVazio()
+      if (aplicar('condutasHipoteses')) hipotesesCondutas.value = criarHipotesesCondutasVazia()
+      if (aplicar('procedimentos')) procedimentos.value = criarProcedimentosVazio()
+      if (aplicar('imunizacoes')) historicoImunizacoes.value = []
+      if (aplicar('clinical')) exameFisico.value = criarExameFisicoVazio()
+      if (aplicar('mchat')) mchatAnswers.value = {}
       if (pacienteIdFallback) currentPacienteId.value = pacienteIdFallback
       return
     }
@@ -1953,55 +1985,87 @@ export const useConsultaStore = defineStore('consulta', () => {
     completedSections.value = new Set(response.completed_sections as SecaoId[])
     startedSections.value = new Set((response.started_sections ?? response.completed_sections) as SecaoId[])
 
-    if (response.antropometria) {
-      antropometria.value = {
-        pesoKg: response.antropometria.peso_kg,
-        alturaCm: response.antropometria.altura_cm,
-        perimetroCefalicoCm: response.antropometria.perimetro_cefalico_cm,
-        pressaoSistolicaMmHg: response.antropometria.pressao_sistolica_mmhg,
-        pressaoDiastolicaMmHg: response.antropometria.pressao_diastolica_mmhg,
-        imc: response.antropometria.imc,
-        classificacaoImc: response.antropometria.classificacao_imc,
-        atualizadoEm: response.antropometria.atualizado_em,
+    if (aplicar('anthropometric')) {
+      if (response.antropometria) {
+        antropometria.value = {
+          pesoKg: response.antropometria.peso_kg,
+          alturaCm: response.antropometria.altura_cm,
+          perimetroCefalicoCm: response.antropometria.perimetro_cefalico_cm,
+          pressaoSistolicaMmHg: response.antropometria.pressao_sistolica_mmhg,
+          pressaoDiastolicaMmHg: response.antropometria.pressao_diastolica_mmhg,
+          imc: response.antropometria.imc,
+          classificacaoImc: response.antropometria.classificacao_imc,
+          atualizadoEm: response.antropometria.atualizado_em,
+        }
+      } else {
+        antropometria.value = criarAntropometriaVazia()
       }
-    } else {
-      antropometria.value = criarAntropometriaVazia()
     }
 
-    anamnese.value = response.anamnese ? anamneseApiParaStore(response.anamnese) : criarAnamneseVazia()
-    imunizacoes.value = response.imunizacoes ? imunizacoesApiParaStore(response.imunizacoes) : criarImunizacoesVazia()
-    escolaridade.value = response.escolaridade ? escolaridadeApiParaStore(response.escolaridade) : criarEscolaridadeVazia()
-    triagemNeonatal.value = response.triagem_neonatal ? triagemNeonatalApiParaStore(response.triagem_neonatal) : criarTriagemNeonatalVazia()
-    encaminhamentos.value = (response.encaminhamentos ?? []).map(encaminhamentoApiParaStore)
-    historiaFamiliar.value = response.historia_familiar ? historiaFamiliarApiParaStore(response.historia_familiar) : criarHistoriaFamiliarVazia()
-    dinamicaFamiliar.value = response.dinamica_familiar ? dinamicaFamiliarApiParaStore(response.dinamica_familiar) : criarDinamicaFamiliarVazia()
-    condicoesSocioeconomicas.value = response.condicoes_socioeconomicas ? condicoesSocioeconomicasApiParaStore(response.condicoes_socioeconomicas) : criarCondicoesSocioeconomicasVazia()
-    diagnostico.value = response.diagnostico ? diagnosticoApiParaStore(response.diagnostico) : criarDiagnosticoVazio()
-    hipotesesCondutas.value = response.hipoteses_condutas ? hipotesesCondutasApiParaStore(response.hipoteses_condutas) : criarHipotesesCondutasVazia()
-    procedimentos.value = response.procedimentos ? procedimentosApiParaStore(response.procedimentos) : criarProcedimentosVazio()
-    historicoImunizacoes.value = (response.imunizacoes_historico ?? []).map(historicoImunizacoesApiParaStore)
-    exameFisico.value = response.exame_fisico ? exameFisicoApiParaStore(response.exame_fisico) : criarExameFisicoVazio()
-    mchatAnswers.value = response.mchat?.respostas ? { ...response.mchat.respostas } : {}
-    statusMarcos.value = {}
-    observacoesMarcos.value = {}
-    observacaoGeralMarcos.value = ''
-    marcosAlteradosAposRegistro.value = {}
-    for (const registro of response.marcos_desenvolvimento ?? []) {
-      const key = `${registro.marco_id}-${registro.idade_coluna_meses}`
-      statusMarcos.value[key] = registro.status
-      if (registro.observacao?.trim()) {
-        observacoesMarcos.value[registro.marco_id] = registro.observacao
+    if (aplicar('anamnesis')) {
+      anamnese.value = response.anamnese ? anamneseApiParaStore(response.anamnese) : criarAnamneseVazia()
+    }
+    if (aplicar('imunizacoes')) {
+      imunizacoes.value = response.imunizacoes ? imunizacoesApiParaStore(response.imunizacoes) : criarImunizacoesVazia()
+      historicoImunizacoes.value = (response.imunizacoes_historico ?? []).map(historicoImunizacoesApiParaStore)
+    }
+    if (aplicar('escolaridade')) {
+      escolaridade.value = response.escolaridade ? escolaridadeApiParaStore(response.escolaridade) : criarEscolaridadeVazia()
+    }
+    if (aplicar('triagemNeonatal')) {
+      triagemNeonatal.value = response.triagem_neonatal ? triagemNeonatalApiParaStore(response.triagem_neonatal) : criarTriagemNeonatalVazia()
+    }
+    if (aplicar('referral')) {
+      encaminhamentos.value = (response.encaminhamentos ?? []).map(encaminhamentoApiParaStore)
+    }
+    if (aplicar('historiaFamiliar')) {
+      historiaFamiliar.value = response.historia_familiar ? historiaFamiliarApiParaStore(response.historia_familiar) : criarHistoriaFamiliarVazia()
+    }
+    if (aplicar('dinamicaFamiliar')) {
+      dinamicaFamiliar.value = response.dinamica_familiar ? dinamicaFamiliarApiParaStore(response.dinamica_familiar) : criarDinamicaFamiliarVazia()
+    }
+    if (aplicar('socioeconomico')) {
+      condicoesSocioeconomicas.value = response.condicoes_socioeconomicas ? condicoesSocioeconomicasApiParaStore(response.condicoes_socioeconomicas) : criarCondicoesSocioeconomicasVazia()
+    }
+    if (aplicar('diagnostico')) {
+      diagnostico.value = response.diagnostico ? diagnosticoApiParaStore(response.diagnostico) : criarDiagnosticoVazio()
+    }
+    if (aplicar('condutasHipoteses')) {
+      hipotesesCondutas.value = response.hipoteses_condutas ? hipotesesCondutasApiParaStore(response.hipoteses_condutas) : criarHipotesesCondutasVazia()
+    }
+    if (aplicar('procedimentos')) {
+      procedimentos.value = response.procedimentos ? procedimentosApiParaStore(response.procedimentos) : criarProcedimentosVazio()
+    }
+    if (aplicar('clinical')) {
+      exameFisico.value = response.exame_fisico ? exameFisicoApiParaStore(response.exame_fisico) : criarExameFisicoVazio()
+    }
+    if (aplicar('mchat')) {
+      mchatAnswers.value = response.mchat?.respostas ? { ...response.mchat.respostas } : {}
+    }
+
+    if (aplicar('milestones')) {
+      statusMarcos.value = {}
+      observacoesMarcos.value = {}
+      observacaoGeralMarcos.value = ''
+      marcosAlteradosAposRegistro.value = {}
+      for (const registro of response.marcos_desenvolvimento ?? []) {
+        const key = `${registro.marco_id}-${registro.idade_coluna_meses}`
+        statusMarcos.value[key] = registro.status
+        if (registro.observacao?.trim()) {
+          observacoesMarcos.value[registro.marco_id] = registro.observacao
+        }
+        if (registro.observacao_geral?.trim()) {
+          observacaoGeralMarcos.value = registro.observacao_geral
+        }
+        if (registro.alterado_apos_registro_original) {
+          marcosAlteradosAposRegistro.value[key] = true
+        }
       }
-      if (registro.observacao_geral?.trim()) {
-        observacaoGeralMarcos.value = registro.observacao_geral
-      }
-      if (registro.alterado_apos_registro_original) {
-        marcosAlteradosAposRegistro.value[key] = true
+      if (Object.values(statusMarcos.value).some(v => v !== null)) {
+        markSectionStarted('milestones')
       }
     }
-    if (Object.values(statusMarcos.value).some(v => v !== null)) {
-      markSectionStarted('milestones')
-    }
+
     atualizarStatusAnamnese()
     atualizarStatusImunizacoes()
     atualizarStatusEscolaridade()
@@ -2083,12 +2147,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     }
   }
 
-  async function salvarMarcosDesenvolvimento() {
-    const pacienteId = pacienteStore.pacienteAtivo?.id
-    if (!pacienteId) {
-      throw new Error('Nenhum paciente ativo para salvar os marcos do desenvolvimento.')
-    }
-
+  async function postarMarcosDesenvolvimento(pacienteId: string): Promise<ConsultaAtivaApiResponse> {
     const registros = Object.entries(statusMarcos.value)
       .filter(([, status]) => status && status !== 'not-evaluated')
       .map(([key, status]) => {
@@ -2104,17 +2163,26 @@ export const useConsultaStore = defineStore('consulta', () => {
       })
       .filter(item => item.marco_id && Number.isFinite(item.idade_coluna_meses))
 
+    const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/marcos-desenvolvimento', {
+      paciente_id: pacienteId,
+      registros,
+      observacao_geral: observacaoGeralMarcos.value,
+      idade_atual_meses: idadeEmMesesCorrigida.value,
+    })
+    return data
+  }
+
+  async function salvarMarcosDesenvolvimento() {
+    const pacienteId = pacienteStore.pacienteAtivo?.id
+    if (!pacienteId) {
+      throw new Error('Nenhum paciente ativo para salvar os marcos do desenvolvimento.')
+    }
+
     salvandoMarcos.value = true
     erroSalvamentoMarcos.value = null
 
     try {
-      const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/marcos-desenvolvimento', {
-        paciente_id: pacienteId,
-        registros,
-        observacao_geral: observacaoGeralMarcos.value,
-        idade_atual_meses: idadeEmMesesCorrigida.value,
-      })
-
+      const data = await postarMarcosDesenvolvimento(pacienteId)
       aplicarConsultaAtiva(data, pacienteId)
       await carregarCadernetaDigital()
       return data
@@ -2127,7 +2195,45 @@ export const useConsultaStore = defineStore('consulta', () => {
     }
   }
 
-  async function salvarAntropometria(dados: Omit<DadosAntropometricosConsulta, 'atualizadoEm'>) {
+  // Única seção sem uma "atualizarCampoX" própria — SecaoAntropometria.vue faz um
+  // watch({ immediate: true }) sobre o formulário inteiro, então essa action roda
+  // toda vez que o componente monta, mesmo sem edição real. Só marca a seção como
+  // alterada quando algum valor de fato mudou, pra não disparar um ciclo de
+  // salvamento automático só por reabrir a aba.
+  function atualizarAntropometria(dados: Omit<DadosAntropometricosConsulta, 'atualizadoEm'>) {
+    const atual = antropometria.value
+    const mudou = (
+      atual.pesoKg !== dados.pesoKg ||
+      atual.alturaCm !== dados.alturaCm ||
+      atual.perimetroCefalicoCm !== dados.perimetroCefalicoCm ||
+      atual.pressaoSistolicaMmHg !== dados.pressaoSistolicaMmHg ||
+      atual.pressaoDiastolicaMmHg !== dados.pressaoDiastolicaMmHg
+    )
+
+    antropometria.value = {
+      ...dados,
+      atualizadoEm: atual.atualizadoEm,
+    }
+
+    if (mudou) marcarSecaoAlterada('anthropometric')
+  }
+
+  async function postarAntropometria(pacienteId: string): Promise<ConsultaAtivaApiResponse> {
+    const dados = antropometria.value
+    const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/antropometria', {
+      paciente_id: pacienteId,
+      peso_kg: dados.pesoKg,
+      altura_cm: dados.alturaCm,
+      perimetro_cefalico_cm: dados.perimetroCefalicoCm,
+      pressao_sistolica_mmhg: dados.pressaoSistolicaMmHg,
+      pressao_diastolica_mmhg: dados.pressaoDiastolicaMmHg,
+      imc: dados.imc,
+      classificacao_imc: dados.classificacaoImc,
+    })
+    return data
+  }
+
+  async function salvarAntropometria() {
     const pacienteId = pacienteStore.pacienteAtivo?.id
     if (!pacienteId) {
       throw new Error('Nenhum paciente ativo para salvar a antropometria.')
@@ -2137,17 +2243,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoAntropometria.value = null
 
     try {
-      const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/antropometria', {
-        paciente_id: pacienteId,
-        peso_kg: dados.pesoKg,
-        altura_cm: dados.alturaCm,
-        perimetro_cefalico_cm: dados.perimetroCefalicoCm,
-        pressao_sistolica_mmhg: dados.pressaoSistolicaMmHg,
-        pressao_diastolica_mmhg: dados.pressaoDiastolicaMmHg,
-        imc: dados.imc,
-        classificacao_imc: dados.classificacaoImc,
-      })
-
+      const data = await postarAntropometria(pacienteId)
       aplicarConsultaAtiva(data)
       return data
     } catch (error) {
@@ -2157,6 +2253,14 @@ export const useConsultaStore = defineStore('consulta', () => {
     } finally {
       salvandoAntropometria.value = false
     }
+  }
+
+  async function postarAnamnese(pacienteId: string): Promise<ConsultaAtivaApiResponse> {
+    const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/anamnese', {
+      paciente_id: pacienteId,
+      ...anamneseStoreParaApi(clonarAnamnese(anamnese.value)),
+    })
+    return data
   }
 
   async function salvarAnamnese() {
@@ -2170,10 +2274,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoAnamnese.value = null
 
     try {
-      const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/anamnese', {
-        paciente_id: pacienteId,
-        ...anamneseStoreParaApi(anamneseAntesDoEnvio),
-      })
+      const data = await postarAnamnese(pacienteId)
 
       aplicarConsultaAtiva(data, pacienteId)
 
@@ -2198,6 +2299,15 @@ export const useConsultaStore = defineStore('consulta', () => {
     }
   }
 
+  async function postarImunizacoes(pacienteId: string): Promise<ConsultaAtivaApiResponse> {
+    const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/imunizacoes', {
+      paciente_id: pacienteId,
+      status_vacinal: imunizacoes.value.statusVacinal,
+      status_vacinas: { ...imunizacoes.value.statusVacinas },
+    })
+    return data
+  }
+
   async function salvarImunizacoes() {
     const pacienteId = pacienteStore.pacienteAtivo?.id
     if (!pacienteId) {
@@ -2209,11 +2319,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoImunizacoes.value = null
 
     try {
-      const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/imunizacoes', {
-        paciente_id: pacienteId,
-        status_vacinal: statusVacinalAntesDoEnvio,
-        status_vacinas: { ...imunizacoes.value.statusVacinas },
-      })
+      const data = await postarImunizacoes(pacienteId)
 
       aplicarConsultaAtiva(data, pacienteId)
 
@@ -2237,6 +2343,14 @@ export const useConsultaStore = defineStore('consulta', () => {
     }
   }
 
+  async function postarEscolaridade(pacienteId: string): Promise<ConsultaAtivaApiResponse> {
+    const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/escolaridade', {
+      paciente_id: pacienteId,
+      ...escolaridadeStoreParaApi(clonarEscolaridade(escolaridade.value)),
+    })
+    return data
+  }
+
   async function salvarEscolaridade() {
     const pacienteId = pacienteStore.pacienteAtivo?.id
     if (!pacienteId) {
@@ -2248,10 +2362,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoEscolaridade.value = null
 
     try {
-      const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/escolaridade', {
-        paciente_id: pacienteId,
-        ...escolaridadeStoreParaApi(escolaridadeAntesDoEnvio),
-      })
+      const data = await postarEscolaridade(pacienteId)
 
       aplicarConsultaAtiva(data, pacienteId)
 
@@ -2273,6 +2384,14 @@ export const useConsultaStore = defineStore('consulta', () => {
     }
   }
 
+  async function postarTriagemNeonatal(pacienteId: string): Promise<ConsultaAtivaApiResponse> {
+    const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/triagem-neonatal', {
+      paciente_id: pacienteId,
+      ...triagemNeonatalStoreParaApi(clonarTriagemNeonatal(triagemNeonatal.value)),
+    })
+    return data
+  }
+
   async function salvarTriagemNeonatal() {
     const pacienteId = pacienteStore.pacienteAtivo?.id
     if (!pacienteId) {
@@ -2284,10 +2403,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoTriagemNeonatal.value = null
 
     try {
-      const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/triagem-neonatal', {
-        paciente_id: pacienteId,
-        ...triagemNeonatalStoreParaApi(triagemAntesDoEnvio),
-      })
+      const data = await postarTriagemNeonatal(pacienteId)
 
       aplicarConsultaAtiva(data, pacienteId)
 
@@ -2309,6 +2425,14 @@ export const useConsultaStore = defineStore('consulta', () => {
     }
   }
 
+  async function postarEncaminhamentos(pacienteId: string): Promise<ConsultaAtivaApiResponse> {
+    const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/encaminhamentos', {
+      paciente_id: pacienteId,
+      encaminhamentos: clonarEncaminhamentos(encaminhamentos.value).map(encaminhamentoStoreParaApi),
+    })
+    return data
+  }
+
   async function salvarEncaminhamentos() {
     const pacienteId = pacienteStore.pacienteAtivo?.id
     if (!pacienteId) {
@@ -2320,10 +2444,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoEncaminhamentos.value = null
 
     try {
-      const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/encaminhamentos', {
-        paciente_id: pacienteId,
-        encaminhamentos: encaminhamentosAntesDoEnvio.map(encaminhamentoStoreParaApi),
-      })
+      const data = await postarEncaminhamentos(pacienteId)
 
       aplicarConsultaAtiva(data, pacienteId)
 
@@ -2345,6 +2466,14 @@ export const useConsultaStore = defineStore('consulta', () => {
     }
   }
 
+  async function postarHistoriaFamiliar(pacienteId: string): Promise<ConsultaAtivaApiResponse> {
+    const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/historia-familiar', {
+      paciente_id: pacienteId,
+      ...historiaFamiliarStoreParaApi(clonarHistoriaFamiliar(historiaFamiliar.value)),
+    })
+    return data
+  }
+
   async function salvarHistoriaFamiliar() {
     const pacienteId = pacienteStore.pacienteAtivo?.id
     if (!pacienteId) {
@@ -2356,10 +2485,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoHistoriaFamiliar.value = null
 
     try {
-      const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/historia-familiar', {
-        paciente_id: pacienteId,
-        ...historiaFamiliarStoreParaApi(historiaAntesDoEnvio),
-      })
+      const data = await postarHistoriaFamiliar(pacienteId)
 
       aplicarConsultaAtiva(data, pacienteId)
 
@@ -2382,6 +2508,14 @@ export const useConsultaStore = defineStore('consulta', () => {
   }
 
 
+  async function postarDinamicaFamiliar(pacienteId: string): Promise<ConsultaAtivaApiResponse> {
+    const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/dinamica-familiar', {
+      paciente_id: pacienteId,
+      ...dinamicaFamiliarStoreParaApi(clonarDinamicaFamiliar(dinamicaFamiliar.value)),
+    })
+    return data
+  }
+
   async function salvarDinamicaFamiliar() {
     const pacienteId = pacienteStore.pacienteAtivo?.id
     if (!pacienteId) {
@@ -2393,10 +2527,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoDinamicaFamiliar.value = null
 
     try {
-      const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/dinamica-familiar', {
-        paciente_id: pacienteId,
-        ...dinamicaFamiliarStoreParaApi(dinamicaAntesDoEnvio),
-      })
+      const data = await postarDinamicaFamiliar(pacienteId)
 
       aplicarConsultaAtiva(data, pacienteId)
 
@@ -2419,6 +2550,14 @@ export const useConsultaStore = defineStore('consulta', () => {
   }
 
 
+  async function postarCondicoesSocioeconomicas(pacienteId: string): Promise<ConsultaAtivaApiResponse> {
+    const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/condicoes-socioeconomicas', {
+      paciente_id: pacienteId,
+      ...condicoesSocioeconomicasStoreParaApi(clonarCondicoesSocioeconomicas(condicoesSocioeconomicas.value)),
+    })
+    return data
+  }
+
   async function salvarCondicoesSocioeconomicas() {
     const pacienteId = pacienteStore.pacienteAtivo?.id
     if (!pacienteId) {
@@ -2430,10 +2569,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoCondicoesSocioeconomicas.value = null
 
     try {
-      const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/condicoes-socioeconomicas', {
-        paciente_id: pacienteId,
-        ...condicoesSocioeconomicasStoreParaApi(condicoesAntesDoEnvio),
-      })
+      const data = await postarCondicoesSocioeconomicas(pacienteId)
 
       aplicarConsultaAtiva(data, pacienteId)
 
@@ -2456,6 +2592,14 @@ export const useConsultaStore = defineStore('consulta', () => {
   }
 
 
+  async function postarDiagnostico(pacienteId: string): Promise<ConsultaAtivaApiResponse> {
+    const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/diagnostico', {
+      paciente_id: pacienteId,
+      ...diagnosticoStoreParaApi(clonarDiagnostico(diagnostico.value)),
+    })
+    return data
+  }
+
   async function salvarDiagnostico() {
     const pacienteId = pacienteStore.pacienteAtivo?.id
     if (!pacienteId) {
@@ -2467,10 +2611,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoDiagnostico.value = null
 
     try {
-      const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/diagnostico', {
-        paciente_id: pacienteId,
-        ...diagnosticoStoreParaApi(diagnosticoAntesDoEnvio),
-      })
+      const data = await postarDiagnostico(pacienteId)
 
       aplicarConsultaAtiva(data, pacienteId)
 
@@ -2493,6 +2634,14 @@ export const useConsultaStore = defineStore('consulta', () => {
   }
 
 
+  async function postarHipotesesCondutas(pacienteId: string): Promise<ConsultaAtivaApiResponse> {
+    const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/hipoteses-condutas', {
+      paciente_id: pacienteId,
+      ...hipotesesCondutasStoreParaApi(clonarHipotesesCondutas(hipotesesCondutas.value)),
+    })
+    return data
+  }
+
   async function salvarHipotesesCondutas() {
     const pacienteId = pacienteStore.pacienteAtivo?.id
     if (!pacienteId) {
@@ -2504,10 +2653,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoHipotesesCondutas.value = null
 
     try {
-      const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/hipoteses-condutas', {
-        paciente_id: pacienteId,
-        ...hipotesesCondutasStoreParaApi(dadosAntesDoEnvio),
-      })
+      const data = await postarHipotesesCondutas(pacienteId)
 
       aplicarConsultaAtiva(data, pacienteId)
 
@@ -2530,6 +2676,14 @@ export const useConsultaStore = defineStore('consulta', () => {
   }
 
 
+  async function postarProcedimentos(pacienteId: string): Promise<ConsultaAtivaApiResponse> {
+    const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/procedimentos', {
+      paciente_id: pacienteId,
+      ...procedimentosStoreParaApi(clonarProcedimentos(procedimentos.value)),
+    })
+    return data
+  }
+
   async function salvarProcedimentos() {
     const pacienteId = pacienteStore.pacienteAtivo?.id
     if (!pacienteId) {
@@ -2541,10 +2695,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoProcedimentos.value = null
 
     try {
-      const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/procedimentos', {
-        paciente_id: pacienteId,
-        ...procedimentosStoreParaApi(dadosAntesDoEnvio),
-      })
+      const data = await postarProcedimentos(pacienteId)
 
       aplicarConsultaAtiva(data, pacienteId)
 
@@ -2567,6 +2718,14 @@ export const useConsultaStore = defineStore('consulta', () => {
   }
 
 
+  async function postarExameFisico(pacienteId: string): Promise<ConsultaAtivaApiResponse> {
+    const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/exame-fisico', {
+      paciente_id: pacienteId,
+      ...exameFisicoStoreParaApi(clonarExameFisico(exameFisico.value)),
+    })
+    return data
+  }
+
   async function salvarExameFisico() {
     const pacienteId = pacienteStore.pacienteAtivo?.id
     if (!pacienteId) {
@@ -2578,10 +2737,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoExameFisico.value = null
 
     try {
-      const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/exame-fisico', {
-        paciente_id: pacienteId,
-        ...exameFisicoStoreParaApi(exameAntesDoEnvio),
-      })
+      const data = await postarExameFisico(pacienteId)
 
       aplicarConsultaAtiva(data, pacienteId)
 
@@ -2601,6 +2757,14 @@ export const useConsultaStore = defineStore('consulta', () => {
   }
 
 
+  async function postarMchat(pacienteId: string): Promise<ConsultaAtivaApiResponse> {
+    const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/mchat', {
+      paciente_id: pacienteId,
+      respostas: { ...mchatAnswers.value },
+    })
+    return data
+  }
+
   async function salvarMchat() {
     const pacienteId = pacienteStore.pacienteAtivo?.id
     if (!pacienteId) {
@@ -2612,10 +2776,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroSalvamentoMchat.value = null
 
     try {
-      const { data } = await api.post<ConsultaAtivaApiResponse>('/api/consultas/mchat', {
-        paciente_id: pacienteId,
-        respostas: respostasAntesDoEnvio,
-      })
+      const data = await postarMchat(pacienteId)
 
       aplicarConsultaAtiva(data, pacienteId)
 
@@ -2634,18 +2795,6 @@ export const useConsultaStore = defineStore('consulta', () => {
     }
   }
 
-
-  function antropometriaPossuiConteudo(dados: DadosAntropometricosConsulta): boolean {
-    return Boolean(
-      dados.pesoKg !== null ||
-      dados.alturaCm !== null ||
-      dados.perimetroCefalicoCm !== null ||
-      dados.pressaoSistolicaMmHg !== null ||
-      dados.pressaoDiastolicaMmHg !== null ||
-      dados.imc !== null ||
-      dados.classificacaoImc !== null
-    )
-  }
 
   function antropometriaCompleta(dados: DadosAntropometricosConsulta): boolean {
     return dados.pesoKg !== null && dados.alturaCm !== null
@@ -2687,205 +2836,124 @@ export const useConsultaStore = defineStore('consulta', () => {
     salvandoMchat.value = valor
   }
 
-  async function salvarAtendimentoCompleto() {
+  // Mesma ordem que o antigo salvarAtendimentoCompleto usava pra postar as 15
+  // seções, uma de cada vez — preservada aqui só pra manter os POSTs numa ordem
+  // previsível quando várias seções estão sujas no mesmo ciclo.
+  const ORDEM_SECOES: SecaoId[] = [
+    'anthropometric', 'anamnesis', 'imunizacoes', 'triagemNeonatal', 'escolaridade',
+    'clinical', 'milestones', 'historiaFamiliar', 'dinamicaFamiliar', 'socioeconomico',
+    'referral', 'mchat', 'diagnostico', 'condutasHipoteses', 'procedimentos',
+  ]
+
+  const postarSecao: Record<SecaoId, (pacienteId: string) => Promise<ConsultaAtivaApiResponse>> = {
+    anthropometric: postarAntropometria,
+    anamnesis: postarAnamnese,
+    imunizacoes: postarImunizacoes,
+    triagemNeonatal: postarTriagemNeonatal,
+    escolaridade: postarEscolaridade,
+    clinical: postarExameFisico,
+    milestones: postarMarcosDesenvolvimento,
+    historiaFamiliar: postarHistoriaFamiliar,
+    dinamicaFamiliar: postarDinamicaFamiliar,
+    socioeconomico: postarCondicoesSocioeconomicas,
+    referral: postarEncaminhamentos,
+    mchat: postarMchat,
+    diagnostico: postarDiagnostico,
+    condutasHipoteses: postarHipotesesCondutas,
+    procedimentos: postarProcedimentos,
+  }
+
+  // Orquestrador único do salvamento automático (ver Consulta.vue): recebe as
+  // seções a salvar — normalmente só as que estão em secoesAlteradas — e posta
+  // uma de cada vez, sequencial (nunca concorrente: duas seções em voo ao mesmo
+  // tempo podem disparar a race de criação duplicada de Consulta no backend,
+  // ver _obter_ou_criar_consulta_ativa). Só aplica a resposta do servidor de
+  // volta no estado local pras seções que não voltaram a ficar sujas enquanto o
+  // POST estava em andamento — evita sobrescrever uma edição mais nova com uma
+  // resposta já desatualizada.
+  async function salvarSecoes(ids: SecaoId[]): Promise<ConsultaAtivaApiResponse | null> {
     const pacienteId = pacienteStore.pacienteAtivo?.id
     if (!pacienteId) {
       throw new Error('Nenhum paciente ativo para salvar o atendimento.')
     }
 
     const secoesVisiveis = new Set(secoes.value.map(secao => secao.id))
-    const antropometriaSnapshot = { ...antropometria.value }
-    const anamneseSnapshot = clonarAnamnese(anamnese.value)
-    const imunizacoesSnapshot = {
-      statusVacinal: imunizacoes.value.statusVacinal,
-      statusVacinas: { ...imunizacoes.value.statusVacinas },
-      atualizadoEm: imunizacoes.value.atualizadoEm,
-    }
-    const escolaridadeSnapshot = clonarEscolaridade(escolaridade.value)
-    const triagemNeonatalSnapshot = clonarTriagemNeonatal(triagemNeonatal.value)
-    const encaminhamentosSnapshot = clonarEncaminhamentos(encaminhamentos.value)
-    const historiaFamiliarSnapshot = clonarHistoriaFamiliar(historiaFamiliar.value)
-    const dinamicaFamiliarSnapshot = clonarDinamicaFamiliar(dinamicaFamiliar.value)
-    const condicoesSocioeconomicasSnapshot = clonarCondicoesSocioeconomicas(condicoesSocioeconomicas.value)
-    const diagnosticoSnapshot = clonarDiagnostico(diagnostico.value)
-    const hipotesesCondutasSnapshot = clonarHipotesesCondutas(hipotesesCondutas.value)
-    const procedimentosSnapshot = clonarProcedimentos(procedimentos.value)
-    const exameFisicoSnapshot = clonarExameFisico(exameFisico.value)
-    const mchatSnapshot = { ...mchatAnswers.value }
-    const statusMarcosSnapshot = { ...statusMarcos.value }
-    const observacoesMarcosSnapshot = { ...observacoesMarcos.value }
-    const observacaoGeralMarcosSnapshot = observacaoGeralMarcos.value
-
-    if (
-      secoesVisiveis.has('anthropometric') &&
-      antropometriaPossuiConteudo(antropometriaSnapshot) &&
-      !antropometriaCompleta(antropometriaSnapshot)
-    ) {
-      throw new Error('Informe peso e altura antes de salvar a Antropometria.')
-    }
+    const idsOrdenados = ORDEM_SECOES.filter(id => ids.includes(id) && secoesVisiveis.has(id))
 
     let ultimaResposta: ConsultaAtivaApiResponse | null = null
-    const postar = async (url: string, payload: Record<string, unknown>) => {
-      const { data } = await api.post<ConsultaAtivaApiResponse>(url, payload)
-      ultimaResposta = data
-      return data
-    }
+    const secoesAplicaveis: SecaoId[] = []
+    const secoesComErro: SecaoId[] = []
 
     limparErrosSalvamentoAtendimento()
     setSalvandoAtendimento(true)
     salvandoAtendimento.value = true
 
     try {
-      if (secoesVisiveis.has('anthropometric') && antropometriaCompleta(antropometriaSnapshot)) {
-        await postar('/api/consultas/antropometria', {
-          paciente_id: pacienteId,
-          peso_kg: antropometriaSnapshot.pesoKg,
-          altura_cm: antropometriaSnapshot.alturaCm,
-          perimetro_cefalico_cm: antropometriaSnapshot.perimetroCefalicoCm,
-          pressao_sistolica_mmhg: antropometriaSnapshot.pressaoSistolicaMmHg,
-          pressao_diastolica_mmhg: antropometriaSnapshot.pressaoDiastolicaMmHg,
-          imc: antropometriaSnapshot.imc,
-          classificacao_imc: antropometriaSnapshot.classificacaoImc,
-        })
-      }
+      for (const id of idsOrdenados) {
+        if (id === 'anthropometric' && !antropometriaCompleta(antropometria.value)) {
+          // Incompleta (ex.: só altura, sem peso): não posta, e não mexe em
+          // secoesAlteradas — continua suja até completar, sem custo de rede
+          // enquanto isso, e nunca entra no apply abaixo (não arrisca
+          // sobrescrever o que o usuário está digitando com um snapshot vazio).
+          continue
+        }
 
-      if (secoesVisiveis.has('anamnesis')) {
-        await postar('/api/consultas/anamnese', {
-          paciente_id: pacienteId,
-          ...anamneseStoreParaApi(anamneseSnapshot),
-        })
-      }
+        // Limpa antes do POST: se o usuário editar de novo essa mesma seção
+        // enquanto a requisição está em voo, a própria action de edição
+        // (marcarSecaoAlterada) marca de novo — daí o check logo abaixo do await.
+        secoesAlteradas.value = new Set([...secoesAlteradas.value].filter(x => x !== id))
 
-      if (secoesVisiveis.has('imunizacoes')) {
-        await postar('/api/consultas/imunizacoes', {
-          paciente_id: pacienteId,
-          status_vacinal: imunizacoesSnapshot.statusVacinal,
-          status_vacinas: { ...imunizacoesSnapshot.statusVacinas },
-        })
-      }
+        try {
+          const data = await postarSecao[id](pacienteId)
+          ultimaResposta = data
 
-      if (secoesVisiveis.has('escolaridade')) {
-        await postar('/api/consultas/escolaridade', {
-          paciente_id: pacienteId,
-          ...escolaridadeStoreParaApi(escolaridadeSnapshot),
-        })
-      }
-
-      if (secoesVisiveis.has('triagemNeonatal')) {
-        await postar('/api/consultas/triagem-neonatal', {
-          paciente_id: pacienteId,
-          ...triagemNeonatalStoreParaApi(triagemNeonatalSnapshot),
-        })
-      }
-
-      if (secoesVisiveis.has('clinical')) {
-        await postar('/api/consultas/exame-fisico', {
-          paciente_id: pacienteId,
-          ...exameFisicoStoreParaApi(exameFisicoSnapshot),
-        })
-      }
-
-      if (secoesVisiveis.has('milestones')) {
-        const registros = Object.entries(statusMarcosSnapshot)
-          .filter(([, status]) => status && status !== 'not-evaluated')
-          .map(([key, status]) => {
-            const lastDash = key.lastIndexOf('-')
-            const marcoId = key.slice(0, lastDash)
-            const idadeColunaMeses = Number(key.slice(lastDash + 1))
-            return {
-              marco_id: marcoId,
-              idade_coluna_meses: idadeColunaMeses,
-              status: status as StatusMarco,
-              observacao: observacoesMarcosSnapshot[marcoId] ?? '',
-            }
-          })
-          .filter(item => item.marco_id && Number.isFinite(item.idade_coluna_meses))
-
-        await postar('/api/consultas/marcos-desenvolvimento', {
-          paciente_id: pacienteId,
-          registros,
-          observacao_geral: observacaoGeralMarcosSnapshot,
-          idade_atual_meses: idadeEmMesesCorrigida.value,
-        })
-      }
-
-      if (secoesVisiveis.has('historiaFamiliar')) {
-        await postar('/api/consultas/historia-familiar', {
-          paciente_id: pacienteId,
-          ...historiaFamiliarStoreParaApi(historiaFamiliarSnapshot),
-        })
-      }
-
-      if (secoesVisiveis.has('dinamicaFamiliar')) {
-        await postar('/api/consultas/dinamica-familiar', {
-          paciente_id: pacienteId,
-          ...dinamicaFamiliarStoreParaApi(dinamicaFamiliarSnapshot),
-        })
-      }
-
-      if (secoesVisiveis.has('socioeconomico')) {
-        await postar('/api/consultas/condicoes-socioeconomicas', {
-          paciente_id: pacienteId,
-          ...condicoesSocioeconomicasStoreParaApi(condicoesSocioeconomicasSnapshot),
-        })
-      }
-
-      if (secoesVisiveis.has('referral')) {
-        await postar('/api/consultas/encaminhamentos', {
-          paciente_id: pacienteId,
-          encaminhamentos: encaminhamentosSnapshot.map(encaminhamentoStoreParaApi),
-        })
-      }
-
-      if (secoesVisiveis.has('mchat')) {
-        await postar('/api/consultas/mchat', {
-          paciente_id: pacienteId,
-          respostas: mchatSnapshot,
-        })
-      }
-
-      if (secoesVisiveis.has('diagnostico')) {
-        await postar('/api/consultas/diagnostico', {
-          paciente_id: pacienteId,
-          ...diagnosticoStoreParaApi(diagnosticoSnapshot),
-        })
-      }
-
-      if (secoesVisiveis.has('condutasHipoteses')) {
-        await postar('/api/consultas/hipoteses-condutas', {
-          paciente_id: pacienteId,
-          ...hipotesesCondutasStoreParaApi(hipotesesCondutasSnapshot),
-        })
-      }
-
-      if (secoesVisiveis.has('procedimentos')) {
-        await postar('/api/consultas/procedimentos', {
-          paciente_id: pacienteId,
-          ...procedimentosStoreParaApi(procedimentosSnapshot),
-        })
+          if (!secoesAlteradas.value.has(id)) {
+            secoesAplicaveis.push(id)
+          }
+          // se voltou a ficar suja durante o await, não aplica a resposta (já
+          // desatualizada) — permanece em secoesAlteradas pro próximo ciclo.
+        } catch (error) {
+          // Falha nessa seção não trava as demais do mesmo ciclo — mantém suja
+          // pra tentar de novo automaticamente no próximo ciclo de edição.
+          secoesAlteradas.value = new Set([...secoesAlteradas.value, id])
+          secoesComErro.push(id)
+          console.error(`Erro ao salvar a seção "${id}" da consulta:`, error)
+        }
       }
 
       if (ultimaResposta) {
-        aplicarConsultaAtiva(ultimaResposta, pacienteId)
-      } else {
-        await carregarConsultaAtiva()
+        aplicarConsultaAtiva(ultimaResposta, pacienteId, secoesAplicaveis)
       }
 
-      await carregarHistoricoImunizacoes(pacienteId)
-      await carregarCadernetaDigital()
+      if (secoesAplicaveis.includes('imunizacoes')) {
+        await carregarHistoricoImunizacoes(pacienteId)
+      }
+      if (secoesAplicaveis.includes('milestones')) {
+        await carregarCadernetaDigital()
+      }
+
+      if (secoesComErro.length > 0) {
+        throw new Error(`Não foi possível salvar: ${secoesComErro.join(', ')}.`)
+      }
 
       return ultimaResposta
-    } catch (error) {
-      console.error('Erro ao salvar atendimento completo:', error)
-      throw error
     } finally {
       setSalvandoAtendimento(false)
       salvandoAtendimento.value = false
     }
   }
 
+  async function salvarAtendimentoCompleto() {
+    return salvarSecoes(ORDEM_SECOES)
+  }
+
+  async function salvarSecoesAlteradas(): Promise<ConsultaAtivaApiResponse | null> {
+    if (secoesAlteradas.value.size === 0) return null
+    return salvarSecoes([...secoesAlteradas.value])
+  }
+
   async function salvarRascunhoSecaoAtiva() {
-    return salvarAtendimentoCompleto()
+    return salvarSecoesAlteradas()
   }
 
 
@@ -2899,6 +2967,13 @@ export const useConsultaStore = defineStore('consulta', () => {
     erroFinalizarConsulta.value = null
 
     try {
+      // Garante que nada digitado depois do último ciclo de autosave se perca
+      // ao finalizar (ex.: usuário termina de preencher e clica em "Finalizar"
+      // antes dos 1,5s de debounce do salvamento automático dispararem).
+      if (secoesAlteradas.value.size > 0) {
+        await salvarSecoesAlteradas()
+      }
+
       const { data } = await api.post<ConsultaFinalizarApiResponse>('/api/consultas/finalizar', {
         paciente_id: pacienteId,
       })
@@ -2931,6 +3006,7 @@ export const useConsultaStore = defineStore('consulta', () => {
       atualizadoEm: new Date().toISOString(),
     }
     atualizarStatusImunizacoes()
+    marcarSecaoAlterada('imunizacoes')
   }
 
   function toggleStatusVacina(vacinaId: string, doseId: string, status: 'aplicada' | 'em-atraso') {
@@ -2944,6 +3020,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     }
     imunizacoes.value = { ...imunizacoes.value, statusVacinas: novo }
     atualizarStatusImunizacoes()
+    marcarSecaoAlterada('imunizacoes')
   }
 
   function getStatusVacina(vacinaId: string, doseId: string): 'aplicada' | 'em-atraso' | null {
@@ -2969,6 +3046,7 @@ export const useConsultaStore = defineStore('consulta', () => {
       atualizadoEm: new Date().toISOString(),
     }
     atualizarStatusAnamnese()
+    marcarSecaoAlterada('anamnesis')
   }
 
   function atualizarCampoAnamnese(aba: 'clinica', campo: keyof AnamneseClinica, valor: AnamneseClinica[keyof AnamneseClinica]): void
@@ -3030,6 +3108,7 @@ export const useConsultaStore = defineStore('consulta', () => {
       atualizadoEm: new Date().toISOString(),
     }
     atualizarStatusTriagemNeonatal()
+    marcarSecaoAlterada('triagemNeonatal')
   }
 
   function encaminhamentoPossuiConteudo(item: EncaminhamentoConsulta): boolean {
@@ -3058,11 +3137,13 @@ export const useConsultaStore = defineStore('consulta', () => {
   function adicionarEncaminhamento() {
     encaminhamentos.value = [...encaminhamentos.value, criarEncaminhamentoVazio()]
     atualizarStatusEncaminhamentos()
+    marcarSecaoAlterada('referral')
   }
 
   function removerEncaminhamento(localId: string) {
     encaminhamentos.value = encaminhamentos.value.filter(item => item.localId !== localId)
     atualizarStatusEncaminhamentos()
+    marcarSecaoAlterada('referral')
   }
 
   function atualizarCampoEncaminhamento<K extends keyof EncaminhamentoConsulta>(
@@ -3076,6 +3157,7 @@ export const useConsultaStore = defineStore('consulta', () => {
         : item
     ))
     atualizarStatusEncaminhamentos()
+    marcarSecaoAlterada('referral')
   }
 
 
@@ -3110,6 +3192,7 @@ export const useConsultaStore = defineStore('consulta', () => {
       atualizadoEm: new Date().toISOString(),
     }
     atualizarStatusHistoriaFamiliar()
+    marcarSecaoAlterada('historiaFamiliar')
   }
 
   function atualizarCampoHistoriaFamiliar<K extends keyof DadosHistoriaFamiliarConsulta>(
@@ -3122,6 +3205,7 @@ export const useConsultaStore = defineStore('consulta', () => {
       atualizadoEm: new Date().toISOString(),
     }
     atualizarStatusHistoriaFamiliar()
+    marcarSecaoAlterada('historiaFamiliar')
   }
 
 
@@ -3166,6 +3250,7 @@ export const useConsultaStore = defineStore('consulta', () => {
       atualizadoEm: new Date().toISOString(),
     }
     atualizarStatusDinamicaFamiliar()
+    marcarSecaoAlterada('dinamicaFamiliar')
   }
 
   function atualizarCampoDinamicaFamiliar<K extends keyof DadosDinamicaFamiliarConsulta>(
@@ -3179,6 +3264,7 @@ export const useConsultaStore = defineStore('consulta', () => {
       atualizadoEm: new Date().toISOString(),
     }
     atualizarStatusDinamicaFamiliar()
+    marcarSecaoAlterada('dinamicaFamiliar')
   }
 
   function alternarOpcaoDisciplina(opcao: string) {
@@ -3205,6 +3291,7 @@ export const useConsultaStore = defineStore('consulta', () => {
       atualizadoEm: new Date().toISOString(),
     }
     atualizarStatusDinamicaFamiliar()
+    marcarSecaoAlterada('dinamicaFamiliar')
   }
 
 
@@ -3242,6 +3329,7 @@ export const useConsultaStore = defineStore('consulta', () => {
       atualizadoEm: new Date().toISOString(),
     }
     atualizarStatusCondicoesSocioeconomicas()
+    marcarSecaoAlterada('socioeconomico')
   }
 
   function atualizarCampoCondicoesSocioeconomicas<K extends keyof DadosCondicoesSocioeconomicasConsulta>(
@@ -3259,6 +3347,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     }
 
     atualizarStatusCondicoesSocioeconomicas()
+    marcarSecaoAlterada('socioeconomico')
   }
 
 
@@ -3287,6 +3376,7 @@ export const useConsultaStore = defineStore('consulta', () => {
       atualizadoEm: new Date().toISOString(),
     }
     atualizarStatusDiagnostico()
+    marcarSecaoAlterada('diagnostico')
   }
 
 
@@ -3317,6 +3407,7 @@ export const useConsultaStore = defineStore('consulta', () => {
       atualizadoEm: new Date().toISOString(),
     }
     atualizarStatusHipotesesCondutas()
+    marcarSecaoAlterada('condutasHipoteses')
   }
 
   function atualizarCampoHipotesesCondutas<K extends keyof DadosHipotesesCondutasConsulta>(
@@ -3329,6 +3420,7 @@ export const useConsultaStore = defineStore('consulta', () => {
       atualizadoEm: new Date().toISOString(),
     }
     atualizarStatusHipotesesCondutas()
+    marcarSecaoAlterada('condutasHipoteses')
   }
 
 
@@ -3367,6 +3459,7 @@ export const useConsultaStore = defineStore('consulta', () => {
       atualizadoEm: new Date().toISOString(),
     }
     atualizarStatusProcedimentos()
+    marcarSecaoAlterada('procedimentos')
   }
 
   function atualizarRealizadosProcedimentos(valor: boolean) {
@@ -3379,6 +3472,7 @@ export const useConsultaStore = defineStore('consulta', () => {
       atualizadoEm: new Date().toISOString(),
     }
     atualizarStatusProcedimentos()
+    marcarSecaoAlterada('procedimentos')
   }
 
   function adicionarProcedimento() {
@@ -3389,6 +3483,7 @@ export const useConsultaStore = defineStore('consulta', () => {
       atualizadoEm: new Date().toISOString(),
     }
     atualizarStatusProcedimentos()
+    marcarSecaoAlterada('procedimentos')
   }
 
   function removerProcedimento(localId: string) {
@@ -3400,6 +3495,7 @@ export const useConsultaStore = defineStore('consulta', () => {
       atualizadoEm: new Date().toISOString(),
     }
     atualizarStatusProcedimentos()
+    marcarSecaoAlterada('procedimentos')
   }
 
   function atualizarCampoProcedimento<K extends keyof ProcedimentoConsulta>(
@@ -3416,6 +3512,7 @@ export const useConsultaStore = defineStore('consulta', () => {
       atualizadoEm: new Date().toISOString(),
     }
     atualizarStatusProcedimentos()
+    marcarSecaoAlterada('procedimentos')
   }
 
 
@@ -3445,6 +3542,7 @@ export const useConsultaStore = defineStore('consulta', () => {
       atualizadoEm: new Date().toISOString(),
     }
     atualizarStatusEscolaridade()
+    marcarSecaoAlterada('escolaridade')
   }
 
   function atualizarCampoEscolaridade<K extends keyof DadosEscolaridadeConsulta>(
@@ -3457,6 +3555,7 @@ export const useConsultaStore = defineStore('consulta', () => {
       atualizadoEm: new Date().toISOString(),
     }
     atualizarStatusEscolaridade()
+    marcarSecaoAlterada('escolaridade')
   }
 
   function resetConsulta() {
@@ -3533,6 +3632,7 @@ export const useConsultaStore = defineStore('consulta', () => {
     consultaAtivaId,
     currentPacienteId,
     salvandoAtendimento,
+    secoesAlteradas,
     antropometria,
     anamnese,
     imunizacoes,
@@ -3599,7 +3699,10 @@ export const useConsultaStore = defineStore('consulta', () => {
     carregarHistoricoImunizacoes,
     carregarCadernetaDigital,
     salvarMarcosDesenvolvimento,
+    salvarSecoesAlteradas,
+    salvarAtendimentoCompleto,
     salvarRascunhoSecaoAtiva,
+    atualizarAntropometria,
     salvarAntropometria,
     salvarAnamnese,
     salvarImunizacoes,

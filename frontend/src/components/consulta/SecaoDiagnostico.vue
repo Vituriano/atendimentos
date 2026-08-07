@@ -74,15 +74,6 @@
             {{ consulta.erroSalvamentoDiagnostico }}
           </p>
         </div>
-        <button
-          v-if="false"
-          class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
-          type="button"
-          :disabled="consulta.salvandoDiagnostico"
-          @click="salvar"
-        >
-          {{ consulta.salvandoDiagnostico ? 'Salvando...' : 'Salvar seção' }}
-        </button>
       </div>
     </div>
   </section>
@@ -193,9 +184,4 @@ onBeforeUnmount(() => {
   document.removeEventListener('mousedown', aoClicarFora)
 })
 
-async function salvar() {
-  mensagemSucesso.value = ''
-  await consulta.salvarDiagnostico()
-  mensagemSucesso.value = 'Diagnóstico salvo no banco.'
-}
 </script>

@@ -210,16 +210,19 @@ watch(
   }
 )
 
-// Salvamento automático: não existe mais botão manual, avanço de seção ou
-// timer periódico disparando o save — qualquer alteração em qualquer campo da
-// consulta ativa já é persistida sozinha, pouco depois de o médico parar de
-// digitar. `consulta.$subscribe` do Pinia dispara a cada mutação de estado da
-// store (qualquer atualizarCampoX de qualquer seção), então não é preciso
-// instrumentar cada função de seção uma por uma para saber "algo mudou".
+// Salvamento automático: não existe botão manual, avanço de seção ou timer
+// periódico disparando o save — qualquer alteração em qualquer campo da
+// consulta ativa é persistida sozinha, pouco depois de o médico parar de
+// digitar. O gatilho é consulta.secoesAlteradas (Set de seções com edição
+// pendente, marcado pelas próprias ações de cada seção no store) — carregar
+// dados do servidor nunca mexe nesse Set, então isso nunca dispara sozinho.
+// Watch na referência do Set (não no .size): marcarSecaoAlterada sempre
+// reatribui um Set novo, então cada edição real — mesmo numa seção que já
+// estava suja — troca a referência e reagenda o debounce; um watch só no
+// tamanho perderia edições consecutivas na mesma seção (o tamanho não muda).
 const SALVAMENTO_DEBOUNCE_MS = 1_500
 
 let debounceSalvamentoId: ReturnType<typeof setTimeout> | null = null
-let unsubscribeConsulta: (() => void) | null = null
 
 function agendarSalvamentoAutomatico() {
   if (mostrarResumo.value) return
@@ -251,21 +254,19 @@ async function executarSalvamentoAutomatico() {
   }
 }
 
-onMounted(() => {
-  unsubscribeConsulta = consulta.$subscribe(() => {
-    agendarSalvamentoAutomatico()
-  })
-})
+const pararDeObservarSecoesAlteradas = watch(
+  () => consulta.secoesAlteradas,
+  (secoesAlteradas) => {
+    if (secoesAlteradas.size > 0) agendarSalvamentoAutomatico()
+  }
+)
 
 onUnmounted(() => {
   if (debounceSalvamentoId !== null) {
     clearTimeout(debounceSalvamentoId)
     debounceSalvamentoId = null
   }
-  if (unsubscribeConsulta !== null) {
-    unsubscribeConsulta()
-    unsubscribeConsulta = null
-  }
+  pararDeObservarSecoesAlteradas()
 })
 
 function calcularDuracaoMinutos(): number {
@@ -309,17 +310,29 @@ function gerarTextos() {
   )
 }
 
-function confirmarComAGHU() {
-  mostrarDialogFinalizacao.value = false
+async function confirmarComAGHU() {
+  // Lê o store pro texto do AGHU antes do finalizarConsulta() resetá-lo (só
+  // reseta depois do POST de finalizar ter sucesso) — textoAGHU/
+  // textosEncaminhamento são refs locais deste componente, sobrevivem ao reset.
   gerarTextos()
+  try {
+    await consulta.finalizarConsulta()
+  } catch {
+    return // erro fica em consulta.erroFinalizarConsulta, exibido no diálogo
+  }
+  mostrarDialogFinalizacao.value = false
   if (pacienteAtivo.value) filaStore.concluirConsulta(pacienteAtivo.value.id)
   mostrarResumo.value = true
 }
 
-function confirmarSemAGHU() {
+async function confirmarSemAGHU() {
+  try {
+    await consulta.finalizarConsulta()
+  } catch {
+    return
+  }
   mostrarDialogFinalizacao.value = false
   if (pacienteAtivo.value) filaStore.concluirConsulta(pacienteAtivo.value.id)
-  consulta.resetConsulta()
   pacienteStore.limparPaciente()
   router.push('/fila')
 }

@@ -55,15 +55,6 @@
             {{ consulta.erroSalvamentoHipotesesCondutas }}
           </p>
         </div>
-        <button
-          v-if="false"
-          class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
-          type="button"
-          :disabled="consulta.salvandoHipotesesCondutas"
-          @click="salvar"
-        >
-          {{ consulta.salvandoHipotesesCondutas ? 'Salvando...' : 'Salvar seção' }}
-        </button>
       </div>
     </div>
   </section>
@@ -85,9 +76,4 @@ const possuiConteudoRegistrado = computed(() => (
 
 const secaoCompleta = computed(() => consulta.completedSections.has('condutasHipoteses'))
 
-async function salvar() {
-  mensagemSucesso.value = ''
-  await consulta.salvarHipotesesCondutas()
-  mensagemSucesso.value = 'Hipóteses e condutas salvas no banco.'
-}
 </script>

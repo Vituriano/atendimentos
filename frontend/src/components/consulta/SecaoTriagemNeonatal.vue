@@ -139,14 +139,6 @@
         <p v-if="consulta.erroSalvamentoTriagemNeonatal" class="mt-1 text-sm text-red-600">{{ consulta.erroSalvamentoTriagemNeonatal }}</p>
         <p v-if="mensagemSucesso" class="mt-1 text-sm text-teal-700">{{ mensagemSucesso }}</p>
       </div>
-      <button
-        v-if="false"
-        class="rounded-lg bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
-        :disabled="consulta.salvandoTriagemNeonatal"
-        @click="salvar"
-      >
-        {{ consulta.salvandoTriagemNeonatal ? 'Salvando...' : 'Salvar seção' }}
-      </button>
     </section>
   </div>
 </template>
@@ -267,9 +259,4 @@ function classeBadge(resultado: ResultadoTriagemNeonatal): string {
   return 'bg-slate-100 text-slate-600'
 }
 
-async function salvar() {
-  mensagemSucesso.value = ''
-  await consulta.salvarTriagemNeonatal()
-  mensagemSucesso.value = 'Triagem neonatal salva no banco.'
-}
 </script>
