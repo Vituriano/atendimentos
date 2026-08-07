@@ -1,0 +1,15 @@
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ccfbf1", "primaryTextColor": "#134e4a", "primaryBorderColor": "#0d9488", "secondaryColor": "#99f6e4", "tertiaryColor": "#f1f5f9", "critBorderColor": "#b45309", "critBkgColor": "#f59e0b", "doneBkgColor": "#0f766e", "doneBorderColor": "#134e4a", "activeBkgColor": "#5eead4", "activeBorderColor": "#0f766e", "taskBkgColor": "#ccfbf1", "taskBorderColor": "#0d9488", "taskTextColor": "#134e4a", "taskTextOutsideColor": "#1e293b", "sectionBkgColor": "#f8fafc", "sectionBkgColor2": "#f1f5f9", "gridColor": "#e2e8f0", "todayLineColor": "#0d9488", "fontFamily": "\"Baloo 2\", sans-serif"}, "gantt": {"barHeight": 42, "barGap": 14, "topPadding": 65, "titleTopMargin": 40, "leftPadding": 230, "fontSize": 15, "sectionFontSize": 15}, "themeCSS": ".titleText { font-family: \"Baloo 2\", sans-serif; font-size: 50px !important; } text { font-family: \"Baloo 2\", sans-serif !important; }"}}%%
+gantt
+    title Roadmap (2/2)
+    dateFormat YYYY-MM-DD
+    axisFormat %d/%m
+    todayMarker off
+
+    section Qualidade
+    Cobertura de testes automatizados (backend e frontend)  :r1, 2026-07-24, 4d
+    Validacao com usuario final (checkpoint 4)               :crit, v4, after r1, 1d
+
+    section Fechamento
+    Documentacao e ajustes finais                             :f1, after v4, 3d
+    Buffer de seguranca                                       :active, f2, after f1, 2d
+    Ensaio de apresentacao                                    :crit, f3, 2026-08-05, 3d
