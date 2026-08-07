@@ -136,15 +136,6 @@
             {{ consulta.erroSalvamentoEncaminhamentos }}
           </p>
         </div>
-        <button
-          v-if="false"
-          type="button"
-          class="rounded-lg bg-teal-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
-          :disabled="consulta.salvandoEncaminhamentos"
-          @click="salvar"
-        >
-          {{ consulta.salvandoEncaminhamentos ? 'Salvando...' : 'Salvar seção' }}
-        </button>
       </div>
     </div>
   </div>
@@ -225,7 +216,4 @@ function badgePrioridadeClass(prioridade: PrioridadeEncaminhamento) {
   return 'bg-emerald-100 text-emerald-700'
 }
 
-async function salvar() {
-  await consulta.salvarEncaminhamentos()
-}
 </script>

@@ -159,22 +159,26 @@ const podeConfirmar = computed(() => secoesObrigatoriasVazias.value.length === 0
 
       <!-- Ações -->
       <div class="p-5 border-t border-slate-200 space-y-2">
+        <p v-if="consulta.erroFinalizarConsulta" class="text-xs text-red-600">
+          {{ consulta.erroFinalizarConsulta }}
+        </p>
         <button
           class="w-full rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          :disabled="!podeConfirmar"
+          :disabled="!podeConfirmar || consulta.finalizandoConsulta"
           @click="emit('confirm-with-aghu')"
         >
-          Copiar para AGHU e Finalizar
+          {{ consulta.finalizandoConsulta ? 'Finalizando...' : 'Copiar para AGHU e Finalizar' }}
         </button>
         <button
           class="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          :disabled="!podeConfirmar"
+          :disabled="!podeConfirmar || consulta.finalizandoConsulta"
           @click="emit('confirm-without-aghu')"
         >
-          Finalizar sem copiar para AGHU
+          {{ consulta.finalizandoConsulta ? 'Finalizando...' : 'Finalizar sem copiar para AGHU' }}
         </button>
         <button
           class="w-full rounded-lg px-4 py-2 text-sm text-slate-500 hover:text-slate-700 transition-colors"
+          :disabled="consulta.finalizandoConsulta"
           @click="emit('cancel')"
         >
           Cancelar

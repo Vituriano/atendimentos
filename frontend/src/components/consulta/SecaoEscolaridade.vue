@@ -92,15 +92,6 @@
             {{ consulta.erroSalvamentoEscolaridade }}
           </p>
         </div>
-        <button
-          v-if="false"
-          type="button"
-          class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
-          :disabled="consulta.salvandoEscolaridade"
-          @click="salvar"
-        >
-          {{ consulta.salvandoEscolaridade ? 'Salvando...' : 'Salvar seção' }}
-        </button>
       </div>
     </div>
   </section>
@@ -123,7 +114,4 @@ const mensagemStatus = computed(() => {
   return 'Responda se a criança frequenta escola ou creche para completar a seção.'
 })
 
-async function salvar() {
-  await consulta.salvarEscolaridade()
-}
 </script>

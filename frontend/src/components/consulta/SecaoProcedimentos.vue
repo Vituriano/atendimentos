@@ -150,15 +150,6 @@
             {{ consulta.erroSalvamentoProcedimentos }}
           </p>
         </div>
-        <button
-          v-if="false"
-          type="button"
-          class="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
-          :disabled="consulta.salvandoProcedimentos"
-          @click="salvar"
-        >
-          {{ consulta.salvandoProcedimentos ? 'Salvando...' : 'Salvar seção' }}
-        </button>
       </div>
     </div>
   </section>
@@ -254,7 +245,4 @@ function resumoProcedimento(item: ProcedimentoConsulta): string {
   return item.quantidade && item.quantidade > 0 ? `${nome} — ${item.quantidade}x` : nome
 }
 
-async function salvar() {
-  await consulta.salvarProcedimentos()
-}
 </script>
